@@ -116,4 +116,7 @@ export const AMENITY_LABELS: Record<string, string> = {
   pool: "Swimming pool", breakfast: "Breakfast", gym: "Gym", parking: "Parking",
   seated: "Seated", recliner: "Recliner", hotel: "Hotel stay", transport: "Transport",
   meals: "Meals", guide: "Tour guide", visa: "Visa included", ziarat: "Ziarat tours",
+  charging: "Charging point", blanket: "Blanket", tv: "TV / screen", kitchen: "Kitchen",
+  bbq: "BBQ area", security: "Security", generator: "Backup power", lawn: "Lawn / garden",
+  lockers: "Lockers", foodcourt: "Food court", kidsarea: "Kids area", firstaid: "First aid",
 };

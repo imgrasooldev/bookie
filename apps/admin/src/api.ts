@@ -7,11 +7,11 @@ import { authHeaders, setSession, type OperatorAccount, type Role } from "./auth
 const API_URL = (import.meta.env.VITE_API_URL as string) ?? "http://localhost:4000";
 
 const SERVICE: Record<CategoryKey, string> = {
-  BUS: "BUS", FLIGHT: "FLIGHT", TRAIN: "TRAIN", CITY_RIDE: "CAR",
+  BUS: "BUS", FLIGHT: "FLIGHT", TRAIN: "TRAIN", CAR: "CAR",
   HOTEL: "HOTEL", FARMHOUSE: "FARMHOUSE", HUT: "HUT", WATERPARK: "WATERPARK",
 };
 const CATEGORY: Record<string, CategoryKey> = {
-  BUS: "BUS", FLIGHT: "FLIGHT", TRAIN: "TRAIN", CAR: "CITY_RIDE",
+  BUS: "BUS", FLIGHT: "FLIGHT", TRAIN: "TRAIN", CAR: "CAR",
   HOTEL: "HOTEL", FARMHOUSE: "FARMHOUSE", HUT: "HUT", WATERPARK: "WATERPARK",
 };
 
@@ -100,6 +100,7 @@ type TripJson = {
   price: number; priceUnit: string; seatsAvailable?: number; location?: string; status?: string;
   bookedSeats?: string[]; reservedUnits?: number; blockedDates?: string[];
   serviceScope?: "intracity" | "intercity" | "both" | null; approved?: boolean;
+  amenities?: string[];
 };
 
 function toSchedule(t: TripJson): Schedule | null {
@@ -120,7 +121,7 @@ function toSchedule(t: TripJson): Schedule | null {
     status: t.status === "hidden" ? "paused" : "active",
     bookedSeats: t.bookedSeats ?? [], reservedUnits: reserved,
     blockedDates: t.blockedDates ?? [], serviceScope: t.serviceScope ?? null,
-    approved: t.approved ?? false,
+    approved: t.approved ?? false, amenities: t.amenities ?? [],
   };
 }
 
@@ -192,6 +193,7 @@ export async function createTrip(s: Schedule): Promise<SaveResult> {
     destinationCode: code(s.to),
     departAt, arriveAt, durationMin,
     price: s.price, priceUnit, seatsAvailable: s.capacity, location: s.location,
+    amenities: s.amenities ?? [],
   });
 }
 

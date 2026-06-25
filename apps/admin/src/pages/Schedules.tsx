@@ -4,6 +4,8 @@ import {
   vehicles,
   categoryOf,
   capacityOf,
+  facilitiesFor,
+  FACILITY_LABEL,
   DAYS,
   formatPKR,
   type Schedule,
@@ -283,9 +285,23 @@ function AvailabilityModal({
     onSave(schedule.id, patch);
   }
 
+  const isCar = schedule.category === "CAR";
   const seats = Array.from({ length: total }, (_, i) => String(i + 1));
+  const carLabels = ["F", ...Array.from({ length: Math.max(0, total - 1) }, (_, i) => "B" + (i + 1))];
   const toggleSeat = (n: string) =>
     setBooked((b) => (b.includes(n) ? b.filter((x) => x !== n) : [...b, n]));
+  const seatBtn = (label: string) => {
+    const on = booked.includes(label);
+    return (
+      <button
+        key={label}
+        onClick={() => toggleSeat(label)}
+        className={`grid h-10 w-10 place-items-center rounded-lg text-xs font-bold transition ${on ? "bg-red-500 text-white" : "bg-white text-brand-700 ring-1 ring-brand-200 hover:bg-brand-50"}`}
+      >
+        {label}
+      </button>
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
@@ -305,21 +321,25 @@ function AvailabilityModal({
                 <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-white ring-1 ring-brand-200" /> Available {total - booked.length}</span>
                 <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-red-500" /> Booked {booked.length}</span>
               </div>
-              <p className="mb-2 text-xs text-muted">Tap a seat to mark it booked (e.g. sold at the counter) or free it.</p>
-              <div className="flex flex-wrap gap-1.5">
-                {seats.map((n) => {
-                  const on = booked.includes(n);
-                  return (
-                    <button
-                      key={n}
-                      onClick={() => toggleSeat(n)}
-                      className={`h-9 w-9 rounded-md text-xs font-semibold transition ${on ? "bg-red-500 text-white" : "bg-white text-brand-700 ring-1 ring-brand-200 hover:bg-brand-50"}`}
-                    >
-                      {n}
-                    </button>
-                  );
-                })}
-              </div>
+              <p className="mb-2 text-xs text-muted">
+                {isCar ? "Tap a seat to mark it booked. Customers can book a single seat or the whole car." : "Tap a seat to mark it booked (e.g. sold at the counter) or free it."}
+              </p>
+              {isCar ? (
+                <div className="mx-auto w-44 rounded-2xl border-2 border-slate-200 bg-slate-50 p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="grid h-10 w-10 place-items-center rounded-full border-2 border-slate-300 text-slate-400" title="Driver">⊙</span>
+                    {seatBtn("F")}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {carLabels.slice(1).map((l) => seatBtn(l))}
+                  </div>
+                  <div className="mt-2 text-center text-[10px] uppercase tracking-wide text-muted">Driver · Front · Back</div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {seats.map((n) => seatBtn(n))}
+                </div>
+              )}
             </>
           )}
 
@@ -366,8 +386,9 @@ function AvailabilityModal({
             </>
           )}
 
-          {isRide && (
+          {(isRide || isCar) && (
             <>
+              {isCar && <div className="my-4 border-t border-slate-100" />}
               <div className="text-sm font-medium text-ink">This car is available for</div>
               <div className="mt-2 grid grid-cols-3 gap-2">
                 {([
@@ -484,7 +505,9 @@ function AddSchedule({
   const [days, setDays] = useState<string[]>([...DAYS]);
   const [vehicle, setVehicle] = useState(vehicles[0]?.id ?? "");
   const [price, setPrice] = useState("");
-  const [capacity, setCapacity] = useState("");
+  const [capacity, setCapacity] = useState(category === "CAR" ? "4" : "");
+  const [amenities, setAmenities] = useState<string[]>([]);
+  const facilities = facilitiesFor(category);
 
   const busVehicle = vehicles.find((v) => v.id === vehicle);
   const seats = isBus && busVehicle ? capacityOf(busVehicle) : Number(capacity) || 0;
@@ -511,6 +534,7 @@ function AddSchedule({
       price: Number(price),
       unit: isStay ? "night" : isVenue ? "ticket" : kind === "ride" ? "trip" : "seat",
       capacity: seats || undefined,
+      amenities,
       status: "active",
     });
   }
@@ -576,6 +600,27 @@ function AddSchedule({
                       className={`h-9 w-12 rounded-lg text-xs font-semibold ring-1 transition ${on ? "bg-brand-600 text-white ring-brand-600" : "text-muted ring-slate-200 hover:bg-slate-50"}`}
                     >
                       {d}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {facilities.length > 0 && (
+            <div>
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Facilities</span>
+              <div className="flex flex-wrap gap-2">
+                {facilities.map((a) => {
+                  const on = amenities.includes(a);
+                  return (
+                    <button
+                      key={a}
+                      type="button"
+                      onClick={() => setAmenities((l) => (on ? l.filter((x) => x !== a) : [...l, a]))}
+                      className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 transition ${on ? "bg-brand-50 text-brand-700 ring-brand-300" : "text-muted ring-slate-200 hover:bg-slate-50"}`}
+                    >
+                      {FACILITY_LABEL[a] ?? a}
                     </button>
                   );
                 })}

@@ -11,7 +11,7 @@ export function Login() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [reg, setReg] = useState({ businessName: "", name: "", phone: "", email: "", password: "", category: "BUS" });
-  const CATEGORIES = ["BUS", "CAR", "FLIGHT", "TRAIN", "HOTEL", "FARMHOUSE", "HUT", "WATERPARK", "TOUR", "PICNIC"];
+  const CATEGORIES = ["BUS", "CAR", "FLIGHT", "TRAIN", "HOTEL", "FARMHOUSE", "HUT", "WATERPARK"];
 
   const inp = "w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500";
 

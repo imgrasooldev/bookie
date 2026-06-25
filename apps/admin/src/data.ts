@@ -95,7 +95,7 @@ export type CategoryKey =
   | "BUS"
   | "FLIGHT"
   | "TRAIN"
-  | "CITY_RIDE"
+  | "CAR"
   | "HOTEL"
   | "FARMHOUSE"
   | "HUT"
@@ -115,7 +115,7 @@ export const CATEGORIES: Category[] = [
   { key: "BUS", label: "Bus", kind: "transport", icon: "🚌", color: "#155cc9" },
   { key: "FLIGHT", label: "Flight", kind: "transport", icon: "✈️", color: "#7c3aed" },
   { key: "TRAIN", label: "Train", kind: "transport", icon: "🚆", color: "#0e7490" },
-  { key: "CITY_RIDE", label: "City Ride", kind: "ride", icon: "🚗", color: "#0891b2" },
+  { key: "CAR", label: "Car", kind: "transport", icon: "🚗", color: "#0891b2" },
   { key: "HOTEL", label: "Hotel", kind: "stay", icon: "🏨", color: "#be185d" },
   { key: "FARMHOUSE", label: "Farm House", kind: "stay", icon: "🏡", color: "#15803d" },
   { key: "HUT", label: "Hut", kind: "stay", icon: "🛖", color: "#b45309" },
@@ -181,12 +181,45 @@ export interface Schedule {
   unit: "seat" | "night" | "trip" | "ticket";
   capacity?: number; // total seats / units / daily tickets
   status: "active" | "paused";
+  amenities?: string[];
   // availability
   bookedSeats?: string[];
   reservedUnits?: number;
   blockedDates?: string[];
   serviceScope?: "intracity" | "intercity" | "both" | null;
   approved?: boolean;
+}
+
+/* ---- facilities per category (bespoke operator screens) ---- */
+
+export const FACILITY_LABEL: Record<string, string> = {
+  ac: "Air-conditioned", wifi: "Wi-Fi", usb: "USB charging", meal: "Onboard meal",
+  water: "Water", charging: "Charging point", blanket: "Blanket", tv: "TV / screen",
+  recliner: "Recliner seats", music: "Music system", tracking: "Live tracking",
+  pool: "Swimming pool", parking: "Parking", kitchen: "Kitchen", bbq: "BBQ area",
+  security: "Security", generator: "Backup power", lawn: "Lawn / garden",
+  lockers: "Lockers", foodcourt: "Food court", kidsarea: "Kids area", firstaid: "First aid",
+  guide: "Tour guide", hotel: "Hotel stay", meals: "Meals", visa: "Visa", transport: "Transport",
+};
+
+export function facilitiesFor(category: CategoryKey): string[] {
+  switch (category) {
+    case "BUS":
+    case "TRAIN":
+    case "FLIGHT":
+      return ["ac", "wifi", "usb", "meal", "water", "blanket", "tv", "recliner"];
+    case "CAR":
+      return ["ac", "music", "tracking", "charging", "water"];
+    case "HOTEL":
+      return ["wifi", "pool", "ac", "parking", "kitchen", "security", "generator"];
+    case "FARMHOUSE":
+    case "HUT":
+      return ["pool", "ac", "parking", "kitchen", "bbq", "security", "generator", "lawn"];
+    case "WATERPARK":
+      return ["parking", "lockers", "foodcourt", "kidsarea", "firstaid"];
+    default:
+      return ["ac", "wifi"];
+  }
 }
 
 export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -199,6 +232,6 @@ export const schedules: Schedule[] = [
   { id: "s5", category: "HOTEL", operator: "Pearl Continental", title: "Pearl Continental Lahore", location: "Mall Road, Lahore", price: 28000, unit: "night", capacity: 40, status: "active" },
   { id: "s6", category: "FARMHOUSE", operator: "Bookie Stays", title: "Bedian Road Farm House", location: "Bedian Road, Lahore", price: 35000, unit: "night", capacity: 3, status: "active" },
   { id: "s7", category: "HUT", operator: "Bookie Stays", title: "Lakeview Hut — Naran", location: "Saif-ul-Malook, Naran", price: 9000, unit: "night", capacity: 6, status: "active" },
-  { id: "s8", category: "CITY_RIDE", operator: "Bookie Fleet", title: "City Ride — Sedan", location: "Lahore", price: 850, unit: "trip", capacity: 20, status: "active" },
+  { id: "s8", category: "CAR", operator: "Bookie Fleet", title: "Karachi → Larkana", from: "Karachi", to: "Larkana", departTime: "08:00", arriveTime: "12:00", days: ["Mon", "Wed", "Fri"], price: 1500, unit: "seat", capacity: 4, status: "active" },
   { id: "s9", category: "WATERPARK", operator: "Bookie Leisure", title: "Sozo Water Park — Day Pass", location: "Canal Road, Lahore", days: ["Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], price: 1500, unit: "ticket", capacity: 800, status: "active" },
 ];

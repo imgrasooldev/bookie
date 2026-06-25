@@ -17,17 +17,18 @@
   --color-accent-500: #f97316;
   --color-accent-600: #ea580c;
 
-  --color-ink: #0b1524;
-  --color-muted: #5b6b82;
+  --color-ink: #0a1222;
+  --color-muted: #64748b;
   --color-surface: #ffffff;
-  --color-canvas: #f4f7fc;
+  --color-canvas: #fbfcfe;
 
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
   --font-display: var(--font-display), var(--font-geist-sans), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
 
-  --shadow-soft: 0 1px 2px rgba(13, 38, 76, 0.04), 0 10px 30px -12px rgba(13, 38, 76, 0.18);
-  --shadow-lift: 0 2px 6px rgba(13, 38, 76, 0.06), 0 26px 50px -18px rgba(13, 38, 76, 0.28);
+  --shadow-soft: 0 1px 1px rgba(10, 18, 34, 0.04), 0 4px 16px -6px rgba(10, 18, 34, 0.10);
+  --shadow-lift: 0 2px 4px rgba(10, 18, 34, 0.05), 0 20px 40px -16px rgba(10, 18, 34, 0.20);
+  --hairline: rgba(10, 18, 34, 0.08);
 }
 
 html {
@@ -43,12 +44,6 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   background-color: var(--color-canvas);
-  background-image:
-    radial-gradient(45rem 45rem at 105% -10%, rgba(249, 115, 22, 0.09), transparent 60%),
-    radial-gradient(40rem 40rem at -10% -5%, rgba(21, 92, 201, 0.12), transparent 55%),
-    radial-gradient(30rem 30rem at 50% 110%, rgba(35, 113, 230, 0.07), transparent 60%);
-  background-attachment: fixed;
-  background-repeat: no-repeat;
 }
 
 .font-display {
@@ -101,9 +96,20 @@ body {
 
 .card-soft {
   background: #fff;
-  border: 1px solid #e7eef7;
+  border: 1px solid var(--hairline);
   box-shadow: var(--shadow-soft);
   border-radius: 1.1rem;
+}
+
+/* image hover-zoom container */
+.img-zoom {
+  overflow: hidden;
+}
+.img-zoom img {
+  transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.img-zoom:hover img {
+  transform: scale(1.06);
 }
 
 .lift {

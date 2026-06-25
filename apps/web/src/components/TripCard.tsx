@@ -1,5 +1,7 @@
 import Link from "next/link";
+import Image from "next/image";
 import { AMENITY_LABELS } from "@/lib/mock";
+import { TRIP_IMAGES } from "@/lib/images";
 import { formatDate, formatDuration, formatPKR, formatTime } from "@/lib/format";
 import type { Trip } from "@/lib/types";
 import { AMENITY_ICONS, StarIcon, ArrowRightIcon, TrackIcon, ClockIcon } from "@/components/icons";
@@ -33,12 +35,24 @@ export function TripCard({ trip }: { trip: Trip }) {
     <div className="card-soft lift overflow-hidden">
       <div className="flex flex-col gap-5 p-5 md:flex-row md:items-center">
         <div className="flex flex-1 items-start gap-4">
-          <div
-            className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-sm font-bold text-white shadow-sm"
-            style={{ backgroundColor: trip.operator.logoColor }}
-          >
-            {trip.operator.name.slice(0, 2).toUpperCase()}
-          </div>
+          {TRIP_IMAGES[trip.id] ? (
+            <div className="img-zoom relative h-20 w-24 shrink-0 overflow-hidden rounded-xl sm:h-24 sm:w-28">
+              <Image
+                src={TRIP_IMAGES[trip.id]}
+                alt={trip.title}
+                fill
+                sizes="120px"
+                className="object-cover"
+              />
+            </div>
+          ) : (
+            <div
+              className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-sm font-bold text-white shadow-sm"
+              style={{ backgroundColor: trip.operator.logoColor }}
+            >
+              {trip.operator.name.slice(0, 2).toUpperCase()}
+            </div>
+          )}
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">

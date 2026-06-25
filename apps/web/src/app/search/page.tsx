@@ -64,9 +64,9 @@ export default async function SearchPage({
 
   return (
     <div>
-      {/* search bar on brand band */}
-      <div className="hero-grid">
-        <div className="mx-auto max-w-6xl px-4 py-6">
+      {/* search bar */}
+      <div className="border-b border-[var(--hairline)] bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-5">
           <SearchPanel initialType={type} />
         </div>
       </div>

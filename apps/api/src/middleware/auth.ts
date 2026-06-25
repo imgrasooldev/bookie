@@ -6,6 +6,7 @@ import { HttpError } from "./error.js";
 export interface AuthPayload {
   sub: string;
   roles: string[];
+  operatorId?: string;
 }
 
 declare global {
@@ -31,6 +32,23 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
     req.user = jwt.verify(header.slice(7), env.jwtSecret) as AuthPayload;
     next();
   } catch {
+    throw new HttpError(401, "Invalid or expired token");
+  }
+}
+
+/** Require a logged-in operator (or admin). Exposes req.user.operatorId. */
+export function requireOperator(req: Request, _res: Response, next: NextFunction) {
+  const header = req.headers.authorization;
+  if (!header?.startsWith("Bearer ")) throw new HttpError(401, "Operator login required");
+  try {
+    const payload = jwt.verify(header.slice(7), env.jwtSecret) as AuthPayload;
+    if (!payload.operatorId && !payload.roles?.includes("admin")) {
+      throw new HttpError(403, "Not an operator account");
+    }
+    req.user = payload;
+    next();
+  } catch (e) {
+    if (e instanceof HttpError) throw e;
     throw new HttpError(401, "Invalid or expired token");
   }
 }

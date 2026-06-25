@@ -1,7 +1,8 @@
-// Admin → backend API. The operator console reads & writes real listings in
-// MongoDB so changes appear on the customer site. Falls back gracefully.
+// Admin → backend. All calls are scoped to the logged-in operator (Bearer JWT),
+// so an operator only sees & manages their own listings, bookings and stats.
 
 import type { CategoryKey, Schedule } from "./data";
+import { authHeaders, setSession, type OperatorAccount } from "./auth";
 
 const API_URL = (import.meta.env.VITE_API_URL as string) ?? "http://localhost:4000";
 
@@ -34,6 +35,35 @@ const hhmm = (iso?: string) =>
   iso ? new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : undefined;
 
 export interface SaveResult { ok: boolean; error?: string; id?: string }
+export type AuthResult = { ok: true; operator: OperatorAccount } | { ok: false; error: string };
+
+/* ---------------- auth ---------------- */
+
+export async function operatorLogin(i: { identifier: string; password: string }): Promise<AuthResult> {
+  return authCall("/operator/login", i);
+}
+export async function operatorRegister(i: {
+  businessName: string; name: string; phone: string; email?: string; password: string; type?: string;
+}): Promise<AuthResult> {
+  return authCall("/operator/register", i);
+}
+async function authCall(path: string, body: unknown): Promise<AuthResult> {
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: data.error ?? "Something went wrong." };
+    setSession(data.token, data.operator);
+    return { ok: true, operator: data.operator };
+  } catch {
+    return { ok: false, error: "Couldn't reach the server." };
+  }
+}
+
+/* ---------------- mapping ---------------- */
 
 type TripJson = {
   id: string; serviceType: string; operator: { name: string }; title: string;
@@ -43,7 +73,6 @@ type TripJson = {
   serviceScope?: "intracity" | "intercity" | "both" | null;
 };
 
-/** Map a backend trip to the console's Schedule shape. */
 function toSchedule(t: TripJson): Schedule | null {
   const category = CATEGORY[t.serviceType];
   if (!category) return null;
@@ -54,52 +83,42 @@ function toSchedule(t: TripJson): Schedule | null {
   const booked = t.bookedSeats?.length ?? 0;
   const reserved = t.reservedUnits ?? 0;
   return {
-    id: t.id,
-    category,
-    operator: t.operator?.name ?? "—",
-    title: t.title,
-    from: t.originId,
-    to: t.destinationId,
-    departTime: hhmm(t.departAt),
-    arriveTime: hhmm(t.arriveAt),
-    days: [],
-    location: t.location,
-    price: t.price,
-    unit,
-    // net seatsAvailable + taken = total capacity
+    id: t.id, category, operator: t.operator?.name ?? "—", title: t.title,
+    from: t.originId, to: t.destinationId,
+    departTime: hhmm(t.departAt), arriveTime: hhmm(t.arriveAt), days: [],
+    location: t.location, price: t.price, unit,
     capacity: t.seatsAvailable != null ? t.seatsAvailable + booked + reserved : undefined,
     status: t.status === "hidden" ? "paused" : "active",
-    bookedSeats: t.bookedSeats ?? [],
-    reservedUnits: reserved,
-    blockedDates: t.blockedDates ?? [],
-    serviceScope: t.serviceScope ?? null,
+    bookedSeats: t.bookedSeats ?? [], reservedUnits: reserved,
+    blockedDates: t.blockedDates ?? [], serviceScope: t.serviceScope ?? null,
   };
 }
 
-export async function setAvailability(
-  id: string,
-  patch: {
-    bookedSeats?: string[];
-    reservedUnits?: number;
-    blockedDates?: string[];
-    serviceScope?: "intracity" | "intercity" | "both";
-    status?: "active" | "hidden";
-  },
-): Promise<SaveResult> {
-  return post(`/trips/${id}`, "PATCH", patch);
-}
-
 async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`);
+  const res = await fetch(`${API_URL}${path}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json() as Promise<T>;
 }
+async function send(path: string, method: string, body?: unknown): Promise<SaveResult> {
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      method,
+      headers: { "content-type": "application/json", ...authHeaders() },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: data.error ?? `HTTP ${res.status}` };
+    return { ok: true, id: data.id };
+  } catch {
+    return { ok: false, error: "Couldn't reach the API." };
+  }
+}
 
-/* ---- reads ---- */
+/* ---------------- reads ---------------- */
 
 export async function listSchedules(): Promise<{ ok: boolean; data: Schedule[] }> {
   try {
-    const trips = await getJson<TripJson[]>("/admin/trips");
+    const trips = await getJson<TripJson[]>("/operator/trips");
     return { ok: true, data: trips.map(toSchedule).filter((x): x is Schedule => !!x) };
   } catch {
     return { ok: false, data: [] };
@@ -112,7 +131,7 @@ export interface AdminBooking {
 }
 export async function listBookings(): Promise<{ ok: boolean; data: AdminBooking[] }> {
   try {
-    return { ok: true, data: await getJson<AdminBooking[]>("/admin/bookings") };
+    return { ok: true, data: await getJson<AdminBooking[]>("/operator/bookings") };
   } catch {
     return { ok: false, data: [] };
   }
@@ -121,13 +140,13 @@ export async function listBookings(): Promise<{ ok: boolean; data: AdminBooking[
 export interface Stats { trips: number; activeTrips: number; bookings: number; operators: number; revenue: number }
 export async function getStats(): Promise<Stats | null> {
   try {
-    return await getJson<Stats>("/admin/stats");
+    return await getJson<Stats>("/operator/stats");
   } catch {
     return null;
   }
 }
 
-/* ---- writes ---- */
+/* ---------------- writes ---------------- */
 
 export async function createTrip(s: Schedule): Promise<SaveResult> {
   const departAt = at(s.departTime);
@@ -136,9 +155,8 @@ export async function createTrip(s: Schedule): Promise<SaveResult> {
     departAt && arriveAt ? Math.round((+new Date(arriveAt) - +new Date(departAt)) / 60000) : undefined;
   const priceUnit = s.unit === "seat" ? "per_seat" : s.unit === "night" ? "per_night" : "from";
 
-  return post("/trips", "POST", {
+  return send("/operator/trips", "POST", {
     serviceType: SERVICE[s.category],
-    operatorName: s.operator,
     title: s.title,
     originCode: code(s.from),
     destinationCode: code(s.to),
@@ -151,30 +169,19 @@ export async function updateTrip(
   id: string,
   patch: { price?: number; status?: "active" | "hidden"; departAt?: string; arriveAt?: string; seatsAvailable?: number; title?: string },
 ): Promise<SaveResult> {
-  return post(`/trips/${id}`, "PATCH", patch);
+  return send(`/operator/trips/${id}`, "PATCH", patch);
 }
 
 export async function deleteTrip(id: string): Promise<SaveResult> {
-  try {
-    const res = await fetch(`${API_URL}/trips/${id}`, { method: "DELETE" });
-    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
-    return { ok: true };
-  } catch {
-    return { ok: false, error: "Couldn't reach the API." };
-  }
+  return send(`/operator/trips/${id}`, "DELETE");
 }
 
-async function post(path: string, method: string, body: unknown): Promise<SaveResult> {
-  try {
-    const res = await fetch(`${API_URL}${path}`, {
-      method,
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) return { ok: false, error: data.error ?? `HTTP ${res.status}` };
-    return { ok: true, id: data.id };
-  } catch {
-    return { ok: false, error: "Couldn't reach the API." };
-  }
+export async function setAvailability(
+  id: string,
+  patch: {
+    bookedSeats?: string[]; reservedUnits?: number; blockedDates?: string[];
+    serviceScope?: "intracity" | "intercity" | "both"; status?: "active" | "hidden";
+  },
+): Promise<SaveResult> {
+  return send(`/operator/trips/${id}`, "PATCH", patch);
 }

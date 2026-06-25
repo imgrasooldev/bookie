@@ -6,6 +6,7 @@ import { env } from "./config/env.js";
 import { catalogRouter } from "./routes/catalog.routes.js";
 import { authRouter } from "./routes/auth.routes.js";
 import { bookingRouter } from "./routes/booking.routes.js";
+import { operatorRouter } from "./routes/operator.routes.js";
 import { errorHandler, notFound } from "./middleware/error.js";
 
 /** Build the Express app (no DB connection / no listen). */
@@ -21,6 +22,7 @@ export function createApp(): Express {
   app.use("/", catalogRouter);
   app.use("/auth", authRouter);
   app.use("/bookings", bookingRouter);
+  app.use("/operator", operatorRouter);
 
   app.use(notFound);
   app.use(errorHandler);

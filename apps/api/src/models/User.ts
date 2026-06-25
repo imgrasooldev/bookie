@@ -11,6 +11,7 @@ const userSchema = new Schema(
       enum: ["customer", "operator_admin", "driver", "admin"],
       default: ["customer"],
     },
+    operatorId: { type: Schema.Types.ObjectId, ref: "Operator" },
     phoneVerified: { type: Boolean, default: false },
   },
   { timestamps: true },

@@ -11,6 +11,7 @@ import {
   type CategoryKey,
 } from "../data";
 import { createTrip, listSchedules, updateTrip, deleteTrip, setAvailability } from "../api";
+import { getOperator } from "../auth";
 import { PageHeader } from "../components/ui";
 import { PlusIcon, ClockIcon, CalendarIcon, TrashIcon, PowerIcon } from "../icons";
 
@@ -483,7 +484,7 @@ function AddSchedule({
   const isTransport = kind === "transport";
   const isBus = category === "BUS";
 
-  const [operator, setOperator] = useState("");
+  const operator = getOperator()?.name ?? "";
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [title, setTitle] = useState("");
@@ -533,7 +534,7 @@ function AddSchedule({
         </div>
 
         <div className="space-y-4 p-6">
-          <L label="Operator"><input value={operator} onChange={(e) => setOperator(e.target.value)} placeholder="e.g. Daewoo Express" className={inp} /></L>
+          <L label="Operator"><input value={operator} readOnly className={`${inp} bg-slate-50`} /></L>
 
           {showName ? (
             <>

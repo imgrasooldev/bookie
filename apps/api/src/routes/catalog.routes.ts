@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { City } from "../models/City.js";
 import { Trip } from "../models/Trip.js";
+import "../models/Operator.js"; // register Operator model for populate("operator")
 import { VERTICALS, SERVICE_TYPES } from "../lib/verticals.js";
 import { serializeTrip } from "../lib/serialize.js";
 import { ah, HttpError } from "../middleware/error.js";

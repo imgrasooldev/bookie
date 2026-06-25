@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { TicketIcon } from "@/components/icons";
-import { AuthButton } from "@/components/AuthButton";
+import { AuthControls } from "@/components/AuthControls";
 import { MobileMenu } from "@/components/MobileMenu";
 
 const NAV = [
@@ -38,15 +38,7 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
-          <Link
-            href="/account"
-            className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-slate-100 sm:block lg:block"
-          >
-            My Account
-          </Link>
-          <AuthButton />
-        </div>
+        <AuthControls />
       </div>
     </header>
   );

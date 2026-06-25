@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { USER, BOOKINGS } from "@/lib/account";
 import { formatPKR } from "@/lib/format";
+import { Greeting } from "@/components/account/Greeting";
 import {
   WalletIcon,
   GiftIcon,
@@ -26,7 +27,7 @@ export default function AccountOverview() {
   return (
     <div>
       <h1 className="font-display text-2xl font-bold tracking-tight text-ink">
-        Welcome back, {USER.firstName} 👋
+        <Greeting />
       </h1>
       <p className="mt-0.5 text-sm text-muted">Here&apos;s what&apos;s happening with your account.</p>
 

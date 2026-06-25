@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { USER } from "@/lib/account";
+import { useAuth } from "@/context/AuthContext";
 import {
   GridIcon,
   TicketIcon,
@@ -31,26 +30,20 @@ const ITEMS = [
 
 export function AccountNav() {
   const path = usePathname();
+  const { user } = useAuth();
+  const name = user?.name ?? "Traveller";
+  const initials = name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 
   return (
     <div className="lg:sticky lg:top-20">
       {/* profile card (desktop) */}
       <div className="mb-4 hidden items-center gap-3 rounded-2xl border border-[var(--hairline)] bg-white p-4 lg:flex">
-        <Image
-          src={USER.avatar}
-          alt={USER.name}
-          width={48}
-          height={48}
-          className="h-12 w-12 rounded-full object-cover"
-        />
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand-600 text-sm font-bold text-white">
+          {initials}
+        </span>
         <div className="min-w-0">
-          <div className="truncate font-semibold text-ink">{USER.name}</div>
-          <div className="flex items-center gap-1 text-xs text-muted">
-            <span className="rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-700">
-              {USER.tier}
-            </span>
-            Member since {USER.memberSince}
-          </div>
+          <div className="truncate font-semibold text-ink">{name}</div>
+          <div className="truncate text-xs text-muted">{user?.email}</div>
         </div>
       </div>
 

@@ -1,0 +1,64 @@
+"use client";
+
+import { createContext, useContext, useEffect, useState } from "react";
+import {
+  currentUser,
+  login as doLogin,
+  logout as doLogout,
+  signup as doSignup,
+  type AuthResult,
+  type AuthUser,
+} from "@/lib/auth";
+
+interface Ctx {
+  user: AuthUser | null;
+  ready: boolean;
+  login: (i: { identifier: string; password: string }) => AuthResult;
+  signup: (i: { name: string; email: string; phone: string; password: string }) => AuthResult;
+  logout: () => void;
+}
+
+const AuthCtx = createContext<Ctx | null>(null);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  // user is null until hydrated from client-only storage after mount.
+  const [state, setState] = useState<{ user: AuthUser | null; ready: boolean }>({
+    user: null,
+    ready: false,
+  });
+
+  useEffect(() => {
+    // hydrate session from localStorage once on the client
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setState({ user: currentUser(), ready: true });
+  }, []);
+
+  const login: Ctx["login"] = (i) => {
+    const r = doLogin(i);
+    if (r.ok) setState({ user: r.user, ready: true });
+    return r;
+  };
+  const signup: Ctx["signup"] = (i) => {
+    const r = doSignup(i);
+    if (r.ok) setState({ user: r.user, ready: true });
+    return r;
+  };
+  const logout = () => {
+    doLogout();
+    setState({ user: null, ready: true });
+  };
+
+  return (
+    <AuthCtx.Provider
+      value={{ user: state.user, ready: state.ready, login, signup, logout }}
+    >
+      {children}
+    </AuthCtx.Provider>
+  );
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthCtx);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
+}

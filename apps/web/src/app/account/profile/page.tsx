@@ -1,22 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { USER } from "@/lib/account";
+import { useAuth } from "@/context/AuthContext";
 import { PageHeader, Field, SavedToast } from "@/components/account/ui";
 
 export default function ProfilePage() {
+  const { user } = useAuth();
+  const [first, ...rest] = (user?.name ?? "Ali Raza").split(" ");
   const [form, setForm] = useState({
-    firstName: "Ali",
-    lastName: "Raza",
-    email: USER.email,
-    phone: USER.phone,
+    firstName: first,
+    lastName: rest.join(" "),
+    email: user?.email ?? USER.email,
+    phone: user?.phone ?? USER.phone,
     cnic: USER.cnic,
     dob: USER.dob,
     gender: USER.gender,
     city: USER.city,
   });
   const [saved, setSaved] = useState(false);
+  const initials = `${form.firstName[0] ?? ""}${form.lastName[0] ?? ""}`.toUpperCase();
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm({ ...form, [k]: e.target.value });
@@ -32,7 +35,9 @@ export default function ProfilePage() {
 
       {/* avatar */}
       <div className="mb-5 flex items-center gap-4 rounded-2xl border border-[var(--hairline)] bg-white p-5">
-        <Image src={USER.avatar} alt={USER.name} width={64} height={64} className="h-16 w-16 rounded-full object-cover" />
+        <span className="grid h-16 w-16 place-items-center rounded-full bg-brand-600 text-lg font-bold text-white">
+          {initials}
+        </span>
         <div>
           <div className="font-display text-lg font-bold text-ink">{form.firstName} {form.lastName}</div>
           <div className="text-sm text-muted">{form.email}</div>

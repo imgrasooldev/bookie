@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
-/* Bookie theme — "Transit": travel sky-blue + signal-orange.
-   Blue = trust / travel / departures board. Orange = energy / go / CTAs. */
+/* Bookie theme — "Transit": travel sky-blue + signal-orange, modernized. */
 @theme {
   --color-brand-50: #eef4ff;
   --color-brand-100: #d9e6ff;
@@ -18,16 +17,17 @@
   --color-accent-500: #f97316;
   --color-accent-600: #ea580c;
 
-  --color-ink: #0f1b2d;
+  --color-ink: #0b1524;
   --color-muted: #5b6b82;
   --color-surface: #ffffff;
-  --color-canvas: #f3f7fc;
+  --color-canvas: #f4f7fc;
 
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-display: var(--font-display), var(--font-geist-sans), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
 
-  --shadow-soft: 0 1px 2px rgba(13, 38, 76, 0.05), 0 8px 24px rgba(13, 38, 76, 0.07);
-  --shadow-lift: 0 2px 4px rgba(13, 38, 76, 0.06), 0 18px 40px rgba(13, 38, 76, 0.14);
+  --shadow-soft: 0 1px 2px rgba(13, 38, 76, 0.04), 0 10px 30px -12px rgba(13, 38, 76, 0.18);
+  --shadow-lift: 0 2px 6px rgba(13, 38, 76, 0.06), 0 26px 50px -18px rgba(13, 38, 76, 0.28);
 }
 
 html {
@@ -39,20 +39,29 @@ body {
 }
 
 body {
-  background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  background-color: var(--color-canvas);
+  background-image:
+    radial-gradient(45rem 45rem at 105% -10%, rgba(249, 115, 22, 0.09), transparent 60%),
+    radial-gradient(40rem 40rem at -10% -5%, rgba(21, 92, 201, 0.12), transparent 55%),
+    radial-gradient(30rem 30rem at 50% 110%, rgba(35, 113, 230, 0.07), transparent 60%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
 }
 
-/* clear keyboard focus for everyone (accessibility) */
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
 :focus-visible {
   outline: 2px solid var(--color-brand-500);
   outline-offset: 2px;
   border-radius: 6px;
 }
 
-/* respect users who prefer less motion */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -65,13 +74,13 @@ body {
   }
 }
 
-/* ---- shared form control ---- */
+/* ---- form control ---- */
 .input {
   width: 100%;
-  border-radius: 0.75rem;
+  border-radius: 0.85rem;
   border: 1px solid #d7e0ec;
   background: #fff;
-  padding: 0.7rem 0.85rem;
+  padding: 0.75rem 0.9rem;
   font-size: 0.95rem;
   color: var(--color-ink);
   outline: none;
@@ -82,52 +91,108 @@ body {
   box-shadow: 0 0 0 3px var(--color-brand-100);
 }
 
-/* ---- utilities ---- */
-.gradient-text {
-  background: linear-gradient(90deg, #ffd9a8, #ffffff 60%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.brand-gradient {
-  background: linear-gradient(135deg, #2b86f0 0%, #155cc9 55%, #11459b 100%);
-}
-
-.hero-grid {
-  background-image:
-    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.14) 0, transparent 45%),
-    radial-gradient(circle at 85% 8%, rgba(249, 115, 22, 0.22) 0, transparent 42%),
-    linear-gradient(135deg, #11459b 0%, #155cc9 52%, #2b86f0 100%);
+/* ---- surfaces ---- */
+.glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
 }
 
 .card-soft {
   background: #fff;
   border: 1px solid #e7eef7;
   box-shadow: var(--shadow-soft);
-  border-radius: 1rem;
+  border-radius: 1.1rem;
 }
 
 .lift {
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.22s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.22s ease;
 }
 .lift:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow-lift);
 }
 
+/* ---- buttons ---- */
+.btn-accent {
+  background: linear-gradient(180deg, #fb923c, #f97316);
+  color: #fff;
+  border-radius: 9999px;
+  box-shadow: 0 12px 26px -8px rgba(249, 115, 22, 0.55);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.btn-accent:hover {
+  filter: brightness(1.03);
+  box-shadow: 0 16px 32px -8px rgba(249, 115, 22, 0.6);
+  transform: translateY(-1px);
+}
+.btn-primary {
+  background: linear-gradient(180deg, #2371e6, #155cc9);
+  color: #fff;
+  border-radius: 9999px;
+  box-shadow: 0 12px 26px -10px rgba(21, 92, 201, 0.55);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.btn-primary:hover {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+
+/* ---- decorative ---- */
+.gradient-text {
+  background: linear-gradient(90deg, #ffd9a8, #ffffff 55%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.brand-gradient {
+  background: linear-gradient(135deg, #2b86f0 0%, #155cc9 55%, #11459b 100%);
+}
+.hero-grid {
+  position: relative;
+  background-image:
+    radial-gradient(38rem 30rem at 12% 8%, rgba(96, 165, 250, 0.35) 0, transparent 55%),
+    radial-gradient(34rem 26rem at 92% 0%, rgba(249, 115, 22, 0.32) 0, transparent 50%),
+    radial-gradient(30rem 30rem at 78% 100%, rgba(45, 138, 230, 0.4) 0, transparent 55%),
+    linear-gradient(160deg, #0a1f44 0%, #0e336c 45%, #11459b 100%);
+}
+.hero-grid::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(70% 60% at 50% 30%, #000, transparent 80%);
+  pointer-events: none;
+}
+
+/* ---- motion ---- */
 @keyframes fadeUp {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
-.fade-up {
-  animation: fadeUp 0.5s ease both;
+.reveal {
+  animation: fadeUp 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes floaty {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.floaty {
+  animation: floaty 6s ease-in-out infinite;
 }
 
 .no-scrollbar::-webkit-scrollbar {

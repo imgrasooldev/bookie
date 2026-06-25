@@ -78,7 +78,7 @@ export default async function SearchPage({
               <Icon className="h-5 w-5" />
             </span>
             <div>
-              <h1 className="text-lg font-bold leading-tight text-ink">{routeLabel}</h1>
+              <h1 className="font-display text-lg font-bold leading-tight text-ink">{routeLabel}</h1>
               <span className="text-sm text-muted">
                 {trips.length} {vertical.label.toLowerCase()}{" "}
                 {trips.length === 1 ? "option" : "options"}

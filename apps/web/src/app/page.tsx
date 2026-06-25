@@ -13,78 +13,97 @@ import {
   SparkleIcon,
   TicketIcon,
   SeatIcon,
+  StarIcon,
 } from "@/components/icons";
 
 const POPULAR = [
   { from: "Lahore", to: "Islamabad", o: "lhe", d: "isb", price: 1700 },
-  { from: "Karachi", to: "Hyderabad", o: "khi", d: "multan", price: 1200 },
+  { from: "Karachi", to: "Islamabad", o: "khi", d: "isb", price: 14900 },
   { from: "Lahore", to: "Faisalabad", o: "lhe", d: "fsd", price: 900 },
-  { from: "Islamabad", to: "Peshawar", o: "isb", d: "pesh", price: 1100 },
+  { from: "Islamabad", to: "Skardu", o: "isb", d: "skardu", price: 65000 },
   { from: "Lahore", to: "Multan", o: "lhe", d: "multan", price: 1500 },
-  { from: "Rawalpindi", to: "Sialkot", o: "rwp", d: "sialkot", price: 1300 },
+  { from: "Karachi", to: "Dubai", o: "khi", d: "dxb", price: 145000 },
 ];
 
+const TINT: Record<string, string> = {
+  BUS: "from-blue-500 to-blue-700",
+  FLIGHT: "from-sky-400 to-blue-600",
+  TRAIN: "from-teal-500 to-cyan-700",
+  HOTEL: "from-rose-500 to-pink-700",
+  CAR: "from-cyan-500 to-blue-600",
+  EVENT: "from-violet-500 to-purple-700",
+  TOUR: "from-emerald-500 to-teal-700",
+  UMRAH: "from-amber-500 to-orange-600",
+  PICNIC: "from-fuchsia-500 to-pink-700",
+  CORPORATE: "from-slate-500 to-slate-700",
+};
+
 const FEATURES = [
-  { icon: ShieldIcon, title: "Verified operators", body: "Every bus & fleet partner is vetted, rated and reviewed by real travellers." },
-  { icon: ClockIcon, title: "Live timings & seats", body: "Real-time schedules and seat availability — no surprises at the terminal." },
-  { icon: WalletIcon, title: "Pay your way", body: "JazzCash, Easypaisa, debit/credit card or cash. Whatever suits you." },
-  { icon: HeadsetIcon, title: "24/7 support", body: "Stuck or need a change? Our team is a tap away, day or night." },
+  { icon: ShieldIcon, title: "Verified & secure", body: "Vetted operators, encrypted payments, and instant e-tickets every time." },
+  { icon: ClockIcon, title: "Live timings & seats", body: "Real-time schedules and seat maps — no surprises at the terminal." },
+  { icon: WalletIcon, title: "Pay your way", body: "JazzCash, Easypaisa, card or cash. Plus promo codes & Bookie Cash." },
+  { icon: HeadsetIcon, title: "24/7 support", body: "Real humans on call and WhatsApp, whenever you need them." },
+];
+
+const STATS = [
+  ["2M+", "Happy travellers"],
+  ["10", "Ways to travel"],
+  ["500+", "Routes & cities"],
+  ["4.8★", "Average rating"],
 ];
 
 const STEPS = [
-  { icon: RouteIcon, title: "Search", body: "Pick your vertical, route and date." },
-  { icon: SeatIcon, title: "Select & pay", body: "Choose your seat and pay securely." },
+  { icon: RouteIcon, title: "Search", body: "Pick a category, route and date." },
+  { icon: SeatIcon, title: "Select & pay", body: "Choose your seat or room and pay securely." },
   { icon: TicketIcon, title: "Travel", body: "Get your e-ticket and you're set." },
 ];
 
-const OPERATORS = [
-  { name: "Daewoo Express", color: "#1d4ed8" },
-  { name: "Faisal Movers", color: "#b91c1c" },
-  { name: "Skyways", color: "#047857" },
-  { name: "Bookie Fleet", color: "#7c3aed" },
-  { name: "Q-Connect", color: "#ea580c" },
-  { name: "Road Master", color: "#0891b2" },
-];
-
 export default function HomePage() {
+  const featured = VERTICALS.filter((v) => v.type === "FLIGHT" || v.type === "HOTEL");
+  const rest = VERTICALS.filter((v) => v.type !== "FLIGHT" && v.type !== "HOTEL");
+
   return (
     <div>
-      {/* ---------- Hero + search ---------- */}
+      {/* ---------- Hero ---------- */}
       <section className="hero-grid relative overflow-hidden">
-        <div className="mx-auto max-w-6xl px-4 pb-24 pt-14 text-white">
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm font-medium ring-1 ring-white/20 backdrop-blur">
+        <div className="relative z-10 mx-auto max-w-6xl px-4 pb-28 pt-16 text-white">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-sm font-medium ring-1 ring-white/20 backdrop-blur">
             <SparkleIcon className="h-4 w-4 text-accent-400" />
-            Pakistan&apos;s all-in-one travel & transport booking
+            Pakistan&apos;s all-in-one travel super-app
+            <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-accent-500/90 px-2 py-0.5 text-xs font-bold text-white">
+              <StarIcon className="h-3 w-3" /> 4.8
+            </span>
           </div>
-          <h1 className="max-w-3xl text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl">
-            <span className="gradient-text">Flights, buses, hotels, tours</span>{" "}
-            &amp; more — booked in one place
+
+          <h1 className="font-display max-w-3xl text-4xl font-extrabold leading-[1.05] sm:text-6xl">
+            Go anywhere.
+            <br />
+            <span className="gradient-text">Book it in seconds.</span>
           </h1>
-          <p className="mt-4 max-w-xl text-lg text-brand-100">
-            Compare verified operators, pick your seat or room, and pay with
-            JazzCash, Easypaisa or card. Across Pakistan and beyond.
+          <p className="mt-5 max-w-xl text-lg text-blue-100/90">
+            Flights, buses, trains, hotels, tours &amp; more — compare verified
+            operators and pay with JazzCash, Easypaisa or card. All in one app.
           </p>
 
           <div className="mt-9">
             <SearchPanel />
           </div>
+
+          {/* decorative glow blobs */}
+          <div className="floaty pointer-events-none absolute -right-16 top-10 h-72 w-72 rounded-full bg-accent-500/20 blur-3xl" />
+          <div className="pointer-events-none absolute -left-20 bottom-0 h-64 w-64 rounded-full bg-sky-400/20 blur-3xl" />
         </div>
-        {/* soft fade into page */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-canvas" />
       </section>
 
       {/* ---------- Popular routes ---------- */}
-      <section className="mx-auto max-w-6xl px-4 py-10">
-        <div className="mb-4 flex items-center gap-2">
-          <RouteIcon className="h-5 w-5 text-brand-600" />
-          <h2 className="text-lg font-bold text-ink">Popular routes</h2>
-        </div>
-        <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-          {POPULAR.map((r) => (
+      <section className="mx-auto -mt-10 max-w-6xl px-4">
+        <div className="relative z-20 flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+          {POPULAR.map((r, i) => (
             <Link
-              key={`${r.o}-${r.d}-${r.to}`}
+              key={`${r.o}-${r.d}-${i}`}
               href={`/search?type=BUS&origin=${r.o}&destination=${r.d}`}
-              className="lift card-soft flex min-w-[220px] items-center justify-between gap-3 px-4 py-3"
+              className="lift glass reveal flex min-w-[230px] items-center justify-between gap-3 rounded-2xl px-4 py-3 shadow-soft"
+              style={{ animationDelay: `${i * 60}ms` }}
             >
               <div>
                 <div className="flex items-center gap-1.5 font-semibold text-ink">
@@ -93,10 +112,10 @@ export default function HomePage() {
                   {r.to}
                 </div>
                 <div className="text-xs text-muted">
-                  from <span className="font-semibold text-brand-700">{formatPKR(r.price)}</span>
+                  from <span className="font-bold text-brand-700">{formatPKR(r.price)}</span>
                 </div>
               </div>
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-50 text-brand-600">
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-600 text-white">
                 <ArrowRightIcon className="h-4 w-4" />
               </span>
             </Link>
@@ -104,42 +123,88 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ---------- Verticals ---------- */}
-      <section className="mx-auto max-w-6xl px-4 py-8">
-        <h2 className="text-2xl font-extrabold tracking-tight text-ink">
-          What do you want to book?
-        </h2>
-        <p className="mt-1 text-muted">One account, four ways to travel.</p>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {VERTICALS.map((v) => {
+      {/* ---------- Categories (bento) ---------- */}
+      <section className="mx-auto max-w-6xl px-4 py-14">
+        <div className="mb-7 flex items-end justify-between">
+          <div>
+            <h2 className="font-display text-3xl font-extrabold text-ink">
+              Everything you can book
+            </h2>
+            <p className="mt-1 text-muted">One account. Ten ways to travel.</p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* featured tiles */}
+          {featured.map((v) => {
             const Icon = VERTICAL_ICONS[v.type];
             return (
               <Link
                 key={v.type}
                 href={`/search?type=${v.type}`}
-                className="lift card-soft group relative overflow-hidden p-6"
+                className={`lift group relative col-span-1 flex min-h-[180px] flex-col justify-between overflow-hidden rounded-3xl bg-gradient-to-br ${TINT[v.type]} p-6 text-white sm:col-span-2`}
               >
-                <span className="grid h-12 w-12 place-items-center rounded-xl bg-brand-600 text-white shadow-sm transition group-hover:scale-105">
+                <div className="absolute -right-6 -top-8 h-32 w-32 rounded-full bg-white/15 blur-2xl" />
+                <Icon className="h-9 w-9" />
+                <div>
+                  <div className="font-display text-2xl font-extrabold">{v.label}</div>
+                  <div className="mt-1 text-sm text-white/85">{v.tagline}</div>
+                  <div className="mt-3 inline-flex items-center gap-1 text-sm font-semibold">
+                    Explore
+                    <ArrowRightIcon className="h-4 w-4 transition group-hover:translate-x-1" />
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+
+          {/* regular tiles */}
+          {rest.map((v, i) => {
+            const Icon = VERTICAL_ICONS[v.type];
+            return (
+              <Link
+                key={v.type}
+                href={`/search?type=${v.type}`}
+                className="lift card-soft reveal group relative overflow-hidden p-5"
+                style={{ animationDelay: `${i * 40}ms` }}
+              >
+                <span
+                  className={`grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br ${TINT[v.type]} text-white shadow-sm transition group-hover:scale-110`}
+                >
                   <Icon className="h-6 w-6" />
                 </span>
-                <div className="mt-4 text-lg font-bold text-ink">{v.label}</div>
-                <div className="mt-1 text-sm text-muted">{v.tagline}</div>
-                <div className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-700">
-                  Book now
-                  <ArrowRightIcon className="h-4 w-4 transition group-hover:translate-x-1" />
-                </div>
+                <div className="mt-3 font-bold text-ink group-hover:text-brand-700">{v.label}</div>
+                <div className="mt-0.5 text-sm text-muted">{v.tagline}</div>
               </Link>
             );
           })}
         </div>
       </section>
 
+      {/* ---------- Stats ---------- */}
+      <section className="mx-auto max-w-6xl px-4 pb-4">
+        <div className="brand-gradient relative overflow-hidden rounded-3xl px-6 py-10">
+          <div className="grid grid-cols-2 gap-6 text-center md:grid-cols-4">
+            {STATS.map(([big, small]) => (
+              <div key={small}>
+                <div className="font-display text-3xl font-extrabold text-white sm:text-4xl">{big}</div>
+                <div className="mt-1 text-sm text-blue-100">{small}</div>
+              </div>
+            ))}
+          </div>
+          <div className="pointer-events-none absolute -right-10 -top-12 h-48 w-48 rounded-full bg-accent-500/30 blur-2xl" />
+        </div>
+      </section>
+
       {/* ---------- Why Bookie ---------- */}
-      <section className="mx-auto max-w-6xl px-4 py-12">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mx-auto max-w-6xl px-4 py-14">
+        <h2 className="font-display text-center text-3xl font-extrabold text-ink">
+          Why travellers choose Bookie
+        </h2>
+        <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((f) => (
-            <div key={f.title} className="card-soft p-6">
-              <span className="grid h-11 w-11 place-items-center rounded-xl bg-accent-500/10 text-accent-600">
+            <div key={f.title} className="card-soft lift p-6">
+              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-accent-400 to-accent-600 text-white shadow-sm">
                 <f.icon className="h-6 w-6" />
               </span>
               <div className="mt-4 font-bold text-ink">{f.title}</div>
@@ -150,14 +215,14 @@ export default function HomePage() {
       </section>
 
       {/* ---------- How it works ---------- */}
-      <section className="border-y border-slate-200 bg-surface">
-        <div className="mx-auto max-w-6xl px-4 py-14">
-          <h2 className="text-center text-2xl font-extrabold tracking-tight text-ink">
+      <section className="mx-auto max-w-6xl px-4 pb-14">
+        <div className="card-soft px-6 py-12">
+          <h2 className="font-display text-center text-3xl font-extrabold text-ink">
             Booked in three taps
           </h2>
-          <div className="mt-10 grid gap-8 md:grid-cols-3">
+          <div className="mx-auto mt-10 grid max-w-4xl gap-8 md:grid-cols-3">
             {STEPS.map((s, i) => (
-              <div key={s.title} className="relative text-center">
+              <div key={s.title} className="text-center">
                 <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl brand-gradient text-white shadow-lg">
                   <s.icon className="h-7 w-7" />
                 </div>
@@ -174,56 +239,29 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ---------- Operators ---------- */}
-      <section className="mx-auto max-w-6xl px-4 py-12">
-        <div className="text-center">
-          <div className="text-sm font-semibold uppercase tracking-wider text-muted">
-            Trusted by leading operators
-          </div>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-            {OPERATORS.map((o) => (
-              <div
-                key={o.name}
-                className="flex items-center gap-2 rounded-full bg-surface px-4 py-2 shadow-sm ring-1 ring-slate-200"
-              >
-                <span
-                  className="grid h-6 w-6 place-items-center rounded-md text-[10px] font-bold text-white"
-                  style={{ backgroundColor: o.color }}
-                >
-                  {o.name.slice(0, 2).toUpperCase()}
-                </span>
-                <span className="text-sm font-medium text-ink">{o.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ---------- CTA ---------- */}
       <section className="mx-auto max-w-6xl px-4 pb-16">
-        <div className="brand-gradient relative overflow-hidden rounded-3xl px-8 py-12 text-white">
+        <div className="hero-grid relative overflow-hidden rounded-3xl px-8 py-14 text-white">
           <div className="relative z-10 max-w-lg">
-            <h2 className="text-2xl font-extrabold sm:text-3xl">
+            <h2 className="font-display text-3xl font-extrabold sm:text-4xl">
               Take Bookie with you
             </h2>
-            <p className="mt-2 text-brand-100">
-              Book on the go, track your ride live, and get instant e-tickets.
-              Available on Android, iOS and Huawei AppGallery.
+            <p className="mt-3 text-blue-100">
+              Book on the go, track your ride live, and get instant e-tickets —
+              on Android, iOS and Huawei AppGallery.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <span className="rounded-xl bg-white/15 px-5 py-3 text-sm font-semibold ring-1 ring-white/25 backdrop-blur">
-                ▶ Google Play
-              </span>
-              <span className="rounded-xl bg-white/15 px-5 py-3 text-sm font-semibold ring-1 ring-white/25 backdrop-blur">
-                 App Store
-              </span>
-              <span className="rounded-xl bg-white/15 px-5 py-3 text-sm font-semibold ring-1 ring-white/25 backdrop-blur">
-                 AppGallery
-              </span>
+              {["▶ Google Play", " App Store", " AppGallery"].map((s) => (
+                <span
+                  key={s}
+                  className="rounded-2xl bg-white/12 px-5 py-3 text-sm font-semibold ring-1 ring-white/25 backdrop-blur transition hover:bg-white/20"
+                >
+                  {s}
+                </span>
+              ))}
             </div>
           </div>
-          <div className="pointer-events-none absolute -right-10 -top-10 h-64 w-64 rounded-full bg-white/10" />
-          <div className="pointer-events-none absolute -bottom-16 right-24 h-48 w-48 rounded-full bg-accent-500/20" />
+          <div className="floaty pointer-events-none absolute -right-8 top-6 h-56 w-56 rounded-full bg-accent-500/25 blur-3xl" />
         </div>
       </section>
     </div>

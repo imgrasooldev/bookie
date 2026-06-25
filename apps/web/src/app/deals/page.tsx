@@ -12,7 +12,7 @@ export default function DealsPage() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="mb-8 flex items-center gap-2">
         <SparkleIcon className="h-6 w-6 text-accent-500" />
-        <h1 className="text-3xl font-extrabold tracking-tight text-ink">Deals &amp; Offers</h1>
+        <h1 className="font-display text-3xl font-extrabold tracking-tight text-ink">Deals &amp; Offers</h1>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

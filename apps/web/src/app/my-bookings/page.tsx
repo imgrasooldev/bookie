@@ -12,7 +12,7 @@ export default function MyBookingsPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="text-3xl font-extrabold tracking-tight text-ink">My Bookings</h1>
+      <h1 className="font-display text-3xl font-extrabold tracking-tight text-ink">My Bookings</h1>
 
       {/* summary cards */}
       <div className="mt-6 grid gap-4 sm:grid-cols-3">

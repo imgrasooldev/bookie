@@ -22,7 +22,7 @@ export function Header() {
             <span className="grid h-9 w-9 place-items-center rounded-xl brand-gradient text-white shadow-sm">
               <TicketIcon className="h-5 w-5" />
             </span>
-            <span className="text-xl font-extrabold tracking-tight text-ink">Bookie</span>
+            <span className="font-display text-xl font-extrabold tracking-tight text-ink">Bookie</span>
           </Link>
         </div>
 

@@ -13,7 +13,7 @@ export default function HelpPage() {
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl brand-gradient text-white">
           <HeadsetIcon className="h-7 w-7" />
         </span>
-        <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-ink">How can we help?</h1>
+        <h1 className="mt-4 font-display text-3xl font-extrabold tracking-tight text-ink">How can we help?</h1>
         <p className="mt-2 text-muted">Answers to the most common questions about booking on Bookie.</p>
       </div>
 

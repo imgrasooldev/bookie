@@ -43,7 +43,7 @@ export default async function BookingPage({
                 {trip.operator.name.slice(0, 2).toUpperCase()}
               </div>
               <div>
-                <h1 className="text-xl font-extrabold text-ink">{trip.title}</h1>
+                <h1 className="font-display text-xl font-extrabold text-ink">{trip.title}</h1>
                 <div className="flex items-center gap-2 text-sm text-muted">
                   {trip.operator.name}
                   <span className="inline-flex items-center gap-0.5 rounded-full bg-green-50 px-1.5 py-0.5 text-xs font-semibold text-green-700">

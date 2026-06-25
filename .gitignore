@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+**/node_modules/
+
+# builds
+.next/
+dist/
+build/
+out/
+
+# env
+.env
+.env.*
+!.env.example
+
+# flutter
+apps/mobile/.dart_tool/
+apps/mobile/build/
+apps/mobile/.flutter-plugins*
+*.iml
+
+# misc
+.DS_Store
+*.log
+.vscode/
+.idea/
+coverage/

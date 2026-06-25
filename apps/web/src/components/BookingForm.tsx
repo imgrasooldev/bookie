@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react";
 import { formatPKR } from "@/lib/format";
 import type { Trip } from "@/lib/types";
+import { PaymentDialog } from "@/components/checkout/PaymentDialog";
 
-const PAYMENT_METHODS = ["JazzCash", "Easypaisa", "Card", "Cash"] as const;
+const PAYMENT_METHODS = ["Easypaisa", "JazzCash", "Card", "Cash"] as const;
 
 // Demo seat map: 10 rows × 4 seats (2 + aisle + 2). Some pre-sold.
 const SOLD_SEATS = new Set(["1A", "1B", "3C", "5D", "7A", "7B", "9C"]);
@@ -15,8 +16,13 @@ export function BookingForm({ trip }: { trip: Trip }) {
 
   const [selected, setSelected] = useState<string[]>([]);
   const [pax, setPax] = useState(1);
-  const [method, setMethod] = useState<(typeof PAYMENT_METHODS)[number]>("JazzCash");
+  const [method, setMethod] = useState<(typeof PAYMENT_METHODS)[number]>("Easypaisa");
+  const [showPay, setShowPay] = useState(false);
   const [done, setDone] = useState(false);
+  const [confirmation, setConfirmation] = useState<{
+    bookingRef: string;
+    transactionId: string;
+  } | null>(null);
 
   const qty = isBus ? selected.length : pax;
   const total = useMemo(() => trip.price * (isBus ? selected.length : pax), [
@@ -35,26 +41,57 @@ export function BookingForm({ trip }: { trip: Trip }) {
 
   const canBook = isBus ? selected.length > 0 : pax > 0;
 
+  function reset() {
+    setDone(false);
+    setConfirmation(null);
+    setSelected([]);
+    setPax(1);
+  }
+
+  if (confirmation) {
+    return (
+      <div className="rounded-2xl bg-surface p-8 text-center ring-1 ring-slate-200">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-green-100 text-3xl">
+          🎫
+        </div>
+        <h3 className="mt-3 text-lg font-bold text-ink">Booking confirmed</h3>
+        <p className="mt-1 text-sm text-muted">
+          {qty} × {trip.title}
+          {isBus && selected.length ? ` · Seats ${selected.join(", ")}` : ""}
+        </p>
+        <dl className="mx-auto mt-4 max-w-xs space-y-1 text-sm">
+          <Row label="Booking ref" value={confirmation.bookingRef} mono />
+          <Row label="Paid via" value={method} />
+          <Row label="Txn ID" value={confirmation.transactionId} mono />
+          <Row label="Amount" value={formatPKR(total)} />
+        </dl>
+        <p className="mt-4 text-xs text-muted">
+          A demo e-ticket has been issued. Real ticketing (PDF + QR) lands with the
+          backend payment webhook.
+        </p>
+        <button
+          onClick={reset}
+          className="mt-5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
+        >
+          Make another booking
+        </button>
+      </div>
+    );
+  }
+
   if (done) {
     return (
       <div className="rounded-2xl bg-surface p-8 text-center ring-1 ring-slate-200">
         <div className="text-4xl">✅</div>
-        <h3 className="mt-3 text-lg font-bold text-ink">
-          {isQuote ? "Quote requested" : "Booking confirmed (demo)"}
-        </h3>
+        <h3 className="mt-3 text-lg font-bold text-ink">Quote requested</h3>
         <p className="mt-1 text-sm text-muted">
-          {isQuote
-            ? "The operator will share a price shortly."
-            : `${qty} × ${trip.title}. This is a front-end demo — real payment & ticketing land with the backend.`}
+          The operator will review your request and share a price shortly.
         </p>
         <button
-          onClick={() => {
-            setDone(false);
-            setSelected([]);
-          }}
+          onClick={reset}
           className="mt-5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
         >
-          Make another booking
+          Done
         </button>
       </div>
     );
@@ -70,7 +107,7 @@ export function BookingForm({ trip }: { trip: Trip }) {
           </div>
           <div className="inline-grid grid-cols-5 gap-2">
             {Array.from({ length: 10 }, (_, r) =>
-              ["A", "B", "", "C", "D"].map((col, i) => {
+              ["A", "B", "", "C", "D"].map((col) => {
                 if (col === "") return <div key={`${r}-gap`} className="w-9" />;
                 const seat = `${r + 1}${col}`;
                 const sold = SOLD_SEATS.has(seat);
@@ -153,13 +190,48 @@ export function BookingForm({ trip }: { trip: Trip }) {
           )}
         </div>
         <button
-          onClick={() => setDone(true)}
+          onClick={() => (isQuote ? setDone(true) : setShowPay(true))}
           disabled={!canBook}
           className="mt-4 w-full rounded-xl bg-accent-500 px-4 py-3 text-base font-bold text-white transition enabled:hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isQuote ? "Request quote" : `Pay with ${method}`}
         </button>
       </div>
+
+      {showPay && (
+        <PaymentDialog
+          method={method}
+          amount={total}
+          tripTitle={trip.title}
+          summary={
+            isBus ? `Seats: ${selected.join(", ")}` : `${pax} × ${trip.title}`
+          }
+          onClose={() => setShowPay(false)}
+          onSuccess={(r) => {
+            setConfirmation(r);
+            setShowPay(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function Row({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex justify-between gap-4">
+      <dt className="text-muted">{label}</dt>
+      <dd className={`font-semibold text-ink ${mono ? "font-mono text-xs" : ""}`}>
+        {value}
+      </dd>
     </div>
   );
 }

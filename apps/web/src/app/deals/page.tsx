@@ -50,7 +50,7 @@ export default function DealsPage() {
             <h3 className="font-bold">Your Bookie Cash</h3>
             <p className="mt-1 text-sm text-brand-100">Redeem at checkout on any booking.</p>
           </div>
-          <a href="/my-bookings" className="inline-flex items-center gap-1 rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold ring-1 ring-white/25">
+          <a href="/account/wallet" className="inline-flex items-center gap-1 rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold ring-1 ring-white/25">
             View wallet <ArrowRightIcon className="h-4 w-4" />
           </a>
         </div>

@@ -40,10 +40,10 @@ export function Header() {
 
         <div className="flex items-center gap-2">
           <Link
-            href="/my-bookings"
+            href="/account"
             className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-slate-100 sm:block lg:block"
           >
-            My Bookings
+            My Account
           </Link>
           <AuthButton />
         </div>

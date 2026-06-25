@@ -38,11 +38,11 @@ export function MobileMenu({
           </Link>
         ))}
         <Link
-          href="/my-bookings"
+          href="/account"
           onClick={() => setOpen(false)}
           className="block rounded-lg px-4 py-3 text-base font-semibold text-brand-700 hover:bg-brand-50"
         >
-          My Bookings
+          My Account
         </Link>
       </nav>
     </div>

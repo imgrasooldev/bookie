@@ -236,6 +236,85 @@ export const RouteIcon = (p: P) => (
   </S>
 );
 
+export const UserIcon = (p: P) => (
+  <S {...p}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21a8 8 0 0 1 16 0" />
+  </S>
+);
+export const UsersIcon = (p: P) => (
+  <S {...p}>
+    <circle cx="9" cy="8" r="3.2" />
+    <path d="M3 20a6 6 0 0 1 12 0" />
+    <path d="M16 5.5a3 3 0 0 1 0 5.6M21 20a6 6 0 0 0-4-5.7" />
+  </S>
+);
+export const GridIcon = (p: P) => (
+  <S {...p}>
+    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+    <rect x="14" y="14" width="7" height="7" rx="1.5" />
+  </S>
+);
+export const CardIcon = (p: P) => (
+  <S {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="2.5" />
+    <path d="M3 10h18M7 15h4" />
+  </S>
+);
+export const GiftIcon = (p: P) => (
+  <S {...p}>
+    <rect x="4" y="9" width="16" height="11" rx="1.5" />
+    <path d="M2 9h20M12 9v11" />
+    <path d="M12 9S10.5 4 8 4a2 2 0 0 0 0 5M12 9s1.5-5 4-5a2 2 0 0 1 0 5" />
+  </S>
+);
+export const BellIcon = (p: P) => (
+  <S {...p}>
+    <path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z" />
+    <path d="M10 19a2 2 0 0 0 4 0" />
+  </S>
+);
+export const LockIcon = (p: P) => (
+  <S {...p}>
+    <rect x="5" y="11" width="14" height="9" rx="2" />
+    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+  </S>
+);
+export const LogoutIcon = (p: P) => (
+  <S {...p}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <path d="M16 17l5-5-5-5M21 12H9" />
+  </S>
+);
+export const DownloadIcon = (p: P) => (
+  <S {...p}>
+    <path d="M12 3v12M7 10l5 5 5-5" />
+    <path d="M4 19h16" />
+  </S>
+);
+export const PlusIcon = (p: P) => (
+  <S {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </S>
+);
+export const TrashIcon = (p: P) => (
+  <S {...p}>
+    <path d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" />
+  </S>
+);
+export const ChevronRightIcon = (p: P) => (
+  <S {...p}>
+    <path d="M9 6l6 6-6 6" />
+  </S>
+);
+export const CheckIcon = (p: P) => (
+  <S {...p}>
+    <path d="M5 13l4 4L19 7" />
+  </S>
+);
+
 /* amenity-key → icon, for trip cards (unmapped keys render as text only) */
 export const AMENITY_ICONS: Record<string, (p: P) => React.ReactElement> = {
   wifi: WifiIcon,

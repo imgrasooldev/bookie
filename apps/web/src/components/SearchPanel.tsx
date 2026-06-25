@@ -55,7 +55,7 @@ export function SearchPanel({ initialType = "BUS" as ServiceType }) {
   }
 
   return (
-    <div className="rounded-3xl border-[2.5px] border-ink bg-surface p-2.5 shadow-bold-lg">
+    <div className="rounded-3xl bg-surface p-2.5 shadow-[0_30px_70px_-20px_rgba(8,20,45,0.55)] ring-1 ring-black/5">
       {/* category tabs */}
       <div className="flex gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1 no-scrollbar">
         {tabs.map((v) => {
@@ -66,7 +66,7 @@ export function SearchPanel({ initialType = "BUS" as ServiceType }) {
               key={v.type}
               onClick={() => setType(v.type)}
               className={`flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
-                on ? "bg-ink text-white" : "text-muted hover:text-ink"
+                on ? "bg-surface text-brand-700 shadow" : "text-muted hover:text-ink"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -138,7 +138,7 @@ export function SearchPanel({ initialType = "BUS" as ServiceType }) {
       <div className="p-3 pt-0">
         <button
           onClick={submit}
-          className="btn-bold flex w-full items-center justify-center gap-2 bg-accent-400 px-4 py-4 text-base font-extrabold text-ink"
+          className="btn-accent flex w-full items-center justify-center gap-2 px-4 py-4 text-base font-bold"
         >
           Search {vertical.label}
           <ArrowRightIcon className="h-5 w-5" />

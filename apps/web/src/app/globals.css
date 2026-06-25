@@ -282,50 +282,6 @@ body {
   }
 }
 
-/* ---- BOLD / expressive style (chunky borders + hard offset shadows) ---- */
-.shadow-bold { box-shadow: 4px 4px 0 0 var(--color-ink); }
-.shadow-bold-lg { box-shadow: 6px 6px 0 0 var(--color-ink); }
-
-.card-bold {
-  background: var(--color-surface);
-  border: 2.5px solid var(--color-ink);
-  border-radius: 1.5rem;
-  box-shadow: 5px 5px 0 0 var(--color-ink);
-}
-
-.lift-bold {
-  transition: transform 0.14s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.14s;
-}
-.lift-bold:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 8px 8px 0 0 var(--color-ink);
-}
-
-.btn-bold {
-  border: 2.5px solid var(--color-ink);
-  border-radius: 9999px;
-  box-shadow: 4px 4px 0 0 var(--color-ink);
-  font-weight: 800;
-  transition: transform 0.12s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.12s;
-}
-.btn-bold:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 6px 6px 0 0 var(--color-ink);
-}
-.btn-bold:active {
-  transform: translate(4px, 4px);
-  box-shadow: 0 0 0 0 var(--color-ink);
-}
-
-/* vibrant, energetic hero */
-.hero-bold {
-  position: relative;
-  background-image:
-    radial-gradient(38rem 30rem at 88% 6%, rgba(249, 115, 22, 0.45), transparent 55%),
-    radial-gradient(34rem 28rem at 6% 100%, rgba(99, 102, 241, 0.5), transparent 55%),
-    linear-gradient(135deg, #2b86f0 0%, #4f46e5 52%, #7c3aed 100%);
-}
-
 /* 3D tilt + spotlight on cards */
 .tilt {
   position: relative;

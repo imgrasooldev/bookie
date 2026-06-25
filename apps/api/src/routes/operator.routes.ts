@@ -5,9 +5,11 @@ import { User } from "../models/User.js";
 import { Operator } from "../models/Operator.js";
 import { Trip } from "../models/Trip.js";
 import { Booking } from "../models/Booking.js";
+import { Role } from "../models/Role.js";
 import { signToken, requireOperator } from "../middleware/auth.js";
 import { serializeTrip } from "../lib/serialize.js";
 import { SERVICE_TYPES } from "../lib/verticals.js";
+import { PERMISSION_KEYS } from "../lib/permissions.js";
 import { ah, HttpError } from "../middleware/error.js";
 
 export const operatorRouter = Router();
@@ -83,10 +85,20 @@ operatorRouter.post(
     if (!user || !(await bcrypt.compare(b.password, user.passwordHash))) {
       throw new HttpError(401, "Incorrect email/mobile or password.");
     }
-    // super-admin: no operator scope
+    // admin staff: resolve role → permissions
     if (user.roles.includes("admin")) {
-      const token = signToken({ sub: String(user._id), roles: user.roles });
-      return res.json({ token, role: "admin", operator: null });
+      const role = user.roleId ? await Role.findById(user.roleId).lean() : null;
+      const isSuper = role?.super ?? false;
+      const perms = isSuper ? PERMISSION_KEYS : role?.permissions ?? [];
+      const token = signToken({ sub: String(user._id), roles: user.roles, perms, super: isSuper });
+      return res.json({
+        token,
+        role: "admin",
+        operator: null,
+        roleName: role?.name ?? "Administrator",
+        permissions: perms,
+        super: isSuper,
+      });
     }
     const operator = await Operator.findById(user.operatorId).lean();
     const token = signToken({ sub: String(user._id), roles: user.roles, operatorId: String(user.operatorId) });

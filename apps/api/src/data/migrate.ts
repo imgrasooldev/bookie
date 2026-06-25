@@ -5,9 +5,18 @@ import { connectDb, disconnectDb } from "../db/connect.js";
 import { Trip } from "../models/Trip.js";
 import { Operator } from "../models/Operator.js";
 import { User } from "../models/User.js";
+import { Role } from "../models/Role.js";
+import { DEFAULT_ROLES } from "../lib/permissions.js";
 
 async function run() {
   await connectDb();
+
+  // seed default roles (idempotent)
+  for (const r of DEFAULT_ROLES) {
+    await Role.updateOne({ name: r.name }, { $setOnInsert: r }, { upsert: true });
+  }
+  const superRole = await Role.findOne({ super: true });
+  console.log(`[migrate] roles ready (super=${superRole?.name})`);
 
   const t = await Trip.updateMany({ approved: { $exists: false } }, { $set: { approved: true } });
   console.log(`[migrate] approved ${t.modifiedCount} existing listings`);
@@ -21,17 +30,23 @@ async function run() {
   );
   console.log(`[migrate] normalised status on ${os.modifiedCount} operators`);
 
-  if (!(await User.findOne({ email: "admin@bookie.pk" }))) {
+  const admin = await User.findOne({ email: "admin@bookie.pk" });
+  if (!admin) {
     await User.create({
       name: "Super Admin",
       phone: "03000000001",
       email: "admin@bookie.pk",
       passwordHash: await bcrypt.hash("admin123", 10),
       roles: ["admin"],
+      roleId: superRole?._id,
     });
     console.log("[migrate] created super-admin admin@bookie.pk / admin123");
+  } else if (!admin.roleId && superRole) {
+    admin.roleId = superRole._id;
+    await admin.save();
+    console.log("[migrate] assigned Super Admin role to admin@bookie.pk");
   } else {
-    console.log("[migrate] super-admin already exists");
+    console.log("[migrate] super-admin already configured");
   }
 
   await disconnectDb();

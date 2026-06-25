@@ -7,6 +7,8 @@ export interface AuthPayload {
   sub: string;
   roles: string[];
   operatorId?: string;
+  perms?: string[];
+  super?: boolean;
 }
 
 declare global {
@@ -66,6 +68,16 @@ export function requireAdmin(req: Request, _res: Response, next: NextFunction) {
     if (e instanceof HttpError) throw e;
     throw new HttpError(401, "Invalid or expired token");
   }
+}
+
+/** Require a specific permission (super-admins pass everything). */
+export function requirePermission(permission: string) {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    const u = req.user;
+    if (!u) throw new HttpError(401, "Authentication required");
+    if (u.super || u.perms?.includes(permission)) return next();
+    throw new HttpError(403, `Missing permission: ${permission}`);
+  };
 }
 
 /** Attach user if a token is present, but don't require one. */

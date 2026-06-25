@@ -59,7 +59,7 @@ async function authCall(path: string, body: unknown): Promise<AuthResult> {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return { ok: false, error: data.error ?? "Something went wrong." };
     const role: Role = data.role === "admin" ? "admin" : "operator";
-    setSession(data.token, role, data.operator ?? null);
+    setSession(data.token, role, data.operator ?? null, data.permissions ?? [], data.roleName ?? "");
     return { ok: true, role, operator: data.operator ?? null };
   } catch {
     return { ok: false, error: "Couldn't reach the server." };
@@ -91,6 +91,21 @@ export function setOperatorStatus(id: string, status: "active" | "pending" | "su
 export function approveListing(id: string, approved: boolean): Promise<SaveResult> {
   return send(`/sa/listings/${id}`, "PATCH", { approved });
 }
+
+/* ---- RBAC ---- */
+
+export interface RoleItem { id: string; name: string; permissions: string[]; super: boolean; system: boolean }
+export interface PermissionItem { key: string; label: string; group: string }
+export interface TeamMember { id: string; name: string; email: string | null; phone: string; roleId: string | null; roleName: string }
+
+export const listRoles = () => getJson<RoleItem[]>("/sa/roles").catch(() => [] as RoleItem[]);
+export const listPermissions = () => getJson<PermissionItem[]>("/sa/permissions").catch(() => [] as PermissionItem[]);
+export const createRole = (name: string, permissions: string[]) => send("/sa/roles", "POST", { name, permissions });
+export const updateRole = (id: string, permissions: string[]) => send(`/sa/roles/${id}`, "PATCH", { permissions });
+export const deleteRole = (id: string) => send(`/sa/roles/${id}`, "DELETE");
+export const listTeam = () => getJson<TeamMember[]>("/sa/team").catch(() => [] as TeamMember[]);
+export const addTeam = (b: { name: string; phone: string; email?: string; password: string; roleId: string }) => send("/sa/team", "POST", b);
+export const assignRole = (id: string, roleId: string) => send(`/sa/team/${id}`, "PATCH", { roleId });
 
 /* ---------------- mapping ---------------- */
 

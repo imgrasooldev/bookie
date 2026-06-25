@@ -6,6 +6,8 @@ import { Operator } from "../models/Operator.js";
 import { City } from "../models/City.js";
 import { Trip } from "../models/Trip.js";
 import { User } from "../models/User.js";
+import { Role } from "../models/Role.js";
+import { DEFAULT_ROLES } from "../lib/permissions.js";
 
 const CITIES = [
   { code: "lhe", name: "Lahore" },
@@ -99,7 +101,11 @@ export async function seedDatabase() {
     passwordHash: await bcrypt.hash("123456", 10),
   });
 
-  // super-admin
+  // roles (RBAC) + super-admin
+  for (const r of DEFAULT_ROLES) {
+    await Role.updateOne({ name: r.name }, { $setOnInsert: r }, { upsert: true });
+  }
+  const superRole = await Role.findOne({ super: true });
   await User.deleteOne({ email: "admin@bookie.pk" });
   await User.create({
     name: "Super Admin",
@@ -107,6 +113,7 @@ export async function seedDatabase() {
     email: "admin@bookie.pk",
     passwordHash: await bcrypt.hash("admin123", 10),
     roles: ["admin"],
+    roleId: superRole?._id,
   });
 
   return { cities: CITIES.length, operators: ops.length, trips: trips.length };

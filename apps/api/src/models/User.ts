@@ -12,6 +12,7 @@ const userSchema = new Schema(
       default: ["customer"],
     },
     operatorId: { type: Schema.Types.ObjectId, ref: "Operator" },
+    roleId: { type: Schema.Types.ObjectId, ref: "Role" }, // admin staff role (RBAC)
     phoneVerified: { type: Boolean, default: false },
   },
   { timestamps: true },

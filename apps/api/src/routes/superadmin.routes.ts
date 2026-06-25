@@ -5,7 +5,9 @@ import { User } from "../models/User.js";
 import { Operator } from "../models/Operator.js";
 import { Trip } from "../models/Trip.js";
 import { Booking } from "../models/Booking.js";
-import { requireAdmin } from "../middleware/auth.js";
+import { Role } from "../models/Role.js";
+import { requireAdmin, requirePermission } from "../middleware/auth.js";
+import { PERMISSIONS, PERMISSION_KEYS } from "../lib/permissions.js";
 import { ah, HttpError } from "../middleware/error.js";
 
 // Mounted at /sa (super-admin). Separate namespace from the public /admin reads.
@@ -18,6 +20,7 @@ superAdminRouter.use(requireAdmin);
 // GET /sa/operators — all operators with counts
 superAdminRouter.get(
   "/operators",
+  requirePermission("operators.view"),
   ah(async (_req, res) => {
     const ops = await Operator.find().sort({ createdAt: -1 }).lean();
     const listings = await Trip.aggregate([{ $group: { _id: "$operator", n: { $sum: 1 } } }]);
@@ -48,6 +51,7 @@ const onboardSchema = z.object({
 // POST /sa/operators — admin onboards an operator (pre-approved) + login user
 superAdminRouter.post(
   "/operators",
+  requirePermission("operators.manage"),
   ah(async (req, res) => {
     const b = onboardSchema.parse(req.body);
     if (await User.findOne({ phone: b.phone })) throw new HttpError(409, "Mobile already registered.");
@@ -76,6 +80,7 @@ superAdminRouter.post(
 // PATCH /sa/operators/:id — approve / suspend
 superAdminRouter.patch(
   "/operators/:id",
+  requirePermission("operators.manage"),
   ah(async (req, res) => {
     const status = z.enum(["active", "pending", "suspended"]).parse(req.body.status);
     const op = await Operator.findByIdAndUpdate(req.params.id, { status }, { new: true }).lean();
@@ -87,6 +92,7 @@ superAdminRouter.patch(
 // GET /sa/listings?pending=1 — listings (optionally only unapproved)
 superAdminRouter.get(
   "/listings",
+  requirePermission("listings.view"),
   ah(async (req, res) => {
     const filter: Record<string, unknown> = {};
     if (req.query.pending) filter.approved = false;
@@ -108,6 +114,7 @@ superAdminRouter.get(
 // PATCH /sa/listings/:id — approve / unapprove
 superAdminRouter.patch(
   "/listings/:id",
+  requirePermission("listings.approve"),
   ah(async (req, res) => {
     const approved = z.boolean().parse(req.body.approved);
     const t = await Trip.findByIdAndUpdate(req.params.id, { approved }, { new: true }).lean();
@@ -119,6 +126,7 @@ superAdminRouter.patch(
 // GET /sa/overview — platform reporting
 superAdminRouter.get(
   "/overview",
+  requirePermission("reports.view"),
   ah(async (_req, res) => {
     const [operators, pendingOps, listings, pendingListings, bookings, rev, byCat] = await Promise.all([
       Operator.countDocuments({}),
@@ -138,5 +146,132 @@ superAdminRouter.get(
       revenue: rev[0]?.total ?? 0,
       byCategory: byCat.map((c) => ({ category: c._id, count: c.n })),
     });
+  }),
+);
+
+/* ---------------- RBAC: roles, permissions & team ---------------- */
+
+// GET /sa/permissions — the permission catalog
+superAdminRouter.get("/permissions", requirePermission("roles.manage"), (_req, res) => {
+  res.json(PERMISSIONS);
+});
+
+const serializeRole = (r: { _id: unknown; name: string; permissions?: string[]; super?: boolean; system?: boolean }) => ({
+  id: String(r._id),
+  name: r.name,
+  permissions: r.super ? PERMISSION_KEYS : r.permissions ?? [],
+  super: r.super ?? false,
+  system: r.system ?? false,
+});
+
+superAdminRouter.get(
+  "/roles",
+  requirePermission("roles.manage"),
+  ah(async (_req, res) => {
+    const roles = await Role.find().sort({ super: -1, name: 1 }).lean();
+    res.json(roles.map(serializeRole));
+  }),
+);
+
+const roleSchema = z.object({
+  name: z.string().min(2),
+  permissions: z.array(z.enum(PERMISSION_KEYS as [string, ...string[]])).default([]),
+});
+
+superAdminRouter.post(
+  "/roles",
+  requirePermission("roles.manage"),
+  ah(async (req, res) => {
+    const b = roleSchema.parse(req.body);
+    if (await Role.findOne({ name: b.name })) throw new HttpError(409, "A role with this name exists.");
+    const role = await Role.create({ name: b.name, permissions: b.permissions });
+    res.status(201).json(serializeRole(role));
+  }),
+);
+
+superAdminRouter.patch(
+  "/roles/:id",
+  requirePermission("roles.manage"),
+  ah(async (req, res) => {
+    const role = await Role.findById(req.params.id);
+    if (!role) throw new HttpError(404, "Role not found");
+    if (role.super) throw new HttpError(400, "The Super Admin role can't be edited.");
+    const perms = z.array(z.enum(PERMISSION_KEYS as [string, ...string[]])).parse(req.body.permissions);
+    role.permissions = perms;
+    await role.save();
+    res.json(serializeRole(role));
+  }),
+);
+
+superAdminRouter.delete(
+  "/roles/:id",
+  requirePermission("roles.manage"),
+  ah(async (req, res) => {
+    const role = await Role.findById(req.params.id);
+    if (!role) throw new HttpError(404, "Role not found");
+    if (role.system) throw new HttpError(400, "System roles can't be deleted.");
+    if (await User.countDocuments({ roleId: role._id })) throw new HttpError(400, "Role is assigned to team members.");
+    await role.deleteOne();
+    res.json({ ok: true });
+  }),
+);
+
+// GET /sa/team — admin staff
+superAdminRouter.get(
+  "/team",
+  requirePermission("roles.manage"),
+  ah(async (_req, res) => {
+    const team = await User.find({ roles: "admin" }).populate("roleId").sort({ createdAt: 1 }).lean();
+    res.json(
+      team.map((u) => ({
+        id: String(u._id),
+        name: u.name,
+        email: u.email ?? null,
+        phone: u.phone,
+        roleId: u.roleId ? String((u.roleId as { _id: unknown })._id) : null,
+        roleName: (u.roleId as { name?: string } | null)?.name ?? "—",
+      })),
+    );
+  }),
+);
+
+const teamSchema = z.object({
+  name: z.string().min(2),
+  phone: z.string().min(7),
+  email: z.string().email().optional(),
+  password: z.string().min(6),
+  roleId: z.string().min(1),
+});
+
+superAdminRouter.post(
+  "/team",
+  requirePermission("roles.manage"),
+  ah(async (req, res) => {
+    const b = teamSchema.parse(req.body);
+    if (await User.findOne({ phone: b.phone })) throw new HttpError(409, "Mobile already registered.");
+    if (b.email && (await User.findOne({ email: b.email.toLowerCase() }))) throw new HttpError(409, "Email already registered.");
+    const role = await Role.findById(b.roleId);
+    if (!role) throw new HttpError(400, "Invalid role.");
+    const user = await User.create({
+      name: b.name,
+      phone: b.phone,
+      email: b.email?.toLowerCase(),
+      passwordHash: await bcrypt.hash(b.password, 10),
+      roles: ["admin"],
+      roleId: role._id,
+    });
+    res.status(201).json({ id: String(user._id), name: user.name, roleName: role.name });
+  }),
+);
+
+superAdminRouter.patch(
+  "/team/:id",
+  requirePermission("roles.manage"),
+  ah(async (req, res) => {
+    const role = await Role.findById(req.body.roleId);
+    if (!role) throw new HttpError(400, "Invalid role.");
+    const u = await User.findOneAndUpdate({ _id: req.params.id, roles: "admin" }, { roleId: role._id }, { new: true });
+    if (!u) throw new HttpError(404, "Team member not found");
+    res.json({ id: String(u._id), roleName: role.name });
   }),
 );

@@ -3,13 +3,17 @@ import { useAuth } from "../AuthContext";
 import { GridIcon, UsersIcon, CalendarIcon, TicketIcon, LogoutIcon } from "../icons";
 
 const NAV = [
-  { to: "/", label: "Overview", icon: GridIcon, end: true },
-  { to: "/operators", label: "Operators", icon: UsersIcon },
-  { to: "/approvals", label: "Approvals", icon: CalendarIcon },
+  { to: "/", label: "Overview", icon: GridIcon, end: true, perm: "reports.view" },
+  { to: "/operators", label: "Operators", icon: UsersIcon, perm: "operators.view" },
+  { to: "/approvals", label: "Approvals", icon: CalendarIcon, perm: "listings.view" },
+  { to: "/roles", label: "Roles & Permissions", icon: TicketIcon, perm: "roles.manage" },
+  { to: "/team", label: "Team", icon: UsersIcon, perm: "roles.manage" },
 ];
 
 export function AdminLayout() {
-  const { logout } = useAuth();
+  const { logout, can, roleName } = useAuth();
+  const nav = NAV.filter((n) => can(n.perm));
+
   return (
     <div className="flex min-h-full">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
@@ -19,12 +23,12 @@ export function AdminLayout() {
           </span>
           <div>
             <div className="text-sm font-extrabold leading-tight text-ink">Bookie</div>
-            <div className="text-[11px] text-muted">Super Admin</div>
+            <div className="text-[11px] text-muted">Admin · {roleName || "Staff"}</div>
           </div>
         </div>
 
         <nav className="flex-1 space-y-1 p-3">
-          {NAV.map((n) => (
+          {nav.map((n) => (
             <NavLink
               key={n.to}
               to={n.to}
@@ -45,8 +49,8 @@ export function AdminLayout() {
           <div className="flex items-center gap-3 rounded-lg px-3 py-2">
             <span className="grid h-9 w-9 place-items-center rounded-full bg-ink text-sm font-bold text-white">SA</span>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold text-ink">Super Admin</div>
-              <div className="truncate text-xs text-muted">admin@bookie.pk</div>
+              <div className="truncate text-sm font-semibold text-ink">{roleName || "Administrator"}</div>
+              <div className="truncate text-xs text-muted">Signed in</div>
             </div>
             <button onClick={logout} className="text-muted hover:text-red-600" title="Sign out">
               <LogoutIcon className="h-5 w-5" />

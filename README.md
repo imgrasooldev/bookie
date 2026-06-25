@@ -10,6 +10,7 @@ Multi-vertical transport booking platform for Pakistan — **bus** tickets, **ci
 bookie/
 ├── apps/
 │   ├── web/      # Next.js 16 customer site (TypeScript, Tailwind v4)   ✅ built
+│   ├── admin/    # React + Vite operator/admin console                   ✅ built
 │   ├── api/      # Node + Express + MongoDB backend                      ✅ built + smoke-tested
 │   └── mobile/   # Flutter app (Android · iOS · Huawei)                  ✅ built + analyze/test pass
 ├── docs/         # PLAN.md and design notes
@@ -31,9 +32,17 @@ npm install      # already installed during scaffold
 npm run dev      # http://localhost:3000
 ```
 
-The web app currently reads mock data from `apps/web/src/lib/mock.ts`. When the
-backend is ready, set `USE_MOCK = false` in `apps/web/src/lib/api.ts` (and
-`NEXT_PUBLIC_API_URL`) — the UI is unchanged because the data shapes match.
+The web app reads mock data by default. To point it at the live backend, set
+`NEXT_PUBLIC_USE_MOCK=false` and `NEXT_PUBLIC_API_URL=http://localhost:4000` —
+no code change, because the data shapes match.
+
+## Run the admin console
+
+```bash
+cd apps/admin
+npm install
+npm run dev      # http://localhost:5174
+```
 
 ## Stack
 - **Web:** Next.js 16, React 19, TypeScript, Tailwind v4

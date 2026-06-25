@@ -5,7 +5,8 @@
 import { CITIES, TRIPS, VERTICALS } from "./mock";
 import type { City, SearchQuery, Trip, Vertical } from "./types";
 
-const USE_MOCK = true;
+// Mock by default; set NEXT_PUBLIC_USE_MOCK=false (+ NEXT_PUBLIC_API_URL) to go live.
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 async function real<T>(path: string): Promise<T> {

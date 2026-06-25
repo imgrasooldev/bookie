@@ -30,7 +30,7 @@ export interface ConfirmResult {
   message?: string;
 }
 
-const USE_MOCK = true;
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 /** Demo OTP accepted in mock mode. The real flow sends this via SMS. */

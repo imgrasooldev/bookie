@@ -14,6 +14,9 @@ export const VERTICALS: Vertical[] = [
   { type: "UMRAH", label: "Umrah", tagline: "Umrah packages & visas", icon: "🕋", flavor: "PACKAGE" },
   { type: "PICNIC", label: "Picnic & Party", tagline: "Charter a coach for your group", icon: "🎉", flavor: "CHARTER" },
   { type: "CORPORATE", label: "Corporate", tagline: "Staff & event transport", icon: "🏢", flavor: "CHARTER" },
+  { type: "FARMHOUSE", label: "Farm Houses", tagline: "Private farmhouse getaways", icon: "🏡", flavor: "STAY" },
+  { type: "HUT", label: "Huts", tagline: "Cosy huts in the hills", icon: "🛖", flavor: "STAY" },
+  { type: "WATERPARK", label: "Water Parks", tagline: "Day passes & family fun", icon: "🌊", flavor: "EVENT" },
 ];
 
 export const CITIES: City[] = [
@@ -93,6 +96,16 @@ export const TRIPS: Trip[] = [
   // ---- CORPORATE ----
   { id: "corp-1", serviceType: "CORPORATE", operator: OPERATORS.bookie, title: "Staff Pick & Drop — Monthly", originId: "lhe", price: 0, priceUnit: "from", vehicle: "Fleet (mixed)", amenities: ["contract", "tracking", "invoice"] },
   { id: "corp-2", serviceType: "CORPORATE", operator: OPERATORS.daewoo, title: "Corporate Event Transport", originId: "lhe", price: 45000, priceUnit: "from", vehicle: "Coaster + Hiace fleet", amenities: ["contract", "tracking", "invoice"] },
+
+  // ---- FARM HOUSE ----
+  { id: "farm-1", serviceType: "FARMHOUSE", operator: OPERATORS.bookie, title: "Bedian Road Farm House", originId: "lhe", location: "Bedian Road, Lahore", price: 35000, priceUnit: "per_night", amenities: ["pool", "ac", "parking"], badge: "Sleeps 20" },
+  { id: "farm-2", serviceType: "FARMHOUSE", operator: OPERATORS.bookie, title: "Barki Farmhouse Retreat", originId: "lhe", location: "Barki, Lahore", price: 28000, priceUnit: "per_night", amenities: ["pool", "music", "parking"], badge: "Events welcome" },
+
+  // ---- HUT ----
+  { id: "hut-1", serviceType: "HUT", operator: OPERATORS.bookie, title: "Lakeview Hut — Naran", originId: "skardu", location: "Saif-ul-Malook, Naran", price: 9000, priceUnit: "per_night", amenities: ["water", "parking"], badge: "Mountain view" },
+
+  // ---- WATER PARK ----
+  { id: "wp-1", serviceType: "WATERPARK", operator: OPERATORS.bookie, title: "Sozo Water Park — Day Pass", originId: "lhe", location: "Canal Road, Lahore", price: 1500, priceUnit: "from", amenities: ["parking"], badge: "Family fun" },
 ];
 
 export const AMENITY_LABELS: Record<string, string> = {

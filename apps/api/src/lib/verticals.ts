@@ -9,7 +9,10 @@ export type ServiceType =
   | "TOUR"
   | "UMRAH"
   | "PICNIC"
-  | "CORPORATE";
+  | "CORPORATE"
+  | "FARMHOUSE"
+  | "HUT"
+  | "WATERPARK";
 
 export const VERTICALS = [
   { type: "BUS", label: "Bus", tagline: "Intercity tickets, live seat selection", icon: "🚌", flavor: "ROUTE", primary: true },
@@ -22,8 +25,11 @@ export const VERTICALS = [
   { type: "UMRAH", label: "Umrah", tagline: "Umrah packages & visas", icon: "🕋", flavor: "PACKAGE" },
   { type: "PICNIC", label: "Picnic & Party", tagline: "Charter a coach for your group", icon: "🎉", flavor: "CHARTER" },
   { type: "CORPORATE", label: "Corporate", tagline: "Staff & event transport", icon: "🏢", flavor: "CHARTER" },
+  { type: "FARMHOUSE", label: "Farm Houses", tagline: "Private farmhouse getaways", icon: "🏡", flavor: "STAY" },
+  { type: "HUT", label: "Huts", tagline: "Cosy huts in the hills", icon: "🛖", flavor: "STAY" },
+  { type: "WATERPARK", label: "Water Parks", tagline: "Day passes & family fun", icon: "🌊", flavor: "EVENT" },
 ] as const;
 
 export const SERVICE_TYPES: ServiceType[] = [
-  "BUS", "FLIGHT", "TRAIN", "CAR", "HOTEL", "EVENT", "TOUR", "UMRAH", "PICNIC", "CORPORATE",
+  "BUS", "FLIGHT", "TRAIN", "CAR", "HOTEL", "EVENT", "TOUR", "UMRAH", "PICNIC", "CORPORATE", "FARMHOUSE", "HUT", "WATERPARK",
 ];

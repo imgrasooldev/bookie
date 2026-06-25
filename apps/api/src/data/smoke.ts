@@ -42,7 +42,7 @@ const health = await get("/health");
 check("GET /health ok", health.status === 200 && health.body.ok === true, health);
 
 const verticals = await get("/verticals");
-check("GET /verticals → 10", verticals.status === 200 && verticals.body.length === 10, verticals.body?.length);
+check("GET /verticals → 13", verticals.status === 200 && verticals.body.length === 13, verticals.body?.length);
 
 const cities = await get("/cities");
 check("GET /cities → 12", cities.status === 200 && cities.body.length === 12, cities.body?.length);
@@ -72,6 +72,15 @@ check("GET /trips TOUR → 2 with durationDays", tours.status === 200 && tours.b
 
 const umrah = await get("/trips?serviceType=UMRAH");
 check("GET /trips UMRAH → 2", umrah.status === 200 && umrah.body.length === 2, umrah.body?.length);
+
+// Operator creates a listing (admin portal → DB)
+const created = await post("/trips", {
+  serviceType: "FARMHOUSE", operatorName: "Smoke Stays", title: "Test Farm House",
+  location: "Lahore", price: 30000, priceUnit: "per_night", seatsAvailable: 3, amenities: ["pool"],
+});
+check("POST /trips → 201 with operator", created.status === 201 && created.body.operator?.name === "Smoke Stays", created.body);
+const farm = await get("/trips?serviceType=FARMHOUSE");
+check("created listing appears in search", farm.status === 200 && farm.body.some((t: { title: string }) => t.title === "Test Farm House"), farm.body?.length);
 
 // Auth
 const reg = await post("/auth/register", {

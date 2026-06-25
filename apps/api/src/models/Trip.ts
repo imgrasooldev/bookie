@@ -5,7 +5,7 @@ const tripSchema = new Schema(
   {
     serviceType: {
       type: String,
-      enum: ["BUS", "FLIGHT", "TRAIN", "CAR", "HOTEL", "EVENT", "TOUR", "UMRAH", "PICNIC", "CORPORATE"],
+      enum: ["BUS", "FLIGHT", "TRAIN", "CAR", "HOTEL", "EVENT", "TOUR", "UMRAH", "PICNIC", "CORPORATE", "FARMHOUSE", "HUT", "WATERPARK"],
       required: true,
       index: true,
     },

@@ -11,12 +11,14 @@ import {
   type CategoryKey,
 } from "../data";
 import { PageHeader } from "../components/ui";
+import { createTrip } from "../api";
 import { PlusIcon, ClockIcon, CalendarIcon, TrashIcon, PowerIcon } from "../icons";
 
 export function Schedules() {
   const [list, setList] = useState<Schedule[]>(seed);
   const [cat, setCat] = useState<CategoryKey>("BUS");
   const [open, setOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   const rows = list.filter((s) => s.category === cat);
   const c = categoryOf(cat);
@@ -128,11 +130,21 @@ export function Schedules() {
         <AddSchedule
           category={cat}
           onClose={() => setOpen(false)}
-          onAdd={(s) => {
+          onAdd={async (s) => {
             setList((l) => [s, ...l]);
             setOpen(false);
+            setToast("Publishing to the customer site…");
+            const r = await createTrip(s);
+            setToast(r.ok ? "✓ Published — now live on Bookie" : `⚠ ${r.error}`);
+            setTimeout(() => setToast(null), 3500);
           }}
         />
+      )}
+
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white shadow-lg">
+          {toast}
+        </div>
       )}
     </div>
   );

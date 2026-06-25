@@ -98,6 +98,26 @@ export const KaabaIcon = (p: P) => (
     <path d="M4 9.5h16" />
   </S>
 );
+export const FarmhouseIcon = (p: P) => (
+  <S {...p}>
+    <path d="M3 11l9-7 9 7" />
+    <path d="M5 10v10h14V10" />
+    <path d="M9 20v-5h6v5" />
+  </S>
+);
+export const HutIcon = (p: P) => (
+  <S {...p}>
+    <path d="M12 3 3 12h2v8h14v-8h2L12 3z" />
+    <path d="M9 20v-6h6v6" />
+  </S>
+);
+export const WaveIcon = (p: P) => (
+  <S {...p}>
+    <path d="M2 8c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2" />
+    <path d="M2 13c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2" />
+    <path d="M2 18c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2" />
+  </S>
+);
 
 /* ---------- amenities ---------- */
 export const WifiIcon = (p: P) => (
@@ -385,4 +405,7 @@ export const VERTICAL_ICONS: Record<string, (p: P) => React.ReactElement> = {
   UMRAH: KaabaIcon,
   PICNIC: PartyIcon,
   CORPORATE: BuildingIcon,
+  FARMHOUSE: FarmhouseIcon,
+  HUT: HutIcon,
+  WATERPARK: WaveIcon,
 };

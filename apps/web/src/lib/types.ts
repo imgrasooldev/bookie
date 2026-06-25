@@ -11,7 +11,10 @@ export type ServiceType =
   | "TOUR" // holiday packages
   | "UMRAH" // umrah packages
   | "PICNIC" // picnic / party charter
-  | "CORPORATE"; // corporate transport
+  | "CORPORATE" // corporate transport
+  | "FARMHOUSE" // private farmhouse stays
+  | "HUT" // hill huts
+  | "WATERPARK"; // water park day passes
 
 /** Drives which search fields and result-card layout a category uses. */
 export type Flavor =

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { IMAGES } from "@/lib/images";
-import { TicketIcon } from "@/components/icons";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -34,13 +33,6 @@ export default function LoginPage() {
     <div className="grid min-h-[calc(100vh-4rem)] lg:grid-cols-2">
       <div className="flex items-center justify-center px-6 py-12">
         <form onSubmit={submit} className="w-full max-w-sm">
-          <Link href="/" className="mb-8 flex items-center gap-2">
-            <span className="grid h-9 w-9 place-items-center rounded-xl brand-gradient text-white">
-              <TicketIcon className="h-5 w-5" />
-            </span>
-            <span className="font-display text-xl font-extrabold text-ink">Bookie</span>
-          </Link>
-
           <h1 className="font-display text-3xl font-bold text-ink">Welcome back</h1>
           <p className="mt-1 text-muted">Sign in to manage your bookings.</p>
 

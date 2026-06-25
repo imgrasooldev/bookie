@@ -2,10 +2,27 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { User } from "../models/User.js";
-import { signToken } from "../middleware/auth.js";
+import { signToken, requireAuth } from "../middleware/auth.js";
 import { ah, HttpError } from "../middleware/error.js";
 
 export const authRouter = Router();
+
+// GET /auth/me — current user from a bearer token.
+authRouter.get(
+  "/me",
+  requireAuth,
+  ah(async (req, res) => {
+    const user = await User.findById(req.user!.sub).lean();
+    if (!user) throw new HttpError(404, "User not found");
+    res.json({
+      id: String(user._id),
+      name: user.name,
+      email: user.email ?? null,
+      phone: user.phone,
+      roles: user.roles,
+    });
+  }),
+);
 
 const registerSchema = z.object({
   name: z.string().min(2),

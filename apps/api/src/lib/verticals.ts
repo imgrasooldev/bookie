@@ -1,35 +1,29 @@
 // Static catalog of verticals — mirrors apps/web/src/lib/mock.ts VERTICALS.
-export type ServiceType = "BUS" | "CAR" | "PICNIC" | "CORPORATE";
+export type ServiceType =
+  | "BUS"
+  | "FLIGHT"
+  | "TRAIN"
+  | "CAR"
+  | "HOTEL"
+  | "EVENT"
+  | "TOUR"
+  | "UMRAH"
+  | "PICNIC"
+  | "CORPORATE";
 
 export const VERTICALS = [
-  {
-    type: "BUS",
-    label: "Bus",
-    tagline: "Intercity tickets, live seat selection",
-    icon: "🚌",
-    flavor: "SCHEDULED_SEAT",
-  },
-  {
-    type: "CAR",
-    label: "City Ride",
-    tagline: "Book a car within the city",
-    icon: "🚗",
-    flavor: "ON_DEMAND_RIDE",
-  },
-  {
-    type: "PICNIC",
-    label: "Picnic & Party",
-    tagline: "Charter a coach for your group",
-    icon: "🎉",
-    flavor: "CHARTER",
-  },
-  {
-    type: "CORPORATE",
-    label: "Corporate",
-    tagline: "Staff & event transport, on contract",
-    icon: "🏢",
-    flavor: "CHARTER",
-  },
+  { type: "BUS", label: "Bus", tagline: "Intercity tickets, live seat selection", icon: "🚌", flavor: "ROUTE", primary: true },
+  { type: "FLIGHT", label: "Flights", tagline: "Domestic & international air travel", icon: "✈️", flavor: "ROUTE", primary: true },
+  { type: "TRAIN", label: "Train", tagline: "Pakistan Railways tickets", icon: "🚆", flavor: "ROUTE", primary: true },
+  { type: "HOTEL", label: "Hotels", tagline: "Stays across Pakistan & beyond", icon: "🏨", flavor: "STAY", primary: true },
+  { type: "CAR", label: "City Ride", tagline: "Book a car within the city", icon: "🚗", flavor: "RIDE", primary: true },
+  { type: "EVENT", label: "Events & Movies", tagline: "Concerts, cinema & shows", icon: "🎟️", flavor: "EVENT" },
+  { type: "TOUR", label: "Tours", tagline: "Holiday & honeymoon packages", icon: "🌴", flavor: "PACKAGE" },
+  { type: "UMRAH", label: "Umrah", tagline: "Umrah packages & visas", icon: "🕋", flavor: "PACKAGE" },
+  { type: "PICNIC", label: "Picnic & Party", tagline: "Charter a coach for your group", icon: "🎉", flavor: "CHARTER" },
+  { type: "CORPORATE", label: "Corporate", tagline: "Staff & event transport", icon: "🏢", flavor: "CHARTER" },
 ] as const;
 
-export const SERVICE_TYPES: ServiceType[] = ["BUS", "CAR", "PICNIC", "CORPORATE"];
+export const SERVICE_TYPES: ServiceType[] = [
+  "BUS", "FLIGHT", "TRAIN", "CAR", "HOTEL", "EVENT", "TOUR", "UMRAH", "PICNIC", "CORPORATE",
+];

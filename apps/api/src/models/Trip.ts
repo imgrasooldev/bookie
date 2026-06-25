@@ -5,7 +5,7 @@ const tripSchema = new Schema(
   {
     serviceType: {
       type: String,
-      enum: ["BUS", "CAR", "PICNIC", "CORPORATE"],
+      enum: ["BUS", "FLIGHT", "TRAIN", "CAR", "HOTEL", "EVENT", "TOUR", "UMRAH", "PICNIC", "CORPORATE"],
       required: true,
       index: true,
     },
@@ -19,12 +19,19 @@ const tripSchema = new Schema(
     price: { type: Number, required: true }, // PKR; 0 = quote on request
     priceUnit: {
       type: String,
-      enum: ["per_seat", "fixed", "from"],
+      enum: ["per_seat", "per_night", "per_person", "fixed", "from"],
       default: "from",
     },
     seatsAvailable: { type: Number },
     vehicle: { type: String },
     amenities: { type: [String], default: [] },
+    // category-specific extras
+    location: { type: String }, // hotel area / event venue
+    stops: { type: Number }, // flight stops
+    nights: { type: Number },
+    durationDays: { type: Number }, // tour / umrah length
+    rating: { type: Number }, // hotel star rating
+    badge: { type: String },
     status: { type: String, enum: ["active", "hidden"], default: "active" },
   },
   { timestamps: true },

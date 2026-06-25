@@ -30,6 +30,7 @@ npm run smoke                 # boots in-memory mongod, exercises every route
 | GET  | `/trips/:id` | trip detail |
 | POST | `/auth/register` | `{ name, phone, password }` → JWT |
 | POST | `/auth/login` | `{ phone, password }` → JWT |
+| GET  | `/auth/me` | current user (bearer token) |
 | POST | `/auth/otp/request` | stub (wire an SMS gateway) |
 | POST | `/bookings` | create booking / quote request |
 | GET  | `/bookings/mine` | auth required |

@@ -18,6 +18,12 @@ type PopulatedTrip = {
   seatsAvailable?: number | null;
   vehicle?: string | null;
   amenities: string[];
+  location?: string | null;
+  stops?: number | null;
+  nights?: number | null;
+  durationDays?: number | null;
+  rating?: number | null;
+  badge?: string | null;
 };
 
 export function serializeOperator(op: any) {
@@ -45,5 +51,11 @@ export function serializeTrip(t: PopulatedTrip) {
     seatsAvailable: t.seatsAvailable ?? undefined,
     vehicle: t.vehicle ?? undefined,
     amenities: t.amenities ?? [],
+    location: t.location ?? undefined,
+    stops: t.stops ?? undefined,
+    nights: t.nights ?? undefined,
+    durationDays: t.durationDays ?? undefined,
+    rating: t.rating ?? undefined,
+    badge: t.badge ?? undefined,
   };
 }

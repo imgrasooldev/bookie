@@ -32,9 +32,9 @@ npm install      # already installed during scaffold
 npm run dev      # http://localhost:3000
 ```
 
-The web app reads mock data by default. To point it at the live backend, set
-`NEXT_PUBLIC_USE_MOCK=false` and `NEXT_PUBLIC_API_URL=http://localhost:4000` —
-no code change, because the data shapes match.
+The web app reads mock data by default. To run the whole stack on real data
+(MongoDB + API), follow [`docs/RUN-LIVE.md`](docs/RUN-LIVE.md) — it's two env
+vars, no code changes, because the data shapes match.
 
 ## Run the admin console
 

@@ -42,10 +42,10 @@ const health = await get("/health");
 check("GET /health ok", health.status === 200 && health.body.ok === true, health);
 
 const verticals = await get("/verticals");
-check("GET /verticals → 4", verticals.status === 200 && verticals.body.length === 4, verticals.body?.length);
+check("GET /verticals → 10", verticals.status === 200 && verticals.body.length === 10, verticals.body?.length);
 
 const cities = await get("/cities");
-check("GET /cities → 8", cities.status === 200 && cities.body.length === 8, cities.body?.length);
+check("GET /cities → 12", cities.status === 200 && cities.body.length === 12, cities.body?.length);
 
 const bus = await get("/trips?serviceType=BUS&originId=lhe&destinationId=isb");
 check("GET /trips BUS lhe→isb → 3", bus.status === 200 && bus.body.length === 3, bus.body?.length);
@@ -58,6 +58,21 @@ check("GET /trips/:id", one.status === 200 && one.body.id === tripId, one.status
 const corp = await get("/trips?serviceType=CORPORATE");
 check("GET /trips CORPORATE → 2", corp.status === 200 && corp.body.length === 2, corp.body?.length);
 
+// New categories
+const flights = await get("/trips?serviceType=FLIGHT");
+check("GET /trips FLIGHT → 3", flights.status === 200 && flights.body.length === 3, flights.body?.length);
+check("flight has stops + badge", flights.body?.[0]?.stops !== undefined && Boolean(flights.body?.[0]?.badge), flights.body?.[0]);
+
+const hotels = await get("/trips?serviceType=HOTEL");
+check("GET /trips HOTEL → 3", hotels.status === 200 && hotels.body.length === 3, hotels.body?.length);
+check("hotel has rating + location + per_night", Boolean(hotels.body?.[0]?.location) && hotels.body?.[0]?.priceUnit === "per_night", hotels.body?.[0]);
+
+const tours = await get("/trips?serviceType=TOUR");
+check("GET /trips TOUR → 2 with durationDays", tours.status === 200 && tours.body.length === 2 && tours.body[0].durationDays > 0, tours.body?.length);
+
+const umrah = await get("/trips?serviceType=UMRAH");
+check("GET /trips UMRAH → 2", umrah.status === 200 && umrah.body.length === 2, umrah.body?.length);
+
 // Auth
 const reg = await post("/auth/register", {
   name: "Test User", phone: "03001234567", password: "secret1",
@@ -69,6 +84,15 @@ check("POST /auth/login → token", login.status === 200 && Boolean(login.body.t
 
 const badLogin = await post("/auth/login", { phone: "03001234567", password: "wrong" });
 check("login wrong password → 401", badLogin.status === 401, badLogin.status);
+
+// Authenticated profile
+const me = await fetch(base + "/auth/me", {
+  headers: { authorization: `Bearer ${login.body.token}` },
+}).then(async (r) => ({ status: r.status, body: await r.json() }));
+check("GET /auth/me → current user", me.status === 200 && me.body.phone === "03001234567", me.body);
+
+const meNoAuth = await get("/auth/me");
+check("GET /auth/me without token → 401", meNoAuth.status === 401, meNoAuth.status);
 
 // Booking (bus seats)
 const booking = await post("/bookings", {

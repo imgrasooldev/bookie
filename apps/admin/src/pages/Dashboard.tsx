@@ -1,35 +1,60 @@
+import { useEffect, useState } from "react";
 import {
-  kpis,
   bookingsSeries,
   revenueByVertical,
   bookings,
   formatPKR,
 } from "../data";
+import { getStats, type Stats } from "../api";
 import { PageHeader, StatusBadge, TypeBadge } from "../components/ui";
-import { ArrowUpIcon } from "../icons";
 
 export function Dashboard() {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [live, setLive] = useState(false);
+
+  useEffect(() => {
+    getStats().then((s) => {
+      if (s) {
+        setStats(s);
+        setLive(true);
+      }
+    });
+  }, []);
+
+  const tiles = stats
+    ? [
+        { label: "Total listings", value: String(stats.trips) },
+        { label: "Active listings", value: String(stats.activeTrips) },
+        { label: "Bookings", value: String(stats.bookings) },
+        { label: "Revenue", value: formatPKR(stats.revenue) },
+      ]
+    : [
+        { label: "Total listings", value: "—" },
+        { label: "Active listings", value: "—" },
+        { label: "Bookings", value: "—" },
+        { label: "Revenue", value: "—" },
+      ];
+
   return (
     <div>
       <PageHeader
         title="Dashboard"
-        subtitle="Marketplace overview — last 30 days"
+        subtitle="Marketplace overview"
       />
+
+      <div className="mb-4">
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${live ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
+          <span className={`h-2 w-2 rounded-full ${live ? "bg-green-500" : "bg-amber-500"}`} />
+          {live ? "Live · MongoDB" : "Connecting…"}
+        </span>
+      </div>
 
       {/* KPI tiles */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((k) => (
+        {tiles.map((k) => (
           <div key={k.label} className="card p-5">
             <div className="text-sm text-muted">{k.label}</div>
             <div className="mt-1 text-2xl font-extrabold text-ink">{k.value}</div>
-            <div
-              className={`mt-1 inline-flex items-center gap-1 text-xs font-semibold ${
-                k.up ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              <ArrowUpIcon className="h-3.5 w-3.5" />
-              {k.delta}
-            </div>
           </div>
         ))}
       </div>

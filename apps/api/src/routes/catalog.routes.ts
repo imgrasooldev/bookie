@@ -3,6 +3,7 @@ import { z } from "zod";
 import { City } from "../models/City.js";
 import { Trip } from "../models/Trip.js";
 import { Operator } from "../models/Operator.js";
+import { Booking } from "../models/Booking.js";
 import { VERTICALS, SERVICE_TYPES } from "../lib/verticals.js";
 import { serializeTrip } from "../lib/serialize.js";
 import { ah, HttpError } from "../middleware/error.js";
@@ -113,5 +114,100 @@ catalogRouter.get(
     const trip = await Trip.findById(req.params.id).populate("operator").lean();
     if (!trip) throw new HttpError(404, "Trip not found");
     res.json(serializeTrip(trip));
+  }),
+);
+
+/* ---------------- operator/admin console ---------------- */
+
+// GET /admin/trips — every listing (any status), newest first
+catalogRouter.get(
+  "/admin/trips",
+  ah(async (req, res) => {
+    const filter: Record<string, unknown> = {};
+    if (req.query.serviceType) filter.serviceType = req.query.serviceType;
+    const trips = await Trip.find(filter)
+      .populate("operator")
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json(trips.map((t) => ({ ...serializeTrip(t), status: t.status })));
+  }),
+);
+
+const patchSchema = z.object({
+  title: z.string().min(2).optional(),
+  price: z.coerce.number().nonnegative().optional(),
+  priceUnit: z.enum(["per_seat", "per_night", "per_person", "fixed", "from"]).optional(),
+  departAt: z.string().optional(),
+  arriveAt: z.string().optional(),
+  seatsAvailable: z.coerce.number().optional(),
+  location: z.string().optional(),
+  status: z.enum(["active", "hidden"]).optional(),
+});
+
+// PATCH /trips/:id — update a listing
+catalogRouter.patch(
+  "/trips/:id",
+  ah(async (req, res) => {
+    const b = patchSchema.parse(req.body);
+    const update: Record<string, unknown> = { ...b };
+    if (b.departAt) update.departAt = new Date(b.departAt);
+    if (b.arriveAt) update.arriveAt = new Date(b.arriveAt);
+    const trip = await Trip.findByIdAndUpdate(req.params.id, update, { new: true })
+      .populate("operator")
+      .lean();
+    if (!trip) throw new HttpError(404, "Trip not found");
+    res.json({ ...serializeTrip(trip), status: trip.status });
+  }),
+);
+
+// DELETE /trips/:id
+catalogRouter.delete(
+  "/trips/:id",
+  ah(async (req, res) => {
+    const r = await Trip.findByIdAndDelete(req.params.id);
+    if (!r) throw new HttpError(404, "Trip not found");
+    res.json({ ok: true });
+  }),
+);
+
+// GET /admin/bookings — all bookings for the console
+catalogRouter.get(
+  "/admin/bookings",
+  ah(async (_req, res) => {
+    const bookings = await Booking.find()
+      .populate("trip operator customer")
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .lean();
+    res.json(
+      bookings.map((b) => ({
+        id: String(b._id),
+        ref: b.bookingNo,
+        serviceType: b.serviceType,
+        title: (b.trip as { title?: string } | null)?.title ?? "—",
+        operator: (b.operator as { name?: string } | null)?.name ?? "—",
+        customer: (b.customer as { name?: string } | null)?.name ?? "Guest",
+        amount: b.fare?.total ?? 0,
+        method: b.payment?.method ?? "—",
+        status: b.status,
+        seats: b.seats ?? [],
+        createdAt: b.createdAt,
+      })),
+    );
+  }),
+);
+
+// GET /admin/stats — dashboard counts
+catalogRouter.get(
+  "/admin/stats",
+  ah(async (_req, res) => {
+    const [trips, activeTrips, bookings, operators, rev] = await Promise.all([
+      Trip.countDocuments({}),
+      Trip.countDocuments({ status: "active" }),
+      Booking.countDocuments({}),
+      Operator.countDocuments({}),
+      Booking.aggregate([{ $group: { _id: null, total: { $sum: "$fare.total" } } }]),
+    ]);
+    res.json({ trips, activeTrips, bookings, operators, revenue: rev[0]?.total ?? 0 });
   }),
 );

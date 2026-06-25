@@ -1,0 +1,36 @@
+import { Schema, model, InferSchemaType, Types } from "mongoose";
+
+// Generic bookable — one shape across every vertical (see docs/PLAN.md).
+const tripSchema = new Schema(
+  {
+    serviceType: {
+      type: String,
+      enum: ["BUS", "CAR", "PICNIC", "CORPORATE"],
+      required: true,
+      index: true,
+    },
+    operator: { type: Schema.Types.ObjectId, ref: "Operator", required: true },
+    title: { type: String, required: true },
+    originCode: { type: String, index: true }, // city code; optional for on-demand
+    destinationCode: { type: String, index: true },
+    departAt: { type: Date },
+    arriveAt: { type: Date },
+    durationMin: { type: Number },
+    price: { type: Number, required: true }, // PKR; 0 = quote on request
+    priceUnit: {
+      type: String,
+      enum: ["per_seat", "fixed", "from"],
+      default: "from",
+    },
+    seatsAvailable: { type: Number },
+    vehicle: { type: String },
+    amenities: { type: [String], default: [] },
+    status: { type: String, enum: ["active", "hidden"], default: "active" },
+  },
+  { timestamps: true },
+);
+
+tripSchema.index({ serviceType: 1, originCode: 1, destinationCode: 1 });
+
+export type TripDoc = InferSchemaType<typeof tripSchema> & { _id: Types.ObjectId };
+export const Trip = model("Trip", tripSchema);

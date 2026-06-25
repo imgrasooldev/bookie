@@ -88,3 +88,111 @@ export function formatPKR(n: number): string {
     maximumFractionDigits: 0,
   }).format(n);
 }
+
+/* ============ Operator portal: categories, fleet & schedules ============ */
+
+export type CategoryKey =
+  | "BUS"
+  | "FLIGHT"
+  | "TRAIN"
+  | "CITY_RIDE"
+  | "HOTEL"
+  | "FARMHOUSE"
+  | "HUT"
+  | "WATERPARK";
+
+export type CategoryKind = "transport" | "ride" | "stay" | "venue";
+
+export interface Category {
+  key: CategoryKey;
+  label: string;
+  kind: CategoryKind;
+  icon: string;
+  color: string;
+}
+
+export const CATEGORIES: Category[] = [
+  { key: "BUS", label: "Bus", kind: "transport", icon: "🚌", color: "#155cc9" },
+  { key: "FLIGHT", label: "Flight", kind: "transport", icon: "✈️", color: "#7c3aed" },
+  { key: "TRAIN", label: "Train", kind: "transport", icon: "🚆", color: "#0e7490" },
+  { key: "CITY_RIDE", label: "City Ride", kind: "ride", icon: "🚗", color: "#0891b2" },
+  { key: "HOTEL", label: "Hotel", kind: "stay", icon: "🏨", color: "#be185d" },
+  { key: "FARMHOUSE", label: "Farm House", kind: "stay", icon: "🏡", color: "#15803d" },
+  { key: "HUT", label: "Hut", kind: "stay", icon: "🛖", color: "#b45309" },
+  { key: "WATERPARK", label: "Water Park", kind: "venue", icon: "🌊", color: "#0284c7" },
+];
+
+export const categoryOf = (k: CategoryKey) => CATEGORIES.find((c) => c.key === k)!;
+
+/* ---- Fleet / seat maps ---- */
+
+export type SeatLayout = "2+2" | "2+1" | "sleeper"; // columns per row template
+
+/** Columns for a layout; "" = aisle gap. */
+export const LAYOUT_COLUMNS: Record<SeatLayout, string[]> = {
+  "2+2": ["A", "B", "", "C", "D"],
+  "2+1": ["A", "B", "", "C"],
+  sleeper: ["A", "", "B"],
+};
+
+export interface Vehicle {
+  id: string;
+  name: string;
+  type: string; // Bus / Coaster / Hiace / Coach
+  layout: SeatLayout;
+  rows: number;
+  disabled: string[]; // seat labels removed (door/stairs)
+  amenities: string[];
+}
+
+export function seatLabels(v: Pick<Vehicle, "layout" | "rows">): string[] {
+  const cols = LAYOUT_COLUMNS[v.layout].filter(Boolean);
+  const out: string[] = [];
+  for (let r = 1; r <= v.rows; r++) for (const c of cols) out.push(`${r}${c}`);
+  return out;
+}
+
+export function capacityOf(v: Vehicle): number {
+  return seatLabels(v).filter((s) => !v.disabled.includes(s)).length;
+}
+
+export const vehicles: Vehicle[] = [
+  { id: "v1", name: "Volvo 9700", type: "Bus", layout: "2+2", rows: 11, disabled: ["11A", "11B"], amenities: ["wifi", "ac", "usb"] },
+  { id: "v2", name: "Hino Business", type: "Coach", layout: "2+1", rows: 12, disabled: [], amenities: ["ac", "usb"] },
+  { id: "v3", name: "Daewoo Sleeper", type: "Bus", layout: "sleeper", rows: 14, disabled: [], amenities: ["ac", "meal", "sleeper"] },
+];
+
+/* ---- Schedules / timetable ---- */
+
+export interface Schedule {
+  id: string;
+  category: CategoryKey;
+  operator: string;
+  title: string; // route ("Lahore → Islamabad") or property name
+  from?: string;
+  to?: string;
+  date?: string;
+  departTime?: string;
+  arriveTime?: string;
+  days?: string[]; // recurrence, e.g. ["Mon","Wed","Fri"]
+  vehicle?: string; // vehicle id (transport)
+  location?: string; // stays
+  price: number;
+  unit: "seat" | "night" | "trip" | "ticket";
+  capacity?: number; // seats / units / daily tickets available
+  status: "active" | "paused";
+}
+
+export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+export const schedules: Schedule[] = [
+  { id: "s1", category: "BUS", operator: "Daewoo Express", title: "Lahore → Islamabad", from: "Lahore", to: "Islamabad", departTime: "07:00", arriveTime: "11:30", days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], vehicle: "v1", price: 2400, unit: "seat", capacity: 42, status: "active" },
+  { id: "s2", category: "BUS", operator: "Faisal Movers", title: "Lahore → Islamabad", from: "Lahore", to: "Islamabad", departTime: "09:30", arriveTime: "14:15", days: ["Mon", "Wed", "Fri"], vehicle: "v2", price: 1950, unit: "seat", capacity: 33, status: "active" },
+  { id: "s3", category: "FLIGHT", operator: "Airblue", title: "Karachi → Islamabad", from: "Karachi", to: "Islamabad", departTime: "08:15", arriveTime: "10:05", days: ["Mon", "Thu", "Sat"], price: 18500, unit: "seat", capacity: 150, status: "active" },
+  { id: "s4", category: "TRAIN", operator: "Pakistan Railways", title: "Karachi → Lahore (Green Line)", from: "Karachi", to: "Lahore", departTime: "07:30", arriveTime: "01:00", days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], price: 6500, unit: "seat", capacity: 320, status: "active" },
+  { id: "s5", category: "HOTEL", operator: "Pearl Continental", title: "Pearl Continental Lahore", location: "Mall Road, Lahore", price: 28000, unit: "night", capacity: 40, status: "active" },
+  { id: "s6", category: "FARMHOUSE", operator: "Bookie Stays", title: "Bedian Road Farm House", location: "Bedian Road, Lahore", price: 35000, unit: "night", capacity: 3, status: "active" },
+  { id: "s7", category: "HUT", operator: "Bookie Stays", title: "Lakeview Hut — Naran", location: "Saif-ul-Malook, Naran", price: 9000, unit: "night", capacity: 6, status: "active" },
+  { id: "s8", category: "CITY_RIDE", operator: "Bookie Fleet", title: "City Ride — Sedan", location: "Lahore", price: 850, unit: "trip", capacity: 20, status: "active" },
+  { id: "s9", category: "WATERPARK", operator: "Bookie Leisure", title: "Sozo Water Park — Day Pass", location: "Canal Road, Lahore", days: ["Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], price: 1500, unit: "ticket", capacity: 800, status: "active" },
+];

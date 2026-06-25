@@ -7,11 +7,15 @@ import {
   SearchIcon,
   BellIcon,
   LogoutIcon,
+  BusIcon,
+  CalendarIcon,
 } from "../icons";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: GridIcon, end: true },
   { to: "/operators", label: "Operators", icon: UsersIcon },
+  { to: "/fleet", label: "Fleet & Seats", icon: BusIcon },
+  { to: "/schedules", label: "Schedules", icon: CalendarIcon },
   { to: "/trips", label: "Trips & Inventory", icon: RouteIcon },
   { to: "/bookings", label: "Bookings", icon: TicketIcon },
 ];

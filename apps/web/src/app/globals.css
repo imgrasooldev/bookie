@@ -209,6 +209,27 @@ body {
   scrollbar-width: none;
 }
 
+/* loading skeleton shimmer */
+@keyframes shimmer {
+  0% {
+    background-position: -520px 0;
+  }
+  100% {
+    background-position: 520px 0;
+  }
+}
+.skeleton {
+  background: linear-gradient(90deg, #eef2f7 25%, #e3e9f1 37%, #eef2f7 63%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: 0.5rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
 /* 3D tilt + spotlight on cards */
 .tilt {
   position: relative;

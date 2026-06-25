@@ -4,8 +4,16 @@ import { useMemo, useState } from "react";
 import { formatPKR } from "@/lib/format";
 import type { Trip } from "@/lib/types";
 import { PaymentDialog } from "@/components/checkout/PaymentDialog";
+import { DriverIcon as SteeringIcon } from "@/components/icons";
 
 const PAYMENT_METHODS = ["Easypaisa", "JazzCash", "Card", "Cash"] as const;
+
+const METHOD_COLORS: Record<(typeof PAYMENT_METHODS)[number], string> = {
+  Easypaisa: "#52a447",
+  JazzCash: "#c8102e",
+  Card: "#4f46e5",
+  Cash: "#64748b",
+};
 
 // Demo seat map: 10 rows × 4 seats (2 + aisle + 2). Some pre-sold.
 const SOLD_SEATS = new Set(["1A", "1B", "3C", "5D", "7A", "7B", "9C"]);
@@ -100,36 +108,50 @@ export function BookingForm({ trip }: { trip: Trip }) {
   return (
     <div className="space-y-5">
       {isBus && (
-        <div className="rounded-2xl bg-surface p-5 ring-1 ring-slate-200">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="font-bold text-ink">Select seats</h3>
+        <div className="card-soft p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="font-bold text-ink">Select your seats</h3>
             <Legend />
           </div>
-          <div className="inline-grid grid-cols-5 gap-2">
-            {Array.from({ length: 10 }, (_, r) =>
-              ["A", "B", "", "C", "D"].map((col) => {
-                if (col === "") return <div key={`${r}-gap`} className="w-9" />;
-                const seat = `${r + 1}${col}`;
-                const sold = SOLD_SEATS.has(seat);
-                const sel = selected.includes(seat);
-                return (
-                  <button
-                    key={seat}
-                    onClick={() => toggleSeat(seat)}
-                    disabled={sold}
-                    className={`h-9 w-9 rounded-md text-xs font-semibold transition ${
-                      sold
-                        ? "cursor-not-allowed bg-slate-200 text-slate-400"
-                        : sel
-                          ? "bg-brand-600 text-white"
-                          : "bg-brand-50 text-brand-700 hover:bg-brand-100"
-                    }`}
-                  >
-                    {seat}
-                  </button>
-                );
-              }),
-            )}
+
+          {/* bus body */}
+          <div className="mx-auto max-w-xs rounded-[1.75rem] border-2 border-slate-200 bg-slate-50 p-4">
+            {/* driver row */}
+            <div className="mb-3 flex items-center justify-between border-b border-dashed border-slate-300 pb-3">
+              <span className="text-xs font-medium text-muted">Front</span>
+              <span className="grid h-9 w-9 place-items-center rounded-full border-2 border-slate-300 text-slate-400">
+                <SteeringIcon className="h-5 w-5" />
+              </span>
+            </div>
+
+            <div className="grid grid-cols-5 gap-2">
+              {Array.from({ length: 10 }, (_, r) =>
+                ["A", "B", "", "C", "D"].map((col) => {
+                  if (col === "")
+                    return <div key={`${r}-gap`} className="w-8" />;
+                  const seat = `${r + 1}${col}`;
+                  const sold = SOLD_SEATS.has(seat);
+                  const sel = selected.includes(seat);
+                  return (
+                    <button
+                      key={seat}
+                      onClick={() => toggleSeat(seat)}
+                      disabled={sold}
+                      title={seat}
+                      className={`flex h-9 w-9 items-center justify-center rounded-lg rounded-t-md text-[11px] font-semibold transition ${
+                        sold
+                          ? "cursor-not-allowed bg-slate-200 text-slate-400"
+                          : sel
+                            ? "scale-105 bg-brand-600 text-white shadow-md"
+                            : "bg-white text-brand-700 ring-1 ring-brand-100 hover:bg-brand-50"
+                      }`}
+                    >
+                      {seat}
+                    </button>
+                  );
+                }),
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -153,19 +175,23 @@ export function BookingForm({ trip }: { trip: Trip }) {
       )}
 
       {!isQuote && (
-        <div className="rounded-2xl bg-surface p-5 ring-1 ring-slate-200">
+        <div className="card-soft p-5">
           <h3 className="mb-3 font-bold text-ink">Payment method</h3>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {PAYMENT_METHODS.map((m) => (
               <button
                 key={m}
                 onClick={() => setMethod(m)}
-                className={`rounded-xl px-4 py-2 text-sm font-semibold ring-1 transition ${
+                className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold ring-1 transition ${
                   method === m
-                    ? "bg-brand-600 text-white ring-brand-600"
-                    : "bg-surface text-ink ring-slate-300 hover:bg-slate-50"
+                    ? "bg-brand-50 text-brand-700 ring-brand-300"
+                    : "bg-surface text-ink ring-slate-200 hover:bg-slate-50"
                 }`}
               >
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: METHOD_COLORS[m] }}
+                />
                 {m}
               </button>
             ))}
@@ -174,28 +200,41 @@ export function BookingForm({ trip }: { trip: Trip }) {
       )}
 
       {/* summary */}
-      <div className="rounded-2xl bg-surface p-5 ring-1 ring-slate-200">
-        <div className="flex items-center justify-between">
-          <span className="text-muted">
-            {isBus
-              ? selected.length
-                ? `Seats: ${selected.join(", ")}`
-                : "No seats selected"
-              : `${pax} × ${trip.title}`}
-          </span>
-          {!isQuote && (
-            <span className="text-2xl font-extrabold text-ink">
-              {formatPKR(total)}
-            </span>
-          )}
-        </div>
+      <div className="card-soft p-5">
+        {!isQuote ? (
+          <dl className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-muted">
+                {isBus ? `Fare (${qty} ${qty === 1 ? "seat" : "seats"})` : `Fare (${qty} ×)`}
+              </dt>
+              <dd className="font-medium text-ink">{formatPKR(total)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted">Service fee</dt>
+              <dd className="font-medium text-green-600">Free</dd>
+            </div>
+            <div className="flex justify-between border-t border-slate-100 pt-2">
+              <dt className="font-semibold text-ink">Total</dt>
+              <dd className="text-xl font-extrabold text-ink">{formatPKR(total)}</dd>
+            </div>
+          </dl>
+        ) : (
+          <p className="text-sm text-muted">
+            Submit your request and the operator will share a custom quote.
+          </p>
+        )}
         <button
           onClick={() => (isQuote ? setDone(true) : setShowPay(true))}
           disabled={!canBook}
-          className="mt-4 w-full rounded-xl bg-accent-500 px-4 py-3 text-base font-bold text-white transition enabled:hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-accent-500 px-4 py-3 text-base font-bold text-white shadow-lg shadow-accent-500/25 transition enabled:hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
         >
           {isQuote ? "Request quote" : `Pay with ${method}`}
         </button>
+        {!isQuote && !canBook && (
+          <p className="mt-2 text-center text-xs text-muted">
+            {isBus ? "Select at least one seat to continue" : "Add at least one passenger"}
+          </p>
+        )}
       </div>
 
       {showPay && (
@@ -240,7 +279,7 @@ function Legend() {
   return (
     <div className="flex gap-3 text-xs text-muted">
       <span className="flex items-center gap-1">
-        <span className="h-3 w-3 rounded bg-brand-50 ring-1 ring-brand-100" /> Free
+        <span className="h-3 w-3 rounded bg-white ring-1 ring-brand-200" /> Free
       </span>
       <span className="flex items-center gap-1">
         <span className="h-3 w-3 rounded bg-brand-600" /> Selected

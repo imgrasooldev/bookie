@@ -6,7 +6,9 @@ const operatorSchema = new Schema(
     rating: { type: Number, default: 0, min: 0, max: 5 },
     logoColor: { type: String, default: "#4f46e5" },
     type: { type: String, default: "BUS" }, // free-form business type (Bus, Airline, Hotel…)
-    status: { type: String, enum: ["active", "pending", "suspended"], default: "active" },
+    // category the operator is licensed to sell (drives their portal screens)
+    category: { type: String, default: "BUS" },
+    status: { type: String, enum: ["active", "pending", "suspended"], default: "pending" },
   },
   { timestamps: true },
 );

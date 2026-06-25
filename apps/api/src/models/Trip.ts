@@ -37,6 +37,7 @@ const tripSchema = new Schema(
     reservedUnits: { type: Number, default: 0 }, // units/rooms/tickets taken (stay/venue)
     blockedDates: { type: [String], default: [] }, // yyyy-mm-dd dates unavailable (stay)
     serviceScope: { type: String, enum: ["intracity", "intercity", "both"] }, // car
+    approved: { type: Boolean, default: true }, // admin approval; operator-created start false
     status: { type: String, enum: ["active", "hidden"], default: "active" },
   },
   { timestamps: true },

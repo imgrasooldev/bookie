@@ -43,7 +43,13 @@ export async function seedDatabase() {
   await Promise.all([Trip.deleteMany({}), Operator.deleteMany({}), City.deleteMany({})]);
 
   await City.insertMany(CITIES);
-  const ops = await Operator.insertMany(OPERATORS.map(({ key, ...rest }) => rest));
+  const ops = await Operator.insertMany(
+    OPERATORS.map(({ key, ...rest }) => ({
+      ...rest,
+      status: "active",
+      category: (rest.type ?? "BUS").toUpperCase(),
+    })),
+  );
   const id = (key: string) => ops[OPERATORS.findIndex((o) => o.key === key)]._id;
 
   const trips = [
@@ -91,6 +97,16 @@ export async function seedDatabase() {
     phone: "03001234567",
     email: "demo@bookie.pk",
     passwordHash: await bcrypt.hash("123456", 10),
+  });
+
+  // super-admin
+  await User.deleteOne({ email: "admin@bookie.pk" });
+  await User.create({
+    name: "Super Admin",
+    phone: "03000000001",
+    email: "admin@bookie.pk",
+    passwordHash: await bcrypt.hash("admin123", 10),
+    roles: ["admin"],
   });
 
   return { cities: CITIES.length, operators: ops.length, trips: trips.length };

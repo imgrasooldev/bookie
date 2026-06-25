@@ -10,7 +10,8 @@ export function Login() {
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [reg, setReg] = useState({ businessName: "", name: "", phone: "", email: "", password: "", type: "Bus" });
+  const [reg, setReg] = useState({ businessName: "", name: "", phone: "", email: "", password: "", category: "BUS" });
+  const CATEGORIES = ["BUS", "CAR", "FLIGHT", "TRAIN", "HOTEL", "FARMHOUSE", "HUT", "WATERPARK", "TOUR", "PICNIC"];
 
   const inp = "w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500";
 
@@ -55,8 +56,8 @@ export function Login() {
                 <input className={inp} placeholder="Business name (e.g. Daewoo Express)" value={reg.businessName} onChange={(e) => setReg({ ...reg, businessName: e.target.value })} />
                 <div className="grid grid-cols-2 gap-3">
                   <input className={inp} placeholder="Your name" value={reg.name} onChange={(e) => setReg({ ...reg, name: e.target.value })} />
-                  <select className={inp} value={reg.type} onChange={(e) => setReg({ ...reg, type: e.target.value })}>
-                    {["Bus", "Airline", "Railway", "Hotel", "Car", "Tours"].map((t) => <option key={t}>{t}</option>)}
+                  <select className={inp} value={reg.category} onChange={(e) => setReg({ ...reg, category: e.target.value })}>
+                    {CATEGORIES.map((t) => <option key={t}>{t}</option>)}
                   </select>
                 </div>
                 <input className={inp} placeholder="Email" value={reg.email} onChange={(e) => setReg({ ...reg, email: e.target.value })} />

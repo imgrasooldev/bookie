@@ -95,6 +95,7 @@ catalogRouter.get(
     const filter: Record<string, unknown> = {
       serviceType: q.serviceType,
       status: "active",
+      approved: true,
     };
     if (q.originId) filter.originCode = q.originId;
     if (q.destinationId) filter.destinationCode = q.destinationId;

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   schedules as seed,
   vehicles,
-  CATEGORIES,
   categoryOf,
   capacityOf,
   DAYS,
@@ -27,7 +26,8 @@ export function Schedules() {
   const [list, setList] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [live, setLive] = useState(true);
-  const [cat, setCat] = useState<CategoryKey>("BUS");
+  // operator is locked to the category their account is licensed for
+  const [cat] = useState<CategoryKey>((getOperator()?.category as CategoryKey) ?? "BUS");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Schedule | null>(null);
   const [managing, setManaging] = useState<Schedule | null>(null);
@@ -99,25 +99,12 @@ export function Schedules() {
         <button onClick={load} className="text-muted hover:text-ink">Refresh</button>
       </div>
 
-      {/* category tabs */}
-      <div className="mb-5 flex flex-wrap gap-2">
-        {CATEGORIES.map((x) => {
-          const n = list.filter((s) => s.category === x.key).length;
-          const on = x.key === cat;
-          return (
-            <button
-              key={x.key}
-              onClick={() => setCat(x.key)}
-              className={`inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold ring-1 transition ${
-                on ? "bg-brand-600 text-white ring-brand-600" : "bg-white text-ink ring-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              <span>{x.icon}</span>
-              {x.label}
-              <span className={`rounded-full px-1.5 text-xs ${on ? "bg-white/20" : "bg-slate-100 text-muted"}`}>{n}</span>
-            </button>
-          );
-        })}
+      {/* category (locked to the operator's licensed category) */}
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white">
+          <span>{c.icon}</span> {c.label}
+        </span>
+        <span className="text-xs text-muted">Your account manages {c.label} listings · {rows.length} total</span>
       </div>
 
       {loading ? (
@@ -134,8 +121,11 @@ export function Schedules() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-ink">{s.title}</span>
+                    {!s.approved && (
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Pending approval</span>
+                    )}
                     {s.status === "paused" && (
-                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Paused</span>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">Paused</span>
                     )}
                   </div>
                   <div className="mt-1 text-sm text-muted">{s.operator}{s.location ? ` · ${s.location}` : ""}</div>

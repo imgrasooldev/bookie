@@ -15,11 +15,12 @@ export const operatorRouter = Router();
 const COLORS = ["#1d4ed8", "#b91c1c", "#047857", "#7c3aed", "#0891b2", "#be185d", "#d97706"];
 
 function serializeAdminTrip(t: Parameters<typeof serializeTrip>[0] & {
-  status?: string; bookedSeats?: string[]; reservedUnits?: number; blockedDates?: string[]; serviceScope?: string | null;
+  status?: string; approved?: boolean; bookedSeats?: string[]; reservedUnits?: number; blockedDates?: string[]; serviceScope?: string | null;
 }) {
   return {
     ...serializeTrip(t),
     status: t.status,
+    approved: t.approved ?? false,
     bookedSeats: t.bookedSeats ?? [],
     reservedUnits: t.reservedUnits ?? 0,
     blockedDates: t.blockedDates ?? [],
@@ -36,6 +37,7 @@ const registerSchema = z.object({
   email: z.string().email().optional(),
   password: z.string().min(6),
   type: z.string().optional(),
+  category: z.string().optional(),
 });
 
 operatorRouter.post(
@@ -48,8 +50,11 @@ operatorRouter.post(
     const operator = await Operator.create({
       name: b.businessName,
       type: b.type ?? "BUS",
+      category: (b.category ?? "BUS").toUpperCase(),
       rating: 4.5,
       logoColor: COLORS[Math.floor(Math.random() * COLORS.length)],
+      // self-registered operators await admin approval
+      status: "pending",
     });
     const user = await User.create({
       name: b.name,
@@ -72,15 +77,29 @@ operatorRouter.post(
     const b = loginSchema.parse(req.body);
     const id = b.identifier.trim();
     const user = await User.findOne({
-      roles: "operator_admin",
+      roles: { $in: ["operator_admin", "admin"] },
       $or: [{ phone: id }, { email: id.toLowerCase() }],
     });
     if (!user || !(await bcrypt.compare(b.password, user.passwordHash))) {
       throw new HttpError(401, "Incorrect email/mobile or password.");
     }
+    // super-admin: no operator scope
+    if (user.roles.includes("admin")) {
+      const token = signToken({ sub: String(user._id), roles: user.roles });
+      return res.json({ token, role: "admin", operator: null });
+    }
     const operator = await Operator.findById(user.operatorId).lean();
     const token = signToken({ sub: String(user._id), roles: user.roles, operatorId: String(user.operatorId) });
-    res.json({ token, operator: { id: String(user.operatorId), name: operator?.name ?? user.name } });
+    res.json({
+      token,
+      role: "operator",
+      operator: {
+        id: String(user.operatorId),
+        name: operator?.name ?? user.name,
+        category: operator?.category ?? "BUS",
+        status: operator?.status ?? "pending",
+      },
+    });
   }),
 );
 
@@ -90,7 +109,7 @@ operatorRouter.get(
   ah(async (req, res) => {
     const op = await Operator.findById(req.user!.operatorId).lean();
     if (!op) throw new HttpError(404, "Operator not found");
-    res.json({ id: String(op._id), name: op.name, type: op.type, rating: op.rating });
+    res.json({ id: String(op._id), name: op.name, type: op.type, category: op.category ?? "BUS", status: op.status, rating: op.rating });
   }),
 );
 
@@ -139,6 +158,7 @@ operatorRouter.post(
       priceUnit: b.priceUnit ?? "from",
       operator: req.user!.operatorId,
       status: "active",
+      approved: false, // awaits admin approval before it goes live
     });
     const full = await Trip.findById(trip._id).populate("operator").lean();
     res.status(201).json(serializeAdminTrip(full!));

@@ -2,7 +2,7 @@
 // so an operator only sees & manages their own listings, bookings and stats.
 
 import type { CategoryKey, Schedule } from "./data";
-import { authHeaders, setSession, type OperatorAccount } from "./auth";
+import { authHeaders, setSession, type OperatorAccount, type Role } from "./auth";
 
 const API_URL = (import.meta.env.VITE_API_URL as string) ?? "http://localhost:4000";
 
@@ -35,7 +35,9 @@ const hhmm = (iso?: string) =>
   iso ? new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : undefined;
 
 export interface SaveResult { ok: boolean; error?: string; id?: string }
-export type AuthResult = { ok: true; operator: OperatorAccount } | { ok: false; error: string };
+export type AuthResult =
+  | { ok: true; role: Role; operator: OperatorAccount | null }
+  | { ok: false; error: string };
 
 /* ---------------- auth ---------------- */
 
@@ -43,7 +45,7 @@ export async function operatorLogin(i: { identifier: string; password: string })
   return authCall("/operator/login", i);
 }
 export async function operatorRegister(i: {
-  businessName: string; name: string; phone: string; email?: string; password: string; type?: string;
+  businessName: string; name: string; phone: string; email?: string; password: string; category?: string;
 }): Promise<AuthResult> {
   return authCall("/operator/register", i);
 }
@@ -56,11 +58,38 @@ async function authCall(path: string, body: unknown): Promise<AuthResult> {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return { ok: false, error: data.error ?? "Something went wrong." };
-    setSession(data.token, data.operator);
-    return { ok: true, operator: data.operator };
+    const role: Role = data.role === "admin" ? "admin" : "operator";
+    setSession(data.token, role, data.operator ?? null);
+    return { ok: true, role, operator: data.operator ?? null };
   } catch {
     return { ok: false, error: "Couldn't reach the server." };
   }
+}
+
+/* ---------------- super-admin ---------------- */
+
+export interface AdminOperator { id: string; name: string; category: string; status: string; rating: number; listings: number }
+export interface AdminListing { id: string; title: string; serviceType: string; operator: string; price: number; approved: boolean; status: string }
+export interface Overview {
+  operators: number; pendingOperators: number; listings: number; pendingListings: number;
+  bookings: number; revenue: number; byCategory: { category: string; count: number }[];
+}
+
+export const adminOverview = () => getJson<Overview>("/sa/overview").catch(() => null);
+export const listOperators = () => getJson<AdminOperator[]>("/sa/operators").catch(() => [] as AdminOperator[]);
+export const listListings = (pending = false) =>
+  getJson<AdminListing[]>(`/sa/listings${pending ? "?pending=1" : ""}`).catch(() => [] as AdminListing[]);
+
+export function onboardOperator(b: {
+  businessName: string; category: string; name: string; phone: string; email?: string; password: string;
+}): Promise<SaveResult> {
+  return send("/sa/operators", "POST", b);
+}
+export function setOperatorStatus(id: string, status: "active" | "pending" | "suspended"): Promise<SaveResult> {
+  return send(`/sa/operators/${id}`, "PATCH", { status });
+}
+export function approveListing(id: string, approved: boolean): Promise<SaveResult> {
+  return send(`/sa/listings/${id}`, "PATCH", { approved });
 }
 
 /* ---------------- mapping ---------------- */
@@ -70,7 +99,7 @@ type TripJson = {
   originId?: string; destinationId?: string; departAt?: string; arriveAt?: string;
   price: number; priceUnit: string; seatsAvailable?: number; location?: string; status?: string;
   bookedSeats?: string[]; reservedUnits?: number; blockedDates?: string[];
-  serviceScope?: "intracity" | "intercity" | "both" | null;
+  serviceScope?: "intracity" | "intercity" | "both" | null; approved?: boolean;
 };
 
 function toSchedule(t: TripJson): Schedule | null {
@@ -91,6 +120,7 @@ function toSchedule(t: TripJson): Schedule | null {
     status: t.status === "hidden" ? "paused" : "active",
     bookedSeats: t.bookedSeats ?? [], reservedUnits: reserved,
     blockedDates: t.blockedDates ?? [], serviceScope: t.serviceScope ?? null,
+    approved: t.approved ?? false,
   };
 }
 

@@ -186,6 +186,7 @@ export interface Schedule {
   reservedUnits?: number;
   blockedDates?: string[];
   serviceScope?: "intracity" | "intercity" | "both" | null;
+  approved?: boolean;
 }
 
 export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];

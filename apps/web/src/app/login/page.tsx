@@ -16,11 +16,11 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const r = login({ identifier, password });
+    const r = await login({ identifier, password });
     if (r.ok) {
       const next = new URLSearchParams(window.location.search).get("next");
       router.push(next || "/account");

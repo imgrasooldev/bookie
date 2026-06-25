@@ -75,21 +75,24 @@ check("GET /trips UMRAH → 2", umrah.status === 200 && umrah.body.length === 2,
 
 // Auth
 const reg = await post("/auth/register", {
-  name: "Test User", phone: "03001234567", password: "secret1",
+  name: "Test User", phone: "03009998877", email: "test@bookie.pk", password: "secret1",
 });
-check("POST /auth/register → token", reg.status === 201 && Boolean(reg.body.token), reg.body);
+check("POST /auth/register → token+email", reg.status === 201 && Boolean(reg.body.token) && reg.body.user.email === "test@bookie.pk", reg.body);
 
-const login = await post("/auth/login", { phone: "03001234567", password: "secret1" });
-check("POST /auth/login → token", login.status === 200 && Boolean(login.body.token), login.body);
+const login = await post("/auth/login", { identifier: "03009998877", password: "secret1" });
+check("POST /auth/login (phone) → token", login.status === 200 && Boolean(login.body.token), login.body);
 
-const badLogin = await post("/auth/login", { phone: "03001234567", password: "wrong" });
+const loginEmail = await post("/auth/login", { identifier: "test@bookie.pk", password: "secret1" });
+check("POST /auth/login (email) → token", loginEmail.status === 200 && Boolean(loginEmail.body.token), loginEmail.body);
+
+const badLogin = await post("/auth/login", { identifier: "03009998877", password: "wrong" });
 check("login wrong password → 401", badLogin.status === 401, badLogin.status);
 
 // Authenticated profile
 const me = await fetch(base + "/auth/me", {
   headers: { authorization: `Bearer ${login.body.token}` },
 }).then(async (r) => ({ status: r.status, body: await r.json() }));
-check("GET /auth/me → current user", me.status === 200 && me.body.phone === "03001234567", me.body);
+check("GET /auth/me → current user", me.status === 200 && me.body.phone === "03009998877", me.body);
 
 const meNoAuth = await get("/auth/me");
 check("GET /auth/me without token → 401", meNoAuth.status === 401, meNoAuth.status);

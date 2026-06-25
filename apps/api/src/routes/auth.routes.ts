@@ -36,27 +36,31 @@ authRouter.post(
   "/register",
   ah(async (req, res) => {
     const body = registerSchema.parse(req.body);
-    const exists = await User.findOne({ phone: body.phone });
-    if (exists) throw new HttpError(409, "Phone already registered");
+    if (await User.findOne({ phone: body.phone })) {
+      throw new HttpError(409, "An account with this mobile number already exists.");
+    }
+    if (body.email && (await User.findOne({ email: body.email.toLowerCase() }))) {
+      throw new HttpError(409, "An account with this email already exists.");
+    }
 
     const passwordHash = await bcrypt.hash(body.password, 10);
     const user = await User.create({
       name: body.name,
       phone: body.phone,
-      email: body.email,
+      email: body.email?.toLowerCase(),
       passwordHash,
     });
 
     const token = signToken({ sub: String(user._id), roles: user.roles });
     res.status(201).json({
       token,
-      user: { id: String(user._id), name: user.name, phone: user.phone },
+      user: { id: String(user._id), name: user.name, phone: user.phone, email: user.email ?? null },
     });
   }),
 );
 
 const loginSchema = z.object({
-  phone: z.string(),
+  identifier: z.string().min(3), // email or mobile number
   password: z.string(),
 });
 
@@ -65,14 +69,17 @@ authRouter.post(
   "/login",
   ah(async (req, res) => {
     const body = loginSchema.parse(req.body);
-    const user = await User.findOne({ phone: body.phone });
+    const id = body.identifier.trim();
+    const user = await User.findOne({
+      $or: [{ phone: id }, { email: id.toLowerCase() }],
+    });
     if (!user || !(await bcrypt.compare(body.password, user.passwordHash))) {
-      throw new HttpError(401, "Invalid phone or password");
+      throw new HttpError(401, "Incorrect email/mobile or password.");
     }
     const token = signToken({ sub: String(user._id), roles: user.roles });
     res.json({
       token,
-      user: { id: String(user._id), name: user.name, phone: user.phone },
+      user: { id: String(user._id), name: user.name, phone: user.phone, email: user.email ?? null },
     });
   }),
 );

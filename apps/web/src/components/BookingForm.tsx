@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { formatPKR } from "@/lib/format";
 import type { Trip } from "@/lib/types";
 import { PaymentDialog } from "@/components/checkout/PaymentDialog";
 import { DriverIcon as SteeringIcon } from "@/components/icons";
 import { PROMO_CODES } from "@/lib/content";
+import { createBooking } from "@/lib/bookings";
 
 const PAYMENT_METHODS = ["Easypaisa", "JazzCash", "Card", "Cash"] as const;
 
@@ -42,6 +43,7 @@ export function BookingForm({ trip }: { trip: Trip }) {
     bookingRef: string;
     transactionId: string;
   } | null>(null);
+  const submitting = useRef(false);
 
   const [promoInput, setPromoInput] = useState("");
   const [promo, setPromo] = useState<{ code: string; label: string } | null>(null);
@@ -335,9 +337,22 @@ export function BookingForm({ trip }: { trip: Trip }) {
             isBus ? `Seats: ${selected.join(", ")}` : `${pax} × ${trip.title}`
           }
           onClose={() => setShowPay(false)}
-          onSuccess={(r) => {
-            setConfirmation(r);
+          onSuccess={async (r) => {
+            if (submitting.current) return;
+            submitting.current = true;
+            const res = await createBooking({
+              tripId: trip.id,
+              seats: isBus ? selected : undefined,
+              quantity: isBus ? undefined : pax,
+              passengers: Array.from({ length: qty }, () => ({ name: "Guest" })),
+              paymentMethod: method,
+            });
+            setConfirmation({
+              bookingRef: res.ok && res.bookingNo ? res.bookingNo : r.bookingRef,
+              transactionId: r.transactionId,
+            });
             setShowPay(false);
+            submitting.current = false;
           }}
         />
       )}

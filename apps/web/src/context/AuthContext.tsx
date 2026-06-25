@@ -13,8 +13,8 @@ import {
 interface Ctx {
   user: AuthUser | null;
   ready: boolean;
-  login: (i: { identifier: string; password: string }) => AuthResult;
-  signup: (i: { name: string; email: string; phone: string; password: string }) => AuthResult;
+  login: (i: { identifier: string; password: string }) => Promise<AuthResult>;
+  signup: (i: { name: string; email: string; phone: string; password: string }) => Promise<AuthResult>;
   logout: () => void;
 }
 
@@ -33,13 +33,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState({ user: currentUser(), ready: true });
   }, []);
 
-  const login: Ctx["login"] = (i) => {
-    const r = doLogin(i);
+  const login: Ctx["login"] = async (i) => {
+    const r = await doLogin(i);
     if (r.ok) setState({ user: r.user, ready: true });
     return r;
   };
-  const signup: Ctx["signup"] = (i) => {
-    const r = doSignup(i);
+  const signup: Ctx["signup"] = async (i) => {
+    const r = await doSignup(i);
     if (r.ok) setState({ user: r.user, ready: true });
     return r;
   };

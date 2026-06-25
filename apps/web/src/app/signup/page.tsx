@@ -18,7 +18,7 @@ export default function SignupPage() {
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [k]: e.target.value });
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     if (form.name.trim().length < 2) return setError("Please enter your full name.");
@@ -27,7 +27,7 @@ export default function SignupPage() {
     if (form.password.length < 6) return setError("Password must be at least 6 characters.");
 
     setBusy(true);
-    const r = signup(form);
+    const r = await signup(form);
     if (r.ok) {
       const next = new URLSearchParams(window.location.search).get("next");
       router.push(next || "/account");

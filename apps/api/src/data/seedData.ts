@@ -1,9 +1,11 @@
 // Reusable seed routine — used by the `seed` CLI and the smoke test.
 // Mirrors apps/web/src/lib/mock.ts. Assumes a DB connection is already open.
 
+import bcrypt from "bcryptjs";
 import { Operator } from "../models/Operator.js";
 import { City } from "../models/City.js";
 import { Trip } from "../models/Trip.js";
+import { User } from "../models/User.js";
 
 const CITIES = [
   { code: "lhe", name: "Lahore" },
@@ -81,5 +83,15 @@ export async function seedDatabase() {
   ];
 
   await Trip.insertMany(trips);
+
+  // demo user (idempotent — leaves real accounts untouched)
+  await User.deleteOne({ email: "demo@bookie.pk" });
+  await User.create({
+    name: "Demo User",
+    phone: "03001234567",
+    email: "demo@bookie.pk",
+    passwordHash: await bcrypt.hash("123456", 10),
+  });
+
   return { cities: CITIES.length, operators: ops.length, trips: trips.length };
 }

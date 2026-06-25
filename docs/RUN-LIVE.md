@@ -48,13 +48,14 @@ API. Switch back to mock anytime by removing those two env vars.
 | Area | Live via API | Notes |
 |---|---|---|
 | Categories, search, trip detail | ✅ | all 10 verticals seeded |
-| Register / login / `GET /auth/me` | ✅ | JWT; swap `apps/web/src/lib/auth.ts` to call these |
-| Create booking / quote | ✅ | `POST /bookings` |
+| **Signup / login (web pages)** | ✅ | real accounts in MongoDB; JWT stored client-side |
+| Register / login / `GET /auth/me` | ✅ | login accepts email **or** phone |
+| **Booking → payment** | ✅ | checkout `POST /bookings`, linked to the user |
 | Wallet, travellers, payment methods, notifications | ⛔ mock | portal demo data — add `/account/*` endpoints next |
-| Payments (Easypaisa/JazzCash settlement) | ⛔ | needs merchant credentials (see docs/PLAN.md §4.2) |
+| Payments (Easypaisa/JazzCash settlement) | ⛔ | payment UI is simulated; needs merchant credentials (PLAN §4.2) |
 
-## Connecting the auth UI to the backend
-`apps/web/src/lib/auth.ts` currently validates against a local store. To use the
-real backend, replace `login`/`signup` with `fetch` calls to `/auth/login` and
-`/auth/register`, store the returned JWT, and send it as `Authorization: Bearer`.
-The `AuthContext` and route protection stay exactly the same.
+The web auth + booking clients are **env-aware**: in mock mode they use a local
+store / simulation, and in live mode (`NEXT_PUBLIC_USE_MOCK=false`) they call the
+backend — falling back gracefully if the API is unreachable.
+
+Demo account (seeded): **demo@bookie.pk** (or **03001234567**) / **123456**.

@@ -1,34 +1,38 @@
 @import "tailwindcss";
 
-/* Bookie brand theme — Tailwind v4 (CSS-first config). */
+/* Bookie theme — "Transit": travel sky-blue + signal-orange.
+   Blue = trust / travel / departures board. Orange = energy / go / CTAs. */
 @theme {
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-200: #c7d2fe;
-  --color-brand-300: #a5b4fc;
-  --color-brand-400: #818cf8;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
-  --color-brand-800: #3730a3;
-  --color-brand-900: #312e81;
+  --color-brand-50: #eef4ff;
+  --color-brand-100: #d9e6ff;
+  --color-brand-200: #b3ccff;
+  --color-brand-300: #80aaff;
+  --color-brand-400: #4d88ff;
+  --color-brand-500: #2371e6;
+  --color-brand-600: #155cc9;
+  --color-brand-700: #1149a1;
+  --color-brand-800: #0f3d83;
+  --color-brand-900: #0e336c;
 
-  --color-accent-400: #fbbf24;
-  --color-accent-500: #f59e0b;
-  --color-accent-600: #d97706;
+  --color-accent-400: #fb923c;
+  --color-accent-500: #f97316;
+  --color-accent-600: #ea580c;
 
-  --color-ink: #0f172a;
-  --color-muted: #64748b;
+  --color-ink: #0f1b2d;
+  --color-muted: #5b6b82;
   --color-surface: #ffffff;
-  --color-canvas: #f7f8fc;
+  --color-canvas: #f3f7fc;
 
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
 
-  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
-  --shadow-lift: 0 2px 4px rgba(15, 23, 42, 0.05), 0 18px 40px rgba(15, 23, 42, 0.12);
+  --shadow-soft: 0 1px 2px rgba(13, 38, 76, 0.05), 0 8px 24px rgba(13, 38, 76, 0.07);
+  --shadow-lift: 0 2px 4px rgba(13, 38, 76, 0.06), 0 18px 40px rgba(13, 38, 76, 0.14);
 }
 
+html {
+  scroll-behavior: smooth;
+}
 html,
 body {
   height: 100%;
@@ -41,11 +45,31 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* clear keyboard focus for everyone (accessibility) */
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* respect users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* ---- shared form control ---- */
 .input {
   width: 100%;
   border-radius: 0.75rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #d7e0ec;
   background: #fff;
   padding: 0.7rem 0.85rem;
   font-size: 0.95rem;
@@ -60,26 +84,26 @@ body {
 
 /* ---- utilities ---- */
 .gradient-text {
-  background: linear-gradient(90deg, #fde68a, #ffffff 60%);
+  background: linear-gradient(90deg, #ffd9a8, #ffffff 60%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
 .brand-gradient {
-  background: linear-gradient(135deg, #4f46e5 0%, #6d28d9 50%, #7c3aed 100%);
+  background: linear-gradient(135deg, #2b86f0 0%, #155cc9 55%, #11459b 100%);
 }
 
 .hero-grid {
   background-image:
-    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.12) 0, transparent 45%),
-    radial-gradient(circle at 80% 0%, rgba(245, 158, 11, 0.18) 0, transparent 40%),
-    linear-gradient(135deg, #4338ca 0%, #5b21b6 55%, #6d28d9 100%);
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.14) 0, transparent 45%),
+    radial-gradient(circle at 85% 8%, rgba(249, 115, 22, 0.22) 0, transparent 42%),
+    linear-gradient(135deg, #11459b 0%, #155cc9 52%, #2b86f0 100%);
 }
 
 .card-soft {
   background: #fff;
-  border: 1px solid #eef0f5;
+  border: 1px solid #e7eef7;
   box-shadow: var(--shadow-soft);
   border-radius: 1rem;
 }
@@ -106,7 +130,6 @@ body {
   animation: fadeUp 0.5s ease both;
 }
 
-/* hide scrollbars on horizontal scrollers */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

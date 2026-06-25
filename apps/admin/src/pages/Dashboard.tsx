@@ -105,14 +105,14 @@ function AreaChart({ data }: { data: number[] }) {
     <svg viewBox={`0 0 ${w} ${h}`} className="w-full" preserveAspectRatio="none">
       <defs>
         <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#4f46e5" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="#4f46e5" stopOpacity="0" />
+          <stop offset="0%" stopColor="#155cc9" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="#155cc9" stopOpacity="0" />
         </linearGradient>
       </defs>
       <polygon points={area} fill="url(#g)" />
-      <polyline points={line} fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+      <polyline points={line} fill="none" stroke="#155cc9" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
       {pts.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r="3" fill="#fff" stroke="#4f46e5" strokeWidth="2" />
+        <circle key={i} cx={x} cy={y} r="3" fill="#fff" stroke="#155cc9" strokeWidth="2" />
       ))}
     </svg>
   );

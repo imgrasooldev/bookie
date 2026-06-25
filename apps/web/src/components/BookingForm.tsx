@@ -12,7 +12,7 @@ const PAYMENT_METHODS = ["Easypaisa", "JazzCash", "Card", "Cash"] as const;
 const METHOD_COLORS: Record<(typeof PAYMENT_METHODS)[number], string> = {
   Easypaisa: "#52a447",
   JazzCash: "#c8102e",
-  Card: "#4f46e5",
+  Card: "#155cc9",
   Cash: "#64748b",
 };
 

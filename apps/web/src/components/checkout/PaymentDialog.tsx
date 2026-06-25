@@ -59,7 +59,7 @@ export function PaymentDialog({
     return () => window.removeEventListener("keydown", onKey);
   }, [step, onClose]);
 
-  const brandColor = method === "Easypaisa" ? "#52a447" : method === "JazzCash" ? "#c8102e" : "#4f46e5";
+  const brandColor = method === "Easypaisa" ? "#52a447" : method === "JazzCash" ? "#c8102e" : "#155cc9";
 
   async function startPayment() {
     setError(null);

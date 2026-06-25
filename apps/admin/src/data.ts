@@ -75,7 +75,7 @@ export const bookingsSeries = [32, 41, 38, 45, 52, 48, 61, 58, 64, 72, 69, 78, 8
 
 // Revenue split by vertical (PKR, 30d)
 export const revenueByVertical = [
-  { type: "BUS", label: "Bus", value: 1_480_000, color: "#4f46e5" },
+  { type: "BUS", label: "Bus", value: 1_480_000, color: "#155cc9" },
   { type: "CAR", label: "City Ride", value: 420_000, color: "#0891b2" },
   { type: "PICNIC", label: "Picnic", value: 380_000, color: "#d97706" },
   { type: "CORPORATE", label: "Corporate", value: 170_000, color: "#7c3aed" },

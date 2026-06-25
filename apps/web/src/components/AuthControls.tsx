@@ -20,23 +20,15 @@ export function AuthControls() {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  // Until hydrated, show the signed-out controls (stable, matches SSR).
+  // Until hydrated, show the signed-out control (stable, matches SSR).
   if (!ready || !user) {
     return (
-      <div className="flex items-center gap-2">
-        <Link
-          href="/login"
-          className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-slate-100 sm:block"
-        >
-          Sign in
-        </Link>
-        <Link
-          href="/signup"
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
-        >
-          Sign up
-        </Link>
-      </div>
+      <Link
+        href="/login"
+        className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+      >
+        Log in / Sign up
+      </Link>
     );
   }
 

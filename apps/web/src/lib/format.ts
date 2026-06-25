@@ -17,6 +17,15 @@ export function formatTime(iso?: string): string {
   }).format(new Date(iso));
 }
 
+export function formatDate(iso?: string): string {
+  if (!iso) return "—";
+  return new Intl.DateTimeFormat("en-PK", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(new Date(iso));
+}
+
 export function formatDuration(min?: number): string {
   if (!min) return "—";
   const h = Math.floor(min / 60);

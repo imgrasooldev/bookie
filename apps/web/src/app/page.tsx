@@ -57,12 +57,12 @@ export default function HomePage() {
             Pakistan&apos;s all-in-one travel & transport booking
           </div>
           <h1 className="max-w-3xl text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl">
-            Book <span className="gradient-text">bus, car, picnic</span> &amp;
-            corporate transport — in one place
+            <span className="gradient-text">Flights, buses, hotels, tours</span>{" "}
+            &amp; more — booked in one place
           </h1>
           <p className="mt-4 max-w-xl text-lg text-brand-100">
-            Compare verified operators, pick your seat, and pay with JazzCash,
-            Easypaisa or card. Across every major city in Pakistan.
+            Compare verified operators, pick your seat or room, and pay with
+            JazzCash, Easypaisa or card. Across Pakistan and beyond.
           </p>
 
           <div className="mt-9">

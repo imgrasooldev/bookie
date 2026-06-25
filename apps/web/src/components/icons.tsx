@@ -57,6 +57,48 @@ export const BuildingIcon = (p: P) => (
   </S>
 );
 
+export const FlightIcon = (p: P) => (
+  <S {...p}>
+    <path d="M10.5 13.5 3 12l1-2 6.5 1 4.5-5a2 2 0 0 1 3 2.6L13 13l-1 7-2 .8-1-5.5-3 .2-1 2-1.5-.3L7 14z" />
+  </S>
+);
+export const TrainIcon = (p: P) => (
+  <S {...p}>
+    <rect x="6" y="3" width="12" height="13" rx="2" />
+    <path d="M6 10h12" />
+    <circle cx="9" cy="13" r="0.6" />
+    <circle cx="15" cy="13" r="0.6" />
+    <path d="M7 16l-2 4M17 16l2 4M9 20h6" />
+  </S>
+);
+export const HotelIcon = (p: P) => (
+  <S {...p}>
+    <path d="M3 21h18" />
+    <path d="M5 21V5a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v16" />
+    <path d="M9 8h.01M12 8h.01M15 8h.01M9 12h.01M12 12h.01M15 12h.01" />
+    <path d="M10 21v-3a2 2 0 0 1 4 0v3" />
+  </S>
+);
+export const EventIcon = (p: P) => (
+  <S {...p}>
+    <path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 2 2 0 0 0 0-4z" />
+    <path d="M14 6v2M14 11v2M14 16v2" />
+  </S>
+);
+export const TourIcon = (p: P) => (
+  <S {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18" />
+  </S>
+);
+export const KaabaIcon = (p: P) => (
+  <S {...p}>
+    <path d="M12 3 4 6.5v9L12 21l8-5.5v-9L12 3z" />
+    <path d="M4 6.5 12 11l8-4.5M12 11v10" />
+    <path d="M4 9.5h16" />
+  </S>
+);
+
 /* ---------- amenities ---------- */
 export const WifiIcon = (p: P) => (
   <S {...p}>
@@ -194,24 +236,42 @@ export const RouteIcon = (p: P) => (
   </S>
 );
 
-/* amenity-key → icon, for trip cards */
+/* amenity-key → icon, for trip cards (unmapped keys render as text only) */
 export const AMENITY_ICONS: Record<string, (p: P) => React.ReactElement> = {
   wifi: WifiIcon,
   ac: AcIcon,
   meal: MealIcon,
+  meals: MealIcon,
+  breakfast: MealIcon,
   usb: UsbIcon,
   water: WaterIcon,
+  pool: WaterIcon,
   tracking: TrackIcon,
   music: MusicIcon,
   driver: DriverIcon,
+  guide: DriverIcon,
   contract: ContractIcon,
+  visa: ContractIcon,
   invoice: InvoiceIcon,
+  baggage: TicketIcon,
+  refundable: ShieldIcon,
+  hotel: HotelIcon,
+  transport: BusIcon,
+  parking: CarIcon,
+  sleeper: HotelIcon,
+  ziarat: KaabaIcon,
 };
 
 /* vertical-type → icon */
 export const VERTICAL_ICONS: Record<string, (p: P) => React.ReactElement> = {
   BUS: BusIcon,
+  FLIGHT: FlightIcon,
+  TRAIN: TrainIcon,
   CAR: CarIcon,
+  HOTEL: HotelIcon,
+  EVENT: EventIcon,
+  TOUR: TourIcon,
+  UMRAH: KaabaIcon,
   PICNIC: PartyIcon,
   CORPORATE: BuildingIcon,
 };

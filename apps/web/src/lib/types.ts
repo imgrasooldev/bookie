@@ -1,20 +1,35 @@
-// Core domain types — mirror docs/PLAN.md (the generic "all-verticals" model).
-// The web app codes against these; the API client (lib/api.ts) returns the same
-// shapes whether data comes from mocks or the real backend later.
+// Core domain types — generic "all-categories" model (see docs/PLAN.md).
+// Inspired by Bookme / Sastaticket's multi-category travel marketplace.
 
 export type ServiceType =
-  | "BUS" // intercity scheduled-seat ticketing
+  | "BUS" // intercity bus, seat ticketing
+  | "FLIGHT" // domestic & international flights
+  | "TRAIN" // railway tickets
   | "CAR" // intra-city ride
+  | "HOTEL" // stays
+  | "EVENT" // events & movies
+  | "TOUR" // holiday packages
+  | "UMRAH" // umrah packages
   | "PICNIC" // picnic / party charter
-  | "CORPORATE"; // corporate event transport
+  | "CORPORATE"; // corporate transport
+
+/** Drives which search fields and result-card layout a category uses. */
+export type Flavor =
+  | "ROUTE" // from + to + date (bus, flight, train)
+  | "RIDE" // city + date (car)
+  | "CHARTER" // city + date, quote/from (picnic, corporate)
+  | "STAY" // city + check-in/out + guests (hotel)
+  | "EVENT" // city + date (events/movies)
+  | "PACKAGE"; // city + date, multi-day (tours, umrah)
 
 export interface Vertical {
   type: ServiceType;
-  label: string; // e.g. "Bus"
-  tagline: string; // short marketing line
-  icon: string; // emoji for now; swap for SVG/icon set later
-  /** Pricing/inventory flavor, drives which search fields & result UI we show. */
-  flavor: "SCHEDULED_SEAT" | "ON_DEMAND_RIDE" | "CHARTER";
+  label: string;
+  tagline: string;
+  icon: string; // legacy emoji fallback; UI uses VERTICAL_ICONS
+  flavor: Flavor;
+  /** Show in the primary search tabs (kept short); others reachable via nav/home. */
+  primary?: boolean;
 }
 
 export interface City {
@@ -25,40 +40,39 @@ export interface City {
 export interface Operator {
   id: string;
   name: string;
-  rating: number; // 0–5
-  logoColor: string; // placeholder brand color until real logos
+  rating: number;
+  logoColor: string;
 }
 
-export interface Amenity {
-  key: string;
-  label: string;
-}
-
-/** A bookable result — one generic shape across every vertical. */
 export interface Trip {
   id: string;
   serviceType: ServiceType;
   operator: Operator;
-  title: string; // e.g. "Lahore → Islamabad" or "City Hiace (15-seater)"
+  title: string;
   originId?: string;
   destinationId?: string;
-  /** ISO datetime for scheduled trips; undefined for on-demand. */
   departAt?: string;
   arriveAt?: string;
   durationMin?: number;
-  /** Per-seat price for BUS, fixed/quote base for others. PKR. */
   price: number;
-  /** How `price` should be read in the UI. */
-  priceUnit: "per_seat" | "fixed" | "from";
+  priceUnit: "per_seat" | "per_night" | "per_person" | "fixed" | "from";
   seatsAvailable?: number;
-  vehicle?: string; // e.g. "Volvo 9700", "Toyota Hiace"
-  amenities: string[]; // amenity keys
+  vehicle?: string;
+  amenities: string[];
+  // category-specific extras (all optional)
+  location?: string; // hotel area / event venue
+  stops?: number; // flight stops (0 = direct)
+  nights?: number; // hotel default nights
+  durationDays?: number; // tour/umrah length
+  rating?: number; // hotel star rating
+  badge?: string; // e.g. "Direct", "Bestseller", "5★"
 }
 
 export interface SearchQuery {
   serviceType: ServiceType;
   originId?: string;
   destinationId?: string;
-  date?: string; // yyyy-mm-dd
+  date?: string;
+  checkOut?: string;
   passengers?: number;
 }

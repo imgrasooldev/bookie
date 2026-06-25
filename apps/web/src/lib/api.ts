@@ -27,7 +27,11 @@ export async function getCities(): Promise<City[]> {
 
 export async function searchTrips(q: SearchQuery): Promise<Trip[]> {
   if (USE_MOCK) {
+    // Only transport + hotels filter strictly by location; events/tours/etc.
+    // list everything in the category so results are never accidentally empty.
+    const byLocation = new Set(["BUS", "FLIGHT", "TRAIN", "HOTEL"]);
     return TRIPS.filter((t) => t.serviceType === q.serviceType).filter((t) => {
+      if (!byLocation.has(q.serviceType)) return true;
       if (q.originId && t.originId && t.originId !== q.originId) return false;
       if (q.destinationId && t.destinationId && t.destinationId !== q.destinationId)
         return false;

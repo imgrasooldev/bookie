@@ -5,6 +5,7 @@ import { formatPKR } from "@/lib/format";
 import type { Trip } from "@/lib/types";
 import { PaymentDialog } from "@/components/checkout/PaymentDialog";
 import { DriverIcon as SteeringIcon } from "@/components/icons";
+import { PROMO_CODES } from "@/lib/content";
 
 const PAYMENT_METHODS = ["Easypaisa", "JazzCash", "Card", "Cash"] as const;
 
@@ -17,6 +18,16 @@ const METHOD_COLORS: Record<(typeof PAYMENT_METHODS)[number], string> = {
 
 // Demo seat map: 10 rows × 4 seats (2 + aisle + 2). Some pre-sold.
 const SOLD_SEATS = new Set(["1A", "1B", "3C", "5D", "7A", "7B", "9C"]);
+
+const QTY_LABELS: Record<string, string> = {
+  CAR: "Passengers",
+  HOTEL: "Nights",
+  EVENT: "Tickets",
+  FLIGHT: "Passengers",
+  TRAIN: "Passengers",
+  TOUR: "Travellers",
+  UMRAH: "Travellers",
+};
 
 export function BookingForm({ trip }: { trip: Trip }) {
   const isBus = trip.serviceType === "BUS";
@@ -32,13 +43,40 @@ export function BookingForm({ trip }: { trip: Trip }) {
     transactionId: string;
   } | null>(null);
 
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<{ code: string; label: string } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+
   const qty = isBus ? selected.length : pax;
-  const total = useMemo(() => trip.price * (isBus ? selected.length : pax), [
+  const subtotal = useMemo(() => trip.price * (isBus ? selected.length : pax), [
     trip.price,
     selected.length,
     pax,
     isBus,
   ]);
+
+  const discount = useMemo(() => {
+    if (!promo) return 0;
+    const rule = PROMO_CODES[promo.code];
+    if (!rule) return 0;
+    return rule.type === "flat"
+      ? Math.min(rule.value, subtotal)
+      : Math.round((subtotal * rule.value) / 100);
+  }, [promo, subtotal]);
+
+  const total = Math.max(0, subtotal - discount);
+
+  function applyPromo() {
+    const code = promoInput.trim().toUpperCase();
+    if (!code) return;
+    if (PROMO_CODES[code]) {
+      setPromo({ code, label: PROMO_CODES[code].label });
+      setPromoError(null);
+    } else {
+      setPromo(null);
+      setPromoError("Invalid or expired code.");
+    }
+  }
 
   function toggleSeat(seat: string) {
     if (SOLD_SEATS.has(seat)) return;
@@ -54,6 +92,9 @@ export function BookingForm({ trip }: { trip: Trip }) {
     setConfirmation(null);
     setSelected([]);
     setPax(1);
+    setPromo(null);
+    setPromoInput("");
+    setPromoError(null);
   }
 
   if (confirmation) {
@@ -160,7 +201,7 @@ export function BookingForm({ trip }: { trip: Trip }) {
         <div className="rounded-2xl bg-surface p-5 ring-1 ring-slate-200">
           <label className="block">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
-              {trip.serviceType === "CAR" ? "Passengers" : "Group size"}
+              {(QTY_LABELS[trip.serviceType] ?? "Group size")}
             </span>
             <input
               type="number"
@@ -202,22 +243,70 @@ export function BookingForm({ trip }: { trip: Trip }) {
       {/* summary */}
       <div className="card-soft p-5">
         {!isQuote ? (
-          <dl className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-muted">
-                {isBus ? `Fare (${qty} ${qty === 1 ? "seat" : "seats"})` : `Fare (${qty} ×)`}
-              </dt>
-              <dd className="font-medium text-ink">{formatPKR(total)}</dd>
+          <>
+            {/* promo code */}
+            <div className="mb-4">
+              {promo ? (
+                <div className="flex items-center justify-between rounded-xl bg-green-50 px-3 py-2 text-sm ring-1 ring-green-200">
+                  <span className="font-semibold text-green-700">
+                    🎉 {promo.code} applied — {promo.label}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setPromo(null);
+                      setPromoInput("");
+                    }}
+                    className="text-xs font-semibold text-green-700 hover:underline"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex gap-2">
+                    <input
+                      value={promoInput}
+                      onChange={(e) => setPromoInput(e.target.value)}
+                      placeholder="Promo code (try WELCOME)"
+                      className="input flex-1 uppercase"
+                    />
+                    <button
+                      onClick={applyPromo}
+                      className="rounded-xl bg-ink px-4 text-sm font-semibold text-white hover:opacity-90"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                  {promoError && (
+                    <p className="mt-1 text-xs text-red-600">{promoError}</p>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="flex justify-between">
-              <dt className="text-muted">Service fee</dt>
-              <dd className="font-medium text-green-600">Free</dd>
-            </div>
-            <div className="flex justify-between border-t border-slate-100 pt-2">
-              <dt className="font-semibold text-ink">Total</dt>
-              <dd className="text-xl font-extrabold text-ink">{formatPKR(total)}</dd>
-            </div>
-          </dl>
+
+            <dl className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-muted">
+                  {isBus ? `Fare (${qty} ${qty === 1 ? "seat" : "seats"})` : `Fare (${qty} ×)`}
+                </dt>
+                <dd className="font-medium text-ink">{formatPKR(subtotal)}</dd>
+              </div>
+              {discount > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-muted">Discount ({promo?.code})</dt>
+                  <dd className="font-medium text-green-600">−{formatPKR(discount)}</dd>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <dt className="text-muted">Service fee</dt>
+                <dd className="font-medium text-green-600">Free</dd>
+              </div>
+              <div className="flex justify-between border-t border-slate-100 pt-2">
+                <dt className="font-semibold text-ink">Total</dt>
+                <dd className="text-xl font-extrabold text-ink">{formatPKR(total)}</dd>
+              </div>
+            </dl>
+          </>
         ) : (
           <p className="text-sm text-muted">
             Submit your request and the operator will share a custom quote.

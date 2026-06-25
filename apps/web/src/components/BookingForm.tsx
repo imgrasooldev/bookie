@@ -186,7 +186,7 @@ export function BookingForm({ trip }: { trip: Trip }) {
                           ? "cursor-not-allowed bg-slate-200 text-slate-400"
                           : sel
                             ? "scale-105 bg-brand-600 text-white shadow-md"
-                            : "bg-white text-brand-700 ring-1 ring-brand-100 hover:bg-brand-50"
+                            : "bg-surface text-brand-700 ring-1 ring-brand-100 hover:bg-brand-50"
                       }`}
                     >
                       {seat}
@@ -383,7 +383,7 @@ function Legend() {
   return (
     <div className="flex gap-3 text-xs text-muted">
       <span className="flex items-center gap-1">
-        <span className="h-3 w-3 rounded bg-white ring-1 ring-brand-200" /> Free
+        <span className="h-3 w-3 rounded bg-surface ring-1 ring-brand-200" /> Free
       </span>
       <span className="flex items-center gap-1">
         <span className="h-3 w-3 rounded bg-brand-600" /> Selected

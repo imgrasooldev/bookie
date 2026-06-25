@@ -145,7 +145,7 @@ export function SearchResults({ trips }: { trips: Trip[] }) {
     <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
       {/* desktop sidebar */}
       <aside className="hidden lg:block">
-        <div className="sticky top-20 rounded-2xl border border-[var(--hairline)] bg-white p-5">{Filters}</div>
+        <div className="sticky top-20 rounded-2xl border border-[var(--hairline)] bg-surface p-5">{Filters}</div>
       </aside>
 
       <div>
@@ -154,7 +154,7 @@ export function SearchResults({ trips }: { trips: Trip[] }) {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowFilters((s) => !s)}
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--hairline)] bg-white px-4 py-2 text-sm font-semibold text-ink lg:hidden"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--hairline)] bg-surface px-4 py-2 text-sm font-semibold text-ink lg:hidden"
             >
               Filters
               {activeFilters > 0 && (
@@ -173,7 +173,7 @@ export function SearchResults({ trips }: { trips: Trip[] }) {
                 key={s.key}
                 onClick={() => setSort(s.key)}
                 className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
-                  sort === s.key ? "bg-white text-brand-700 shadow-sm" : "text-muted hover:text-ink"
+                  sort === s.key ? "bg-surface text-brand-700 shadow-sm" : "text-muted hover:text-ink"
                 }`}
               >
                 {s.label}
@@ -184,11 +184,11 @@ export function SearchResults({ trips }: { trips: Trip[] }) {
 
         {/* mobile filters panel */}
         {showFilters && (
-          <div className="mb-4 rounded-2xl border border-[var(--hairline)] bg-white p-5 lg:hidden">{Filters}</div>
+          <div className="mb-4 rounded-2xl border border-[var(--hairline)] bg-surface p-5 lg:hidden">{Filters}</div>
         )}
 
         {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-[var(--hairline)] bg-white p-12 text-center text-muted">
+          <div className="rounded-2xl border border-[var(--hairline)] bg-surface p-12 text-center text-muted">
             No results match your filters.{" "}
             <button onClick={clearAll} className="font-semibold text-brand-700 hover:underline">
               Clear filters

@@ -121,7 +121,7 @@ export function PaymentDialog({
       <div
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-md overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl"
+        className="w-full max-w-md overflow-hidden rounded-t-2xl bg-surface shadow-2xl sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* header */}

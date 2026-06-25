@@ -2,6 +2,7 @@ import Link from "next/link";
 import { TicketIcon, SearchIcon, PhoneIcon, ChevronDownIcon } from "@/components/icons";
 import { AuthControls } from "@/components/AuthControls";
 import { MobileMenu } from "@/components/MobileMenu";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NAV = [
   { label: "Flights", href: "/search?type=FLIGHT" },
@@ -18,7 +19,7 @@ const NAV = [
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--hairline)] bg-white/90 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-[var(--hairline)] bg-surface/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
         {/* left: menu + logo */}
         <div className="flex items-center gap-1.5">
@@ -80,6 +81,7 @@ export function Header() {
             <ChevronDownIcon className="h-4 w-4 text-muted" />
           </button>
 
+          <ThemeToggle />
           <AuthControls />
         </div>
       </div>

@@ -45,7 +45,7 @@ export default function WalletPage() {
         </div>
 
         {/* transactions */}
-        <div className="overflow-hidden rounded-2xl border border-[var(--hairline)] bg-white">
+        <div className="overflow-hidden rounded-2xl border border-[var(--hairline)] bg-surface">
           <div className="border-b border-[var(--hairline)] px-5 py-3 font-semibold text-ink">Transactions</div>
           <ul className="divide-y divide-[var(--hairline)]">
             {tx.map((t) => (

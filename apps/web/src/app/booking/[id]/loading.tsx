@@ -4,7 +4,7 @@ export default function BookingLoading() {
       <div className="skeleton h-4 w-28" />
       <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_340px]">
         <div className="space-y-6">
-          <div className="rounded-2xl border border-[var(--hairline)] bg-white p-6">
+          <div className="rounded-2xl border border-[var(--hairline)] bg-surface p-6">
             <div className="flex items-center gap-3">
               <div className="skeleton h-12 w-12 rounded-xl" />
               <div className="flex-1 space-y-2">

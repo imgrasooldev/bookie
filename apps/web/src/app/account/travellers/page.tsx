@@ -26,7 +26,7 @@ export default function TravellersPage() {
 
       <div className="space-y-3">
         {list.map((t) => (
-          <div key={t.id} className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--hairline)] bg-white p-4">
+          <div key={t.id} className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--hairline)] bg-surface p-4">
             <div className="flex items-center gap-3">
               <span className="grid h-11 w-11 place-items-center rounded-full bg-brand-50 text-brand-600">
                 <UserIcon className="h-5 w-5" />
@@ -70,7 +70,7 @@ function AddTraveller({ onClose, onAdd }: { onClose: () => void; onAdd: (t: Trav
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-md rounded-2xl bg-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-[var(--hairline)] px-6 py-4">
           <h2 className="font-display text-lg font-bold text-ink">Add traveller</h2>
           <button onClick={onClose} className="text-2xl leading-none text-muted">×</button>

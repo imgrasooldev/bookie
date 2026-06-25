@@ -1,7 +1,7 @@
 export default function SearchLoading() {
   return (
     <div>
-      <div className="border-b border-[var(--hairline)] bg-white">
+      <div className="border-b border-[var(--hairline)] bg-surface">
         <div className="mx-auto max-w-6xl px-4 py-5">
           <div className="skeleton h-[120px] w-full rounded-3xl" />
         </div>
@@ -22,7 +22,7 @@ export default function SearchLoading() {
           </div>
           <div className="space-y-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="rounded-2xl border border-[var(--hairline)] bg-white p-5">
+              <div key={i} className="rounded-2xl border border-[var(--hairline)] bg-surface p-5">
                 <div className="flex gap-4">
                   <div className="skeleton h-12 w-12 rounded-xl" />
                   <div className="flex-1 space-y-2">

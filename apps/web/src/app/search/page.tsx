@@ -34,7 +34,7 @@ export default async function SearchPage({
 
   return (
     <div>
-      <div className="border-b border-[var(--hairline)] bg-white">
+      <div className="border-b border-[var(--hairline)] bg-surface">
         <div className="mx-auto max-w-6xl px-4 py-5">
           <SearchPanel initialType={type} />
         </div>

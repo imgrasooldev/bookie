@@ -34,7 +34,7 @@ export default function ProfilePage() {
       <PageHeader title="Profile" subtitle="Manage your personal information." />
 
       {/* avatar */}
-      <div className="mb-5 flex items-center gap-4 rounded-2xl border border-[var(--hairline)] bg-white p-5">
+      <div className="mb-5 flex items-center gap-4 rounded-2xl border border-[var(--hairline)] bg-surface p-5">
         <span className="grid h-16 w-16 place-items-center rounded-full bg-brand-600 text-lg font-bold text-white">
           {initials}
         </span>
@@ -45,7 +45,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[var(--hairline)] bg-white p-5">
+      <div className="rounded-2xl border border-[var(--hairline)] bg-surface p-5">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="First name"><input className="input" value={form.firstName} onChange={set("firstName")} /></Field>
           <Field label="Last name"><input className="input" value={form.lastName} onChange={set("lastName")} /></Field>

@@ -50,7 +50,7 @@ export function AuthControls() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-full border border-[var(--hairline)] bg-white py-1 pl-1 pr-3 transition hover:bg-slate-50"
+        className="flex items-center gap-2 rounded-full border border-[var(--hairline)] bg-surface py-1 pl-1 pr-3 transition hover:bg-slate-50"
       >
         <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-600 text-xs font-bold text-white">
           {initials}
@@ -61,7 +61,7 @@ export function AuthControls() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-[var(--hairline)] bg-white shadow-xl">
+        <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-[var(--hairline)] bg-surface shadow-xl">
           <div className="border-b border-[var(--hairline)] px-4 py-3">
             <div className="truncate font-semibold text-ink">{user.name}</div>
             <div className="truncate text-xs text-muted">{user.email}</div>

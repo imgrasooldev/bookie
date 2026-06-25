@@ -200,7 +200,7 @@ export default function HomePage() {
               <Link
                 key={v.type}
                 href={`/search?type=${v.type}`}
-                className="lift group rounded-2xl border border-[var(--hairline)] bg-white p-5 transition hover:border-brand-200"
+                className="lift group rounded-2xl border border-[var(--hairline)] bg-surface p-5 transition hover:border-brand-200"
               >
                 <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white">
                   <Icon className="h-6 w-6" />
@@ -214,7 +214,7 @@ export default function HomePage() {
       </section>
 
       {/* ---------- Stats ---------- */}
-      <section className="border-y border-[var(--hairline)] bg-white">
+      <section className="border-y border-[var(--hairline)] bg-surface">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-4 py-12 text-center md:grid-cols-4">
           {STATS.map((s) => (
             <div key={s.label}>
@@ -237,7 +237,7 @@ export default function HomePage() {
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((f, i) => (
             <Reveal key={f.title} delay={i * 80}>
-              <div className="h-full rounded-2xl border border-[var(--hairline)] bg-white p-6">
+              <div className="h-full rounded-2xl border border-[var(--hairline)] bg-surface p-6">
                 <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-600">
                   <f.icon className="h-6 w-6" />
                 </span>
@@ -260,7 +260,7 @@ export default function HomePage() {
           <div className="mt-10 grid gap-4 md:grid-cols-3">
             {TESTIMONIALS.map((t, i) => (
               <Reveal key={t.name} delay={i * 90}>
-                <figure className="flex h-full flex-col rounded-2xl border border-[var(--hairline)] bg-white p-6">
+                <figure className="flex h-full flex-col rounded-2xl border border-[var(--hairline)] bg-surface p-6">
                   <div className="flex gap-0.5 text-accent-500">
                     {Array.from({ length: t.rating }).map((_, k) => (
                       <StarIcon key={k} className="h-4 w-4" />
@@ -292,7 +292,7 @@ export default function HomePage() {
       {/* ---------- How it works ---------- */}
       <section className="mx-auto max-w-6xl px-4 py-16">
         <Reveal>
-          <div className="rounded-3xl border border-[var(--hairline)] bg-white px-6 py-12">
+          <div className="rounded-3xl border border-[var(--hairline)] bg-surface px-6 py-12">
             <h2 className="font-display text-center text-3xl font-bold tracking-tight text-ink">
               Booked in three taps
             </h2>

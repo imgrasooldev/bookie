@@ -15,12 +15,12 @@ export default function RewardsPage() {
       <p className="mt-0.5 text-sm text-muted">Earn Bookie Cash every time a friend travels.</p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl border border-[var(--hairline)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--hairline)] bg-surface p-5">
           <div className="text-sm text-muted">Reward points</div>
           <div className="mt-1 font-display text-3xl font-bold text-ink">{USER.rewardPoints.toLocaleString()}</div>
           <div className="mt-1 text-xs text-muted">≈ {(USER.rewardPoints / 100).toFixed(0)} Rs in value</div>
         </div>
-        <div className="rounded-2xl border border-[var(--hairline)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--hairline)] bg-surface p-5">
           <div className="text-sm text-muted">Friends referred</div>
           <div className="mt-1 font-display text-3xl font-bold text-ink">3</div>
           <div className="mt-1 text-xs text-green-600">Rs 750 earned so far</div>
@@ -31,7 +31,7 @@ export default function RewardsPage() {
       <div className="brand-gradient mt-4 overflow-hidden rounded-2xl p-6 text-white">
         <h2 className="font-display text-xl font-bold">Refer & earn Rs 250</h2>
         <p className="mt-1 text-sm text-blue-100">Share your code — you both win when they travel.</p>
-        <div className="mt-4 max-w-xs rounded-xl bg-white p-1.5">
+        <div className="mt-4 max-w-xs rounded-xl bg-surface p-1.5">
           <CopyCode code={USER.referralCode} />
         </div>
       </div>
@@ -39,7 +39,7 @@ export default function RewardsPage() {
       {/* how it works */}
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         {STEPS.map((s, i) => (
-          <div key={s.title} className="rounded-2xl border border-[var(--hairline)] bg-white p-5">
+          <div key={s.title} className="rounded-2xl border border-[var(--hairline)] bg-surface p-5">
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-600">
               <s.icon className="h-5 w-5" />
             </span>

@@ -36,7 +36,7 @@ export default function BookingsPage() {
               key={t}
               onClick={() => setTab(t)}
               className={`flex-1 rounded-full px-3 py-2 text-sm font-semibold transition ${
-                tab === t ? "bg-white text-brand-700 shadow-sm" : "text-muted hover:text-ink"
+                tab === t ? "bg-surface text-brand-700 shadow-sm" : "text-muted hover:text-ink"
               }`}
             >
               {t} <span className="text-xs opacity-70">({count})</span>
@@ -46,14 +46,14 @@ export default function BookingsPage() {
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl border border-[var(--hairline)] bg-white p-12 text-center text-muted">
+        <div className="rounded-2xl border border-[var(--hairline)] bg-surface p-12 text-center text-muted">
           <TicketIcon className="mx-auto mb-3 h-8 w-8 text-slate-300" />
           No {tab.toLowerCase()} bookings.
         </div>
       ) : (
         <div className="space-y-3">
           {rows.map((b) => (
-            <div key={b.id} className="rounded-2xl border border-[var(--hairline)] bg-white p-5">
+            <div key={b.id} className="rounded-2xl border border-[var(--hairline)] bg-surface p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
@@ -113,7 +113,7 @@ function ETicket({ booking, onClose }: { booking: PortalBooking; onClose: () => 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="w-full max-w-sm overflow-hidden rounded-2xl bg-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="brand-gradient flex items-center justify-between px-5 py-4 text-white">

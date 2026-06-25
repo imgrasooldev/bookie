@@ -42,7 +42,7 @@ export default function AccountOverview() {
             View wallet <ChevronRightIcon className="h-3.5 w-3.5" />
           </Link>
         </div>
-        <div className="rounded-2xl border border-[var(--hairline)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--hairline)] bg-surface p-5">
           <div className="flex items-center gap-2 text-sm text-muted">
             <GiftIcon className="h-4 w-4 text-brand-600" /> Reward points
           </div>
@@ -51,7 +51,7 @@ export default function AccountOverview() {
             Redeem & refer <ChevronRightIcon className="h-3.5 w-3.5" />
           </Link>
         </div>
-        <div className="rounded-2xl border border-[var(--hairline)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--hairline)] bg-surface p-5">
           <div className="flex items-center gap-2 text-sm text-muted">
             <TicketIcon className="h-4 w-4 text-brand-600" /> Upcoming trips
           </div>
@@ -64,7 +64,7 @@ export default function AccountOverview() {
 
       {/* next trip */}
       {nextTrip && (
-        <div className="mt-6 overflow-hidden rounded-2xl border border-[var(--hairline)] bg-white">
+        <div className="mt-6 overflow-hidden rounded-2xl border border-[var(--hairline)] bg-surface">
           <div className="flex items-center justify-between border-b border-[var(--hairline)] px-5 py-3">
             <span className="font-semibold text-ink">Your next trip</span>
             <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-700">
@@ -94,7 +94,7 @@ export default function AccountOverview() {
           <Link
             key={q.href}
             href={q.href}
-            className="lift group flex items-center justify-between rounded-2xl border border-[var(--hairline)] bg-white p-4"
+            className="lift group flex items-center justify-between rounded-2xl border border-[var(--hairline)] bg-surface p-4"
           >
             <span className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-600">

@@ -19,7 +19,7 @@ export function LogoMarquee() {
         {items.map((l, i) => (
           <span
             key={i}
-            className="flex shrink-0 items-center gap-2 rounded-full border border-[var(--hairline)] bg-white px-4 py-2"
+            className="flex shrink-0 items-center gap-2 rounded-full border border-[var(--hairline)] bg-surface px-4 py-2"
           >
             <span
               className="grid h-6 w-6 place-items-center rounded-md text-[10px] font-bold text-white"

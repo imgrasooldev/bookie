@@ -37,7 +37,7 @@ export function AccountNav() {
   return (
     <div className="lg:sticky lg:top-20">
       {/* profile card (desktop) */}
-      <div className="mb-4 hidden items-center gap-3 rounded-2xl border border-[var(--hairline)] bg-white p-4 lg:flex">
+      <div className="mb-4 hidden items-center gap-3 rounded-2xl border border-[var(--hairline)] bg-surface p-4 lg:flex">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand-600 text-sm font-bold text-white">
           {initials}
         </span>
@@ -47,7 +47,7 @@ export function AccountNav() {
         </div>
       </div>
 
-      <nav className="flex gap-1 overflow-x-auto rounded-2xl border border-[var(--hairline)] bg-white p-2 no-scrollbar lg:flex-col">
+      <nav className="flex gap-1 overflow-x-auto rounded-2xl border border-[var(--hairline)] bg-surface p-2 no-scrollbar lg:flex-col">
         {ITEMS.map((it) => {
           const active = path === it.href;
           return (

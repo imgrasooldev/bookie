@@ -90,7 +90,7 @@ export function SearchPanel({ initialType = "BUS" as ServiceType }) {
               type="button"
               onClick={swap}
               aria-label="Swap"
-              className="absolute left-1/2 top-[34px] grid h-9 w-9 -translate-x-1/2 place-items-center rounded-full border border-slate-200 bg-white text-brand-600 shadow-sm transition hover:bg-brand-50"
+              className="absolute left-1/2 top-[34px] grid h-9 w-9 -translate-x-1/2 place-items-center rounded-full border border-slate-200 bg-surface text-brand-600 shadow-sm transition hover:bg-brand-50"
             >
               <SwapIcon className="h-4 w-4" />
             </button>

@@ -30,7 +30,7 @@ export function AuthButton() {
       <div
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="w-full max-w-sm overflow-hidden rounded-2xl bg-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="brand-gradient relative px-6 py-5 text-white">

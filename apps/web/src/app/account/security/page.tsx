@@ -14,7 +14,7 @@ export default function SecurityPage() {
       <PageHeader title="Security" subtitle="Keep your account safe." />
 
       {/* change password */}
-      <div className="rounded-2xl border border-[var(--hairline)] bg-white p-5">
+      <div className="rounded-2xl border border-[var(--hairline)] bg-surface p-5">
         <div className="mb-4 flex items-center gap-2">
           <LockIcon className="h-5 w-5 text-brand-600" />
           <h2 className="font-semibold text-ink">Change password</h2>
@@ -33,7 +33,7 @@ export default function SecurityPage() {
       </div>
 
       {/* 2FA */}
-      <div className="mt-4 flex items-center justify-between rounded-2xl border border-[var(--hairline)] bg-white p-5">
+      <div className="mt-4 flex items-center justify-between rounded-2xl border border-[var(--hairline)] bg-surface p-5">
         <div>
           <div className="font-semibold text-ink">Two-factor authentication</div>
           <div className="text-sm text-muted">Add an extra layer of security with an OTP at login.</div>
@@ -43,7 +43,7 @@ export default function SecurityPage() {
 
       {/* sessions */}
       <h2 className="mt-8 font-display text-lg font-bold text-ink">Active sessions</h2>
-      <div className="mt-3 divide-y divide-[var(--hairline)] rounded-2xl border border-[var(--hairline)] bg-white">
+      <div className="mt-3 divide-y divide-[var(--hairline)] rounded-2xl border border-[var(--hairline)] bg-surface">
         {sessions.map((s) => (
           <div key={s.id} className="flex items-center justify-between px-5 py-4">
             <div>

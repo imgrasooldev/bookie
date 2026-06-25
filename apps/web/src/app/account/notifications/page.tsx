@@ -32,7 +32,7 @@ export default function NotificationsPage() {
             key={n.id}
             onClick={() => setItems((l) => l.map((x) => (x.id === n.id ? { ...x, unread: false } : x)))}
             className={`flex w-full items-start gap-3 rounded-2xl border border-[var(--hairline)] p-4 text-left transition hover:bg-slate-50 ${
-              n.unread ? "bg-brand-50/40" : "bg-white"
+              n.unread ? "bg-brand-50/40" : "bg-surface"
             }`}
           >
             <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600">
@@ -52,7 +52,7 @@ export default function NotificationsPage() {
 
       {/* preferences */}
       <h2 className="mt-8 font-display text-lg font-bold text-ink">Notification preferences</h2>
-      <div className="mt-3 divide-y divide-[var(--hairline)] rounded-2xl border border-[var(--hairline)] bg-white">
+      <div className="mt-3 divide-y divide-[var(--hairline)] rounded-2xl border border-[var(--hairline)] bg-surface">
         {NOTIF_PREFS.map((p) => (
           <div key={p.key} className="flex items-center justify-between px-5 py-4">
             <span className="text-sm font-medium text-ink">{p.label}</span>

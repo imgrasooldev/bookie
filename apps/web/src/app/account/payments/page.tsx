@@ -35,7 +35,7 @@ export default function PaymentsPage() {
 
       <div className="space-y-3">
         {list.map((m) => (
-          <div key={m.id} className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--hairline)] bg-white p-4">
+          <div key={m.id} className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--hairline)] bg-surface p-4">
             <div className="flex items-center gap-3">
               <span className="grid h-11 w-11 place-items-center rounded-xl text-white" style={{ backgroundColor: DOT[m.type] }}>
                 {m.type === "Card" ? <CardIcon className="h-5 w-5" /> : <WalletIcon className="h-5 w-5" />}

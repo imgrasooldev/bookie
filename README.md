@@ -9,16 +9,19 @@ Multi-vertical transport booking platform for Pakistan — **bus** tickets, **ci
 ```
 bookie/
 ├── apps/
-│   ├── web/      # Next.js 16 customer site (TypeScript, Tailwind v4)   ✅ scaffolded
-│   ├── api/      # Node + Express + MongoDB backend                      ⏳ next
-│   └── mobile/   # Flutter app (Android · iOS · Huawei)                  ⏳ after backend
+│   ├── web/      # Next.js 16 customer site (TypeScript, Tailwind v4)   ✅ built
+│   ├── api/      # Node + Express + MongoDB backend                      ✅ built + smoke-tested
+│   └── mobile/   # Flutter app (Android · iOS · Huawei)                  ✅ built + analyze/test pass
 ├── docs/         # PLAN.md and design notes
 ```
 
-## Build order
-1. **Web** (customer-facing UI, mock data) — done
-2. **Backend** (REST API + MongoDB, replaces mock data)
-3. **Flutter** (mobile apps consuming the same API)
+## Build order (all three scaffolded & verified)
+1. **Web** — Next.js customer site, builds clean (`apps/web`)
+2. **Backend** — Express + MongoDB REST API, 13-check smoke test passes (`apps/api`)
+3. **Flutter** — Android/iOS/Huawei app, analyze + widget test pass (`apps/mobile`)
+
+Each layer talks to the next through a single data seam (`api.ts` / `api.dart`)
+so flipping from mock data to the live backend needs no UI changes.
 
 ## Run the web app
 

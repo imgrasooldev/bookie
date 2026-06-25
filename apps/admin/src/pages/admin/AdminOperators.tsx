@@ -3,7 +3,7 @@ import { listOperators, onboardOperator, setOperatorStatus, type AdminOperator }
 import { PageHeader, StatusBadge } from "../../components/ui";
 import { PlusIcon } from "../../icons";
 
-const CATEGORIES = ["BUS", "CAR", "FLIGHT", "TRAIN", "HOTEL", "FARMHOUSE", "HUT", "WATERPARK"];
+const CATEGORIES = ["BUS", "CAR", "FLIGHT", "TRAIN", "HOTEL", "FARMHOUSE", "HUT", "WATERPARK", "TOUR", "PICNIC"];
 
 export function AdminOperators() {
   const [list, setList] = useState<AdminOperator[]>([]);

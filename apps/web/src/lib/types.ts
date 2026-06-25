@@ -67,6 +67,8 @@ export interface Trip {
   stops?: number; // flight stops (0 = direct)
   nights?: number; // hotel default nights
   durationDays?: number; // tour/umrah length
+  checkIn?: string; // stay check-in time "14:00"
+  checkOut?: string; // stay check-out time "12:00"
   rating?: number; // hotel star rating
   badge?: string; // e.g. "Direct", "Bestseller", "5★"
 }

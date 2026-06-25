@@ -9,10 +9,12 @@ const API_URL = (import.meta.env.VITE_API_URL as string) ?? "http://localhost:40
 const SERVICE: Record<CategoryKey, string> = {
   BUS: "BUS", FLIGHT: "FLIGHT", TRAIN: "TRAIN", CAR: "CAR",
   HOTEL: "HOTEL", FARMHOUSE: "FARMHOUSE", HUT: "HUT", WATERPARK: "WATERPARK",
+  TOUR: "TOUR", PICNIC: "PICNIC",
 };
 const CATEGORY: Record<string, CategoryKey> = {
   BUS: "BUS", FLIGHT: "FLIGHT", TRAIN: "TRAIN", CAR: "CAR",
   HOTEL: "HOTEL", FARMHOUSE: "FARMHOUSE", HUT: "HUT", WATERPARK: "WATERPARK",
+  TOUR: "TOUR", PICNIC: "PICNIC",
 };
 
 const CITY_CODE: Record<string, string> = {
@@ -115,7 +117,7 @@ type TripJson = {
   price: number; priceUnit: string; seatsAvailable?: number; location?: string; status?: string;
   bookedSeats?: string[]; reservedUnits?: number; blockedDates?: string[];
   serviceScope?: "intracity" | "intercity" | "both" | null; approved?: boolean;
-  amenities?: string[];
+  amenities?: string[]; vehicle?: string; durationDays?: number; checkIn?: string; checkOut?: string;
 };
 
 function toSchedule(t: TripJson): Schedule | null {
@@ -124,14 +126,18 @@ function toSchedule(t: TripJson): Schedule | null {
   const unit =
     t.priceUnit === "per_seat" ? "seat" :
     t.priceUnit === "per_night" ? "night" :
-    t.priceUnit === "per_person" ? "ticket" : "trip";
+    t.priceUnit === "per_person" ? "person" :
+    category === "WATERPARK" ? "ticket" :
+    category === "PICNIC" ? "trip" : "trip";
   const booked = t.bookedSeats?.length ?? 0;
   const reserved = t.reservedUnits ?? 0;
   return {
     id: t.id, category, operator: t.operator?.name ?? "—", title: t.title,
     from: t.originId, to: t.destinationId,
     departTime: hhmm(t.departAt), arriveTime: hhmm(t.arriveAt), days: [],
-    location: t.location, price: t.price, unit,
+    location: t.location, vehicle2: t.vehicle, durationDays: t.durationDays,
+    checkIn: t.checkIn, checkOut: t.checkOut,
+    price: t.price, unit,
     capacity: t.seatsAvailable != null ? t.seatsAvailable + booked + reserved : undefined,
     status: t.status === "hidden" ? "paused" : "active",
     bookedSeats: t.bookedSeats ?? [], reservedUnits: reserved,
@@ -199,7 +205,10 @@ export async function createTrip(s: Schedule): Promise<SaveResult> {
   const arriveAt = at(s.arriveTime, departAt);
   const durationMin =
     departAt && arriveAt ? Math.round((+new Date(arriveAt) - +new Date(departAt)) / 60000) : undefined;
-  const priceUnit = s.unit === "seat" ? "per_seat" : s.unit === "night" ? "per_night" : "from";
+  const priceUnit =
+    s.unit === "seat" ? "per_seat" :
+    s.unit === "night" ? "per_night" :
+    s.unit === "person" ? "per_person" : "from";
 
   return send("/operator/trips", "POST", {
     serviceType: SERVICE[s.category],
@@ -209,12 +218,16 @@ export async function createTrip(s: Schedule): Promise<SaveResult> {
     departAt, arriveAt, durationMin,
     price: s.price, priceUnit, seatsAvailable: s.capacity, location: s.location,
     amenities: s.amenities ?? [],
+    vehicle: s.vehicle2,
+    durationDays: s.durationDays,
+    checkIn: s.checkIn,
+    checkOut: s.checkOut,
   });
 }
 
 export async function updateTrip(
   id: string,
-  patch: { price?: number; status?: "active" | "hidden"; departAt?: string; arriveAt?: string; seatsAvailable?: number; title?: string },
+  patch: { price?: number; status?: "active" | "hidden"; departAt?: string; arriveAt?: string; seatsAvailable?: number; title?: string; durationDays?: number; checkIn?: string; checkOut?: string },
 ): Promise<SaveResult> {
   return send(`/operator/trips/${id}`, "PATCH", patch);
 }

@@ -15,6 +15,7 @@ const PRICE_SUFFIX: Record<Trip["priceUnit"], string> = {
 };
 
 const TRANSPORT = new Set(["BUS", "FLIGHT", "TRAIN"]);
+const STAY = new Set(["HOTEL", "FARMHOUSE", "HUT"]);
 
 export function TripCard({ trip }: { trip: Trip }) {
   const isTransport = TRANSPORT.has(trip.serviceType);
@@ -114,6 +115,14 @@ export function TripCard({ trip }: { trip: Trip }) {
               <div className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-ink">
                 <ClockIcon className="h-4 w-4 text-brand-500" />
                 {trip.durationDays} days
+              </div>
+            )}
+
+            {/* stay check-in / check-out */}
+            {STAY.has(trip.serviceType) && (trip.checkIn || trip.checkOut) && (
+              <div className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-ink">
+                <ClockIcon className="h-4 w-4 text-brand-500" />
+                Check-in {trip.checkIn ?? "—"} · Check-out {trip.checkOut ?? "—"}
               </div>
             )}
 

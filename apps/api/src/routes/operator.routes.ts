@@ -154,6 +154,10 @@ const createSchema = z.object({
   seatsAvailable: z.coerce.number().optional(),
   amenities: z.array(z.string()).optional(),
   location: z.string().optional(),
+  vehicle: z.string().optional(),
+  durationDays: z.coerce.number().optional(),
+  checkIn: z.string().optional(),
+  checkOut: z.string().optional(),
 });
 
 operatorRouter.post(
@@ -188,6 +192,9 @@ const patchSchema = z.object({
   reservedUnits: z.coerce.number().optional(),
   blockedDates: z.array(z.string()).optional(),
   serviceScope: z.enum(["intracity", "intercity", "both"]).optional(),
+  durationDays: z.coerce.number().optional(),
+  checkIn: z.string().optional(),
+  checkOut: z.string().optional(),
 });
 
 operatorRouter.patch(

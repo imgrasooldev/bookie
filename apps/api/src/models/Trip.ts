@@ -30,6 +30,8 @@ const tripSchema = new Schema(
     stops: { type: Number }, // flight stops
     nights: { type: Number },
     durationDays: { type: Number }, // tour / umrah length
+    checkIn: { type: String }, // stay check-in time "14:00"
+    checkOut: { type: String }, // stay check-out time "12:00"
     rating: { type: Number }, // hotel star rating
     badge: { type: String },
     // availability management

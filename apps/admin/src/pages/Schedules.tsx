@@ -147,9 +147,21 @@ export function Schedules() {
                     )}
                     {typeof s.capacity === "number" && (
                       <span className="text-muted">
-                        {s.capacity} {s.unit === "night" ? "units" : s.unit === "trip" ? "vehicles" : s.unit === "ticket" ? "tickets/day" : "seats"}
+                        {s.capacity} {s.unit === "night" ? "units" : s.unit === "trip" ? "vehicles" : s.unit === "ticket" ? "tickets/day" : s.unit === "person" ? "group size" : "seats"}
                       </span>
                     )}
+                    {s.durationDays ? (
+                      <span className="inline-flex items-center gap-1 text-muted">
+                        <CalendarIcon className="h-4 w-4" />{s.durationDays} days
+                      </span>
+                    ) : null}
+                    {(s.checkIn || s.checkOut) && (
+                      <span className="inline-flex items-center gap-1 text-muted">
+                        <ClockIcon className="h-4 w-4 text-brand-600" />
+                        In {s.checkIn ?? "—"} · Out {s.checkOut ?? "—"}
+                      </span>
+                    )}
+                    {s.vehicle2 && <span className="text-muted">{s.vehicle2}</span>}
                   </div>
                 </div>
 
@@ -209,6 +221,9 @@ export function Schedules() {
                 seatsAvailable: fields.capacity,
                 departAt: isoAt(fields.departTime),
                 arriveAt: isoAt(fields.arriveTime),
+                checkIn: fields.checkIn,
+                checkOut: fields.checkOut,
+                durationDays: fields.durationDays,
               });
               if (!r.ok) return flash("⚠ " + r.error);
               await load();
@@ -268,6 +283,9 @@ function AvailabilityModal({
   const isStay = kind === "stay";
   const isRide = kind === "ride";
   const isVenue = kind === "venue";
+  const isPackage = kind === "package";
+  const isCharter = kind === "charter";
+  const isUnits = isStay || isVenue || isPackage || isCharter;
   const total = schedule.capacity ?? 0;
 
   const [booked, setBooked] = useState<string[]>(schedule.bookedSeats ?? []);
@@ -279,7 +297,7 @@ function AvailabilityModal({
   function save() {
     const patch: AvailPatch = {};
     if (isSeated) patch.bookedSeats = booked;
-    if (isStay || isVenue) patch.reservedUnits = reserved;
+    if (isUnits) patch.reservedUnits = reserved;
     if (isStay) patch.blockedDates = blocked;
     if (isRide) patch.serviceScope = scope;
     onSave(schedule.id, patch);
@@ -343,14 +361,14 @@ function AvailabilityModal({
             </>
           )}
 
-          {(isStay || isVenue) && (
+          {isUnits && (
             <>
               <div className="rounded-xl bg-slate-50 p-4 text-center">
                 <div className="text-3xl font-extrabold text-ink">{Math.max(0, total - reserved)}<span className="text-base font-medium text-muted"> / {total}</span></div>
-                <div className="text-sm text-muted">{isVenue ? "tickets left today" : "units available"}</div>
+                <div className="text-sm text-muted">{isVenue ? "tickets left today" : isPackage ? "seats left" : isCharter ? "coaches left" : "units available"}</div>
               </div>
               <div className="mt-4 flex items-center justify-between">
-                <span className="text-sm font-medium text-ink">{isVenue ? "Tickets sold" : "Units reserved"}</span>
+                <span className="text-sm font-medium text-ink">{isVenue ? "Tickets sold" : isPackage ? "Seats booked" : isCharter ? "Coaches booked" : "Units reserved"}</span>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setReserved((r) => Math.max(0, r - 1))} className="grid h-9 w-9 place-items-center rounded-lg bg-slate-100 text-lg">−</button>
                   <span className="w-10 text-center text-lg font-bold">{reserved}</span>
@@ -437,13 +455,18 @@ function EditSchedule({
 }: {
   schedule: Schedule;
   onClose: () => void;
-  onSave: (id: string, fields: { price: number; capacity?: number; departTime?: string; arriveTime?: string }) => void;
+  onSave: (id: string, fields: { price: number; capacity?: number; departTime?: string; arriveTime?: string; checkIn?: string; checkOut?: string; durationDays?: number }) => void;
 }) {
   const kind = categoryOf(schedule.category).kind;
+  const isStay = kind === "stay";
+  const isPackage = kind === "package";
   const [price, setPrice] = useState(String(schedule.price));
   const [capacity, setCapacity] = useState(schedule.capacity != null ? String(schedule.capacity) : "");
   const [departTime, setDepartTime] = useState(schedule.departTime ?? "");
   const [arriveTime, setArriveTime] = useState(schedule.arriveTime ?? "");
+  const [checkIn, setCheckIn] = useState(schedule.checkIn ?? "");
+  const [checkOut, setCheckOut] = useState(schedule.checkOut ?? "");
+  const [durationDays, setDurationDays] = useState(schedule.durationDays != null ? String(schedule.durationDays) : "");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
@@ -463,11 +486,20 @@ function EditSchedule({
               <L label="Arrival"><input type="time" value={arriveTime} onChange={(e) => setArriveTime(e.target.value)} className={inp} /></L>
             </div>
           )}
+          {isStay && (
+            <div className="grid grid-cols-2 gap-3">
+              <L label="Check-in time"><input type="time" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className={inp} /></L>
+              <L label="Check-out time"><input type="time" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className={inp} /></L>
+            </div>
+          )}
+          {isPackage && (
+            <L label="Duration (days)"><input type="number" min="1" value={durationDays} onChange={(e) => setDurationDays(e.target.value)} className={inp} /></L>
+          )}
         </div>
         <div className="flex gap-3 border-t border-slate-100 px-6 py-4">
           <button onClick={onClose} className="flex-1 rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-ink hover:bg-slate-50">Cancel</button>
           <button
-            onClick={() => onSave(schedule.id, { price: Number(price), capacity: capacity ? Number(capacity) : undefined, departTime: departTime || undefined, arriveTime: arriveTime || undefined })}
+            onClick={() => onSave(schedule.id, { price: Number(price), capacity: capacity ? Number(capacity) : undefined, departTime: departTime || undefined, arriveTime: arriveTime || undefined, checkIn: checkIn || undefined, checkOut: checkOut || undefined, durationDays: durationDays ? Number(durationDays) : undefined })}
             className="flex-1 rounded-lg bg-brand-600 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
           >
             Save changes
@@ -491,9 +523,12 @@ function AddSchedule({
   const kind = c.kind;
   const isStay = kind === "stay";
   const isVenue = kind === "venue";
-  const showName = isStay || isVenue;
+  const isPackage = kind === "package";
+  const isCharter = kind === "charter";
+  const showName = isStay || isVenue || isPackage || isCharter;
   const isTransport = kind === "transport";
   const isBus = category === "BUS";
+  const unitWord = isStay ? "night" : isVenue ? "ticket" : isPackage ? "person" : isCharter ? "trip" : "seat";
 
   const operator = getOperator()?.name ?? "";
   const [from, setFrom] = useState("");
@@ -507,6 +542,11 @@ function AddSchedule({
   const [price, setPrice] = useState("");
   const [capacity, setCapacity] = useState(category === "CAR" ? "4" : "");
   const [amenities, setAmenities] = useState<string[]>([]);
+  // bespoke extras
+  const [durationDays, setDurationDays] = useState("3");
+  const [checkIn, setCheckIn] = useState("14:00");
+  const [checkOut, setCheckOut] = useState("12:00");
+  const [coach, setCoach] = useState("");
   const facilities = facilitiesFor(category);
 
   const busVehicle = vehicles.find((v) => v.id === vehicle);
@@ -531,8 +571,12 @@ function AddSchedule({
       days: isStay ? undefined : days,
       vehicle: isBus ? vehicle : undefined,
       location: showName || kind === "ride" ? location.trim() : undefined,
+      vehicle2: isCharter ? coach.trim() || undefined : undefined,
+      durationDays: isPackage ? Number(durationDays) || undefined : undefined,
+      checkIn: isStay ? checkIn : undefined,
+      checkOut: isStay ? checkOut : undefined,
       price: Number(price),
-      unit: isStay ? "night" : isVenue ? "ticket" : kind === "ride" ? "trip" : "seat",
+      unit: unitWord,
       capacity: seats || undefined,
       amenities,
       status: "active",
@@ -552,10 +596,32 @@ function AddSchedule({
 
           {showName ? (
             <>
-              <L label={isVenue ? "Venue name" : "Property name"}>
-                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={isVenue ? "e.g. Sozo Water Park — Day Pass" : "e.g. Lakeview Hut — Naran"} className={inp} />
+              <L label={isVenue ? "Venue name" : isPackage ? "Package name" : isCharter ? "Trip / package name" : "Property name"}>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder={isVenue ? "e.g. Sozo Water Park — Day Pass" : isPackage ? "e.g. Hunza Valley — 6 Days" : isCharter ? "e.g. Khanpur Dam — Day Picnic" : "e.g. Lakeview Hut — Naran"}
+                  className={inp}
+                />
               </L>
-              <L label="Location"><input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="City / area" className={inp} /></L>
+              <L label={isPackage ? "Destination" : isCharter ? "Pickup city / area" : "Location"}>
+                <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={isPackage ? "e.g. Hunza, Gilgit-Baltistan" : "City / area"} className={inp} />
+              </L>
+
+              {isStay && (
+                <div className="grid grid-cols-2 gap-3">
+                  <L label="Check-in time"><input type="time" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className={inp} /></L>
+                  <L label="Check-out time"><input type="time" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className={inp} /></L>
+                </div>
+              )}
+
+              {isPackage && (
+                <L label="Duration (days)"><input type="number" min="1" value={durationDays} onChange={(e) => setDurationDays(e.target.value)} placeholder="e.g. 6" className={inp} /></L>
+              )}
+
+              {isCharter && (
+                <L label="Vehicle / coach"><input value={coach} onChange={(e) => setCoach(e.target.value)} placeholder="e.g. 30-seater Coaster" className={inp} /></L>
+              )}
             </>
           ) : (
             <div className="grid grid-cols-2 gap-3">
@@ -588,7 +654,7 @@ function AddSchedule({
 
           {!isStay && (
             <div>
-              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Runs on</span>
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{isPackage ? "Departure days" : isCharter ? "Available days" : "Runs on"}</span>
               <div className="flex flex-wrap gap-1.5">
                 {DAYS.map((d) => {
                   const on = days.includes(d);
@@ -629,7 +695,7 @@ function AddSchedule({
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <L label={`Price (per ${isStay ? "night" : isVenue ? "ticket" : kind === "ride" ? "trip" : "seat"})`}>
+            <L label={`Price (per ${unitWord})`}>
               <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0" className={inp} />
             </L>
             {isBus ? (
@@ -637,7 +703,7 @@ function AddSchedule({
                 <input value={seats} readOnly className={`${inp} bg-slate-50`} />
               </L>
             ) : (
-              <L label={isStay ? "Units / rooms" : isVenue ? "Tickets / day" : kind === "ride" ? "Vehicles" : "Seats"}>
+              <L label={isStay ? "Units / rooms" : isVenue ? "Tickets / day" : isPackage ? "Group size" : isCharter ? "Coaches available" : "Seats"}>
                 <input type="number" value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="0" className={inp} />
               </L>
             )}

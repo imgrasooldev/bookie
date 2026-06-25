@@ -99,9 +99,11 @@ export type CategoryKey =
   | "HOTEL"
   | "FARMHOUSE"
   | "HUT"
-  | "WATERPARK";
+  | "WATERPARK"
+  | "TOUR"
+  | "PICNIC";
 
-export type CategoryKind = "transport" | "ride" | "stay" | "venue";
+export type CategoryKind = "transport" | "ride" | "stay" | "venue" | "package" | "charter";
 
 export interface Category {
   key: CategoryKey;
@@ -120,6 +122,8 @@ export const CATEGORIES: Category[] = [
   { key: "FARMHOUSE", label: "Farm House", kind: "stay", icon: "🏡", color: "#15803d" },
   { key: "HUT", label: "Hut", kind: "stay", icon: "🛖", color: "#b45309" },
   { key: "WATERPARK", label: "Water Park", kind: "venue", icon: "🌊", color: "#0284c7" },
+  { key: "TOUR", label: "Tour Package", kind: "package", icon: "🌴", color: "#0d9488" },
+  { key: "PICNIC", label: "Picnic & Party", kind: "charter", icon: "🎉", color: "#db2777" },
 ];
 
 export const categoryOf = (k: CategoryKey) => CATEGORIES.find((c) => c.key === k)!;
@@ -176,10 +180,14 @@ export interface Schedule {
   arriveTime?: string;
   days?: string[]; // recurrence, e.g. ["Mon","Wed","Fri"]
   vehicle?: string; // vehicle id (transport)
-  location?: string; // stays
+  location?: string; // stays / tour destination / pickup area
+  vehicle2?: string; // charter coach descriptor (free text)
+  durationDays?: number; // tour package length
+  checkIn?: string; // stay check-in time
+  checkOut?: string; // stay check-out time
   price: number;
-  unit: "seat" | "night" | "trip" | "ticket";
-  capacity?: number; // total seats / units / daily tickets
+  unit: "seat" | "night" | "trip" | "ticket" | "person";
+  capacity?: number; // total seats / units / daily tickets / group size
   status: "active" | "paused";
   amenities?: string[];
   // availability
@@ -200,6 +208,7 @@ export const FACILITY_LABEL: Record<string, string> = {
   security: "Security", generator: "Backup power", lawn: "Lawn / garden",
   lockers: "Lockers", foodcourt: "Food court", kidsarea: "Kids area", firstaid: "First aid",
   guide: "Tour guide", hotel: "Hotel stay", meals: "Meals", visa: "Visa", transport: "Transport",
+  driver: "Driver included", ziarat: "Ziarat tours", sightseeing: "Sightseeing",
 };
 
 export function facilitiesFor(category: CategoryKey): string[] {
@@ -217,6 +226,10 @@ export function facilitiesFor(category: CategoryKey): string[] {
       return ["pool", "ac", "parking", "kitchen", "bbq", "security", "generator", "lawn"];
     case "WATERPARK":
       return ["parking", "lockers", "foodcourt", "kidsarea", "firstaid"];
+    case "TOUR":
+      return ["hotel", "transport", "meals", "guide", "sightseeing", "visa"];
+    case "PICNIC":
+      return ["ac", "music", "driver", "water", "tracking"];
     default:
       return ["ac", "wifi"];
   }

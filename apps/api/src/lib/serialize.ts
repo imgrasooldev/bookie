@@ -22,6 +22,8 @@ type PopulatedTrip = {
   stops?: number | null;
   nights?: number | null;
   durationDays?: number | null;
+  checkIn?: string | null;
+  checkOut?: string | null;
   rating?: number | null;
   badge?: string | null;
   bookedSeats?: string[] | null;
@@ -60,6 +62,8 @@ export function serializeTrip(t: PopulatedTrip) {
     stops: t.stops ?? undefined,
     nights: t.nights ?? undefined,
     durationDays: t.durationDays ?? undefined,
+    checkIn: t.checkIn ?? undefined,
+    checkOut: t.checkOut ?? undefined,
     rating: t.rating ?? undefined,
     badge: t.badge ?? undefined,
   };

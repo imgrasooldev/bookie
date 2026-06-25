@@ -314,6 +314,27 @@ export const CheckIcon = (p: P) => (
     <path d="M5 13l4 4L19 7" />
   </S>
 );
+export const SearchIcon = (p: P) => (
+  <S {...p}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m21 21-4.3-4.3" />
+  </S>
+);
+export const PhoneIcon = (p: P) => (
+  <S {...p}>
+    <path d="M4 5a2 2 0 0 1 2-2h2l1.5 4-2 1.5a11 11 0 0 0 5.5 5.5L16.5 16 20 17.5V20a2 2 0 0 1-2 2A16 16 0 0 1 4 8z" />
+  </S>
+);
+export const ChevronDownIcon = (p: P) => (
+  <S {...p}>
+    <path d="M6 9l6 6 6-6" />
+  </S>
+);
+export const MenuIcon = (p: P) => (
+  <S {...p}>
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </S>
+);
 
 /* amenity-key → icon, for trip cards (unmapped keys render as text only) */
 export const AMENITY_ICONS: Record<string, (p: P) => React.ReactElement> = {

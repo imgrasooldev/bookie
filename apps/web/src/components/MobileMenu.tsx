@@ -24,7 +24,7 @@ export function MobileMenu({
     <div className="fixed inset-0 z-[90]" onClick={() => setOpen(false)}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
       <nav
-        className="absolute inset-x-0 top-16 mx-3 rounded-2xl border border-[var(--hairline)] bg-white p-3 shadow-2xl"
+        className="absolute left-3 right-3 top-16 max-h-[80vh] overflow-y-auto rounded-2xl border border-[var(--hairline)] bg-white p-3 shadow-2xl sm:right-auto sm:w-80"
         onClick={(e) => e.stopPropagation()}
       >
         {items.map((n) => (
@@ -49,7 +49,7 @@ export function MobileMenu({
   );
 
   return (
-    <div className="lg:hidden">
+    <div>
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? "Close menu" : "Open menu"}

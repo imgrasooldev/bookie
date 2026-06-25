@@ -25,9 +25,10 @@ export function AuthControls() {
     return (
       <Link
         href="/login"
-        className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+        className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-semibold text-ink hover:bg-slate-100"
       >
-        Log in / Sign up
+        <UserIcon className="h-5 w-5 text-brand-600" />
+        Sign In
       </Link>
     );
   }

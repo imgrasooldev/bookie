@@ -208,3 +208,56 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* slow cinematic zoom on hero photo */
+@keyframes kenburns {
+  from {
+    transform: scale(1.05);
+  }
+  to {
+    transform: scale(1.18);
+  }
+}
+.kenburns {
+  animation: kenburns 24s ease-in-out infinite alternate;
+}
+
+/* infinite logo marquee */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee-track {
+  animation: marquee 32s linear infinite;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+/* scroll reveal (toggled by Reveal component) */
+.will-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+}
+.will-reveal.reveal-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.65s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.65s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kenburns,
+  .marquee-track {
+    animation: none;
+  }
+  .will-reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

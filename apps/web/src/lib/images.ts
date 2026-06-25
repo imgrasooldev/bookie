@@ -27,6 +27,30 @@ export const DESTINATIONS = [
   { name: "Istanbul", region: "Türkiye", price: 210000, img: IMAGES.istanbul, q: "type=TOUR" },
 ];
 
+export const TESTIMONIALS = [
+  {
+    name: "Ayesha Khan",
+    role: "Frequent flyer · Karachi",
+    text: "Booked a Karachi–Islamabad flight in under a minute and paid with Easypaisa. The e-ticket arrived instantly. Easiest booking I've done.",
+    img: U("1494790108377-be9c29b29330", 160),
+    rating: 5,
+  },
+  {
+    name: "Bilal Ahmed",
+    role: "Weekend traveller · Lahore",
+    text: "Live seat selection on the bus is a game changer. I picked my window seat and used a promo code — saved Rs 500 on the first trip.",
+    img: U("1507003211169-0a1dd7228f2d", 160),
+    rating: 5,
+  },
+  {
+    name: "Fatima Noor",
+    role: "Family trips · Islamabad",
+    text: "Planned our whole Hunza tour and a hotel in one place. The photos and prices were spot on, and support replied on WhatsApp in minutes.",
+    img: U("1438761681033-6461ffad8d80", 160),
+    rating: 5,
+  },
+];
+
 // per-trip thumbnails by id (hotels / tours / events / umrah)
 export const TRIP_IMAGES: Record<string, string> = {
   "htl-1": U("1566073771259-6a8506099945", 500),

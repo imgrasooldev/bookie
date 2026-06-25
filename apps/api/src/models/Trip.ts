@@ -32,6 +32,11 @@ const tripSchema = new Schema(
     durationDays: { type: Number }, // tour / umrah length
     rating: { type: Number }, // hotel star rating
     badge: { type: String },
+    // availability management
+    bookedSeats: { type: [String], default: [] }, // seats marked booked (transport)
+    reservedUnits: { type: Number, default: 0 }, // units/rooms/tickets taken (stay/venue)
+    blockedDates: { type: [String], default: [] }, // yyyy-mm-dd dates unavailable (stay)
+    serviceScope: { type: String, enum: ["intracity", "intercity", "both"] }, // car
     status: { type: String, enum: ["active", "hidden"], default: "active" },
   },
   { timestamps: true },

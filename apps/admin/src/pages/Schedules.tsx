@@ -10,7 +10,7 @@ import {
   type Schedule,
   type CategoryKey,
 } from "../data";
-import { createTrip, listSchedules, updateTrip, deleteTrip } from "../api";
+import { createTrip, listSchedules, updateTrip, deleteTrip, setAvailability } from "../api";
 import { PageHeader } from "../components/ui";
 import { PlusIcon, ClockIcon, CalendarIcon, TrashIcon, PowerIcon } from "../icons";
 
@@ -29,6 +29,7 @@ export function Schedules() {
   const [cat, setCat] = useState<CategoryKey>("BUS");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Schedule | null>(null);
+  const [managing, setManaging] = useState<Schedule | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const flash = (m: string) => {
@@ -164,6 +165,7 @@ export function Schedules() {
                     <div className="font-bold text-ink">{formatPKR(s.price)}</div>
                     <div className="text-xs text-muted">per {s.unit}</div>
                   </div>
+                  <button onClick={() => setManaging(s)} className="rounded-lg bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700 hover:bg-brand-100">Availability</button>
                   <button onClick={() => setEditing(s)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-ink hover:bg-slate-50">Edit</button>
                   <button onClick={() => toggle(s)} title={s.status === "active" ? "Pause" : "Activate"} className="grid h-9 w-9 place-items-center rounded-lg text-muted hover:bg-slate-100 hover:text-ink">
                     <PowerIcon className="h-5 w-5" />
@@ -225,11 +227,183 @@ export function Schedules() {
         />
       )}
 
+      {managing && (
+        <AvailabilityModal
+          schedule={managing}
+          onClose={() => setManaging(null)}
+          onSave={async (id, patch) => {
+            setManaging(null);
+            if (live) {
+              const r = await setAvailability(id, patch);
+              if (!r.ok) return flash("⚠ " + r.error);
+              await load();
+            } else {
+              setList((l) => l.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+            }
+            flash("✓ Availability updated");
+          }}
+        />
+      )}
+
       {toast && (
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white shadow-lg">
           {toast}
         </div>
       )}
+    </div>
+  );
+}
+
+interface AvailPatch {
+  bookedSeats?: string[];
+  reservedUnits?: number;
+  blockedDates?: string[];
+  serviceScope?: "intracity" | "intercity" | "both";
+}
+
+function AvailabilityModal({
+  schedule,
+  onClose,
+  onSave,
+}: {
+  schedule: Schedule;
+  onClose: () => void;
+  onSave: (id: string, patch: AvailPatch) => void;
+}) {
+  const kind = categoryOf(schedule.category).kind;
+  const isSeated = kind === "transport";
+  const isStay = kind === "stay";
+  const isRide = kind === "ride";
+  const isVenue = kind === "venue";
+  const total = schedule.capacity ?? 0;
+
+  const [booked, setBooked] = useState<string[]>(schedule.bookedSeats ?? []);
+  const [reserved, setReserved] = useState<number>(schedule.reservedUnits ?? 0);
+  const [blocked, setBlocked] = useState<string[]>(schedule.blockedDates ?? []);
+  const [newDate, setNewDate] = useState("");
+  const [scope, setScope] = useState<"intracity" | "intercity" | "both">(schedule.serviceScope ?? "both");
+
+  function save() {
+    const patch: AvailPatch = {};
+    if (isSeated) patch.bookedSeats = booked;
+    if (isStay || isVenue) patch.reservedUnits = reserved;
+    if (isStay) patch.blockedDates = blocked;
+    if (isRide) patch.serviceScope = scope;
+    onSave(schedule.id, patch);
+  }
+
+  const seats = Array.from({ length: total }, (_, i) => String(i + 1));
+  const toggleSeat = (n: string) =>
+    setBooked((b) => (b.includes(n) ? b.filter((x) => x !== n) : [...b, n]));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="max-h-[88vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white px-6 py-4">
+          <div>
+            <h2 className="text-lg font-bold text-ink">Availability</h2>
+            <p className="text-xs text-muted">{schedule.title}</p>
+          </div>
+          <button onClick={onClose} className="text-2xl leading-none text-muted">×</button>
+        </div>
+
+        <div className="p-6">
+          {isSeated && (
+            <>
+              <div className="mb-3 flex items-center gap-3 text-sm">
+                <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-white ring-1 ring-brand-200" /> Available {total - booked.length}</span>
+                <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-red-500" /> Booked {booked.length}</span>
+              </div>
+              <p className="mb-2 text-xs text-muted">Tap a seat to mark it booked (e.g. sold at the counter) or free it.</p>
+              <div className="flex flex-wrap gap-1.5">
+                {seats.map((n) => {
+                  const on = booked.includes(n);
+                  return (
+                    <button
+                      key={n}
+                      onClick={() => toggleSeat(n)}
+                      className={`h-9 w-9 rounded-md text-xs font-semibold transition ${on ? "bg-red-500 text-white" : "bg-white text-brand-700 ring-1 ring-brand-200 hover:bg-brand-50"}`}
+                    >
+                      {n}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {(isStay || isVenue) && (
+            <>
+              <div className="rounded-xl bg-slate-50 p-4 text-center">
+                <div className="text-3xl font-extrabold text-ink">{Math.max(0, total - reserved)}<span className="text-base font-medium text-muted"> / {total}</span></div>
+                <div className="text-sm text-muted">{isVenue ? "tickets left today" : "units available"}</div>
+              </div>
+              <div className="mt-4 flex items-center justify-between">
+                <span className="text-sm font-medium text-ink">{isVenue ? "Tickets sold" : "Units reserved"}</span>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setReserved((r) => Math.max(0, r - 1))} className="grid h-9 w-9 place-items-center rounded-lg bg-slate-100 text-lg">−</button>
+                  <span className="w-10 text-center text-lg font-bold">{reserved}</span>
+                  <button onClick={() => setReserved((r) => Math.min(total, r + 1))} className="grid h-9 w-9 place-items-center rounded-lg bg-slate-100 text-lg">+</button>
+                </div>
+              </div>
+              <div className="mt-2 flex gap-2">
+                <button onClick={() => setReserved(0)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50">All available</button>
+                <button onClick={() => setReserved(total)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50">Fully reserved</button>
+              </div>
+
+              {isStay && (
+                <div className="mt-5">
+                  <div className="mb-1 text-sm font-medium text-ink">Blocked dates</div>
+                  <div className="flex gap-2">
+                    <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                    <button
+                      onClick={() => { if (newDate && !blocked.includes(newDate)) { setBlocked((b) => [...b, newDate].sort()); setNewDate(""); } }}
+                      className="rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+                    >Block</button>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {blocked.length === 0 && <span className="text-xs text-muted">No blocked dates.</span>}
+                    {blocked.map((d) => (
+                      <span key={d} className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700">
+                        {d}
+                        <button onClick={() => setBlocked((b) => b.filter((x) => x !== d))} className="ml-0.5">×</button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {isRide && (
+            <>
+              <div className="text-sm font-medium text-ink">This car is available for</div>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {([
+                  { k: "intracity", label: "Intra-city", hint: "within a city" },
+                  { k: "intercity", label: "Inter-city", hint: "between cities" },
+                  { k: "both", label: "Both", hint: "all trips" },
+                ] as const).map((o) => (
+                  <button
+                    key={o.k}
+                    onClick={() => setScope(o.k)}
+                    className={`rounded-xl px-3 py-3 text-center text-sm font-semibold ring-1 transition ${scope === o.k ? "bg-brand-600 text-white ring-brand-600" : "ring-slate-200 text-ink hover:bg-slate-50"}`}
+                  >
+                    {o.label}
+                    <span className={`mt-0.5 block text-[11px] font-normal ${scope === o.k ? "text-white/80" : "text-muted"}`}>{o.hint}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-4 text-xs text-muted">Tip: use <b>Pause</b> on the listing to take the car fully offline.</p>
+            </>
+          )}
+        </div>
+
+        <div className="sticky bottom-0 flex gap-3 border-t border-slate-100 bg-white px-6 py-4">
+          <button onClick={onClose} className="flex-1 rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-ink hover:bg-slate-50">Cancel</button>
+          <button onClick={save} className="flex-1 rounded-lg bg-brand-600 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Save availability</button>
+        </div>
+      </div>
     </div>
   );
 }

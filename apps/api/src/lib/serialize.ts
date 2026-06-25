@@ -24,6 +24,8 @@ type PopulatedTrip = {
   durationDays?: number | null;
   rating?: number | null;
   badge?: string | null;
+  bookedSeats?: string[] | null;
+  reservedUnits?: number | null;
 };
 
 export function serializeOperator(op: any) {
@@ -48,7 +50,10 @@ export function serializeTrip(t: PopulatedTrip) {
     durationMin: t.durationMin ?? undefined,
     price: t.price,
     priceUnit: t.priceUnit,
-    seatsAvailable: t.seatsAvailable ?? undefined,
+    seatsAvailable:
+      t.seatsAvailable != null
+        ? Math.max(0, t.seatsAvailable - (t.bookedSeats?.length ?? 0) - (t.reservedUnits ?? 0))
+        : undefined,
     vehicle: t.vehicle ?? undefined,
     amenities: t.amenities ?? [],
     location: t.location ?? undefined,

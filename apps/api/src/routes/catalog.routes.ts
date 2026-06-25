@@ -129,7 +129,16 @@ catalogRouter.get(
       .populate("operator")
       .sort({ createdAt: -1 })
       .lean();
-    res.json(trips.map((t) => ({ ...serializeTrip(t), status: t.status })));
+    res.json(
+      trips.map((t) => ({
+        ...serializeTrip(t),
+        status: t.status,
+        bookedSeats: t.bookedSeats ?? [],
+        reservedUnits: t.reservedUnits ?? 0,
+        blockedDates: t.blockedDates ?? [],
+        serviceScope: t.serviceScope ?? null,
+      })),
+    );
   }),
 );
 
@@ -142,6 +151,11 @@ const patchSchema = z.object({
   seatsAvailable: z.coerce.number().optional(),
   location: z.string().optional(),
   status: z.enum(["active", "hidden"]).optional(),
+  // availability
+  bookedSeats: z.array(z.string()).optional(),
+  reservedUnits: z.coerce.number().optional(),
+  blockedDates: z.array(z.string()).optional(),
+  serviceScope: z.enum(["intracity", "intercity", "both"]).optional(),
 });
 
 // PATCH /trips/:id — update a listing

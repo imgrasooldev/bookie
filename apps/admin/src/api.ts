@@ -39,6 +39,8 @@ type TripJson = {
   id: string; serviceType: string; operator: { name: string }; title: string;
   originId?: string; destinationId?: string; departAt?: string; arriveAt?: string;
   price: number; priceUnit: string; seatsAvailable?: number; location?: string; status?: string;
+  bookedSeats?: string[]; reservedUnits?: number; blockedDates?: string[];
+  serviceScope?: "intracity" | "intercity" | "both" | null;
 };
 
 /** Map a backend trip to the console's Schedule shape. */
@@ -49,6 +51,8 @@ function toSchedule(t: TripJson): Schedule | null {
     t.priceUnit === "per_seat" ? "seat" :
     t.priceUnit === "per_night" ? "night" :
     t.priceUnit === "per_person" ? "ticket" : "trip";
+  const booked = t.bookedSeats?.length ?? 0;
+  const reserved = t.reservedUnits ?? 0;
   return {
     id: t.id,
     category,
@@ -62,9 +66,27 @@ function toSchedule(t: TripJson): Schedule | null {
     location: t.location,
     price: t.price,
     unit,
-    capacity: t.seatsAvailable,
+    // net seatsAvailable + taken = total capacity
+    capacity: t.seatsAvailable != null ? t.seatsAvailable + booked + reserved : undefined,
     status: t.status === "hidden" ? "paused" : "active",
+    bookedSeats: t.bookedSeats ?? [],
+    reservedUnits: reserved,
+    blockedDates: t.blockedDates ?? [],
+    serviceScope: t.serviceScope ?? null,
   };
+}
+
+export async function setAvailability(
+  id: string,
+  patch: {
+    bookedSeats?: string[];
+    reservedUnits?: number;
+    blockedDates?: string[];
+    serviceScope?: "intracity" | "intercity" | "both";
+    status?: "active" | "hidden";
+  },
+): Promise<SaveResult> {
+  return post(`/trips/${id}`, "PATCH", patch);
 }
 
 async function getJson<T>(path: string): Promise<T> {

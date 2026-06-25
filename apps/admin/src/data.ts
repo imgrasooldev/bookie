@@ -179,8 +179,13 @@ export interface Schedule {
   location?: string; // stays
   price: number;
   unit: "seat" | "night" | "trip" | "ticket";
-  capacity?: number; // seats / units / daily tickets available
+  capacity?: number; // total seats / units / daily tickets
   status: "active" | "paused";
+  // availability
+  bookedSeats?: string[];
+  reservedUnits?: number;
+  blockedDates?: string[];
+  serviceScope?: "intracity" | "intercity" | "both" | null;
 }
 
 export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];

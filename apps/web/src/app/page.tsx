@@ -4,6 +4,8 @@ import { SearchPanel } from "@/components/SearchPanel";
 import { Reveal } from "@/components/Reveal";
 import { CountUp } from "@/components/CountUp";
 import { LogoMarquee } from "@/components/LogoMarquee";
+import { RotatingWord } from "@/components/RotatingWord";
+import { TiltCard } from "@/components/TiltCard";
 import { VERTICALS } from "@/lib/mock";
 import { formatPKR } from "@/lib/format";
 import { IMAGES, DESTINATIONS, TESTIMONIALS } from "@/lib/images";
@@ -19,6 +21,7 @@ import {
   TicketIcon,
   SeatIcon,
   StarIcon,
+  CheckIcon,
 } from "@/components/icons";
 
 const FEATURES = [
@@ -77,7 +80,12 @@ export default function HomePage() {
           </div>
 
           <h1 className="font-display max-w-3xl text-5xl font-extrabold leading-[1.04] sm:text-6xl">
-            Go anywhere,
+            Travel to{" "}
+            <RotatingWord
+              words={["Hunza", "Skardu", "Dubai", "Istanbul", "Naran"]}
+              className="bg-gradient-to-r from-accent-400 to-accent-500 bg-clip-text text-transparent"
+            />
+            ,
             <br />
             <span className="text-white/70">booked in seconds.</span>
           </h1>
@@ -88,6 +96,15 @@ export default function HomePage() {
 
           <div className="mt-9">
             <SearchPanel />
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/85">
+            {["Instant e-tickets", "Free cancellation*", "Secure payments", "24/7 support"].map((t) => (
+              <span key={t} className="inline-flex items-center gap-1.5">
+                <CheckIcon className="h-4 w-4 text-accent-400" />
+                {t}
+              </span>
+            ))}
           </div>
         </div>
       </section>
@@ -124,20 +141,19 @@ export default function HomePage() {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {DESTINATIONS.map((d, i) => (
             <Reveal key={d.name} delay={i * 90}>
-              <Link
-                href={`/search?${d.q}`}
-                className="img-zoom lift group relative block h-64 overflow-hidden rounded-2xl"
-              >
-                <Image src={d.img} alt={d.name} fill sizes="(max-width:1024px) 50vw, 25vw" className="object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-                  <div className="font-display text-lg font-bold">{d.name}</div>
-                  <div className="text-xs text-white/75">{d.region}</div>
-                  <div className="mt-1 text-sm">
-                    from <span className="font-bold">{formatPKR(d.price)}</span>
+              <TiltCard className="h-64 overflow-hidden rounded-2xl shadow-soft">
+                <Link href={`/search?${d.q}`} className="img-zoom group relative block h-full">
+                  <Image src={d.img} alt={d.name} fill sizes="(max-width:1024px) 50vw, 25vw" className="object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-4 text-white">
+                    <div className="font-display text-lg font-bold">{d.name}</div>
+                    <div className="text-xs text-white/75">{d.region}</div>
+                    <div className="mt-1 text-sm">
+                      from <span className="font-bold">{formatPKR(d.price)}</span>
+                    </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </TiltCard>
             </Reveal>
           ))}
         </div>
@@ -156,24 +172,25 @@ export default function HomePage() {
           {featured.map((v) => {
             const Icon = VERTICAL_ICONS[v.type];
             return (
-              <Link
+              <TiltCard
                 key={v.type}
-                href={`/search?type=${v.type}`}
-                className="img-zoom lift group relative col-span-1 block h-44 overflow-hidden rounded-2xl sm:col-span-2"
+                className="col-span-1 h-44 overflow-hidden rounded-2xl shadow-soft sm:col-span-2"
               >
-                <Image src={FEATURED_IMG[v.type]} alt={v.label} fill sizes="(max-width:640px) 100vw, 50vw" className="object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-tr from-black/80 via-black/40 to-transparent" />
-                <div className="absolute inset-0 flex flex-col justify-between p-6 text-white">
-                  <Icon className="h-8 w-8" />
-                  <div>
-                    <div className="font-display text-2xl font-bold">{v.label}</div>
-                    <div className="mt-0.5 inline-flex items-center gap-1 text-sm font-medium text-white/90">
-                      {v.tagline}
-                      <ArrowRightIcon className="h-4 w-4 transition group-hover:translate-x-1" />
+                <Link href={`/search?type=${v.type}`} className="img-zoom group relative block h-full">
+                  <Image src={FEATURED_IMG[v.type]} alt={v.label} fill sizes="(max-width:640px) 100vw, 50vw" className="object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-tr from-black/80 via-black/40 to-transparent" />
+                  <div className="absolute inset-0 flex flex-col justify-between p-6 text-white">
+                    <Icon className="h-8 w-8" />
+                    <div>
+                      <div className="font-display text-2xl font-bold">{v.label}</div>
+                      <div className="mt-0.5 inline-flex items-center gap-1 text-sm font-medium text-white/90">
+                        {v.tagline}
+                        <ArrowRightIcon className="h-4 w-4 transition group-hover:translate-x-1" />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </TiltCard>
             );
           })}
 

@@ -209,6 +209,55 @@ body {
   scrollbar-width: none;
 }
 
+/* 3D tilt + spotlight on cards */
+.tilt {
+  position: relative;
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.tilt-spot {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: radial-gradient(
+    circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.28),
+    transparent 42%
+  );
+}
+.tilt:hover .tilt-spot {
+  opacity: 1;
+}
+
+/* rotating word swap-in */
+@keyframes wordIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) rotateX(-40deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotateX(0);
+  }
+}
+.word-in {
+  display: inline-block;
+  animation: wordIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tilt {
+    transform: none !important;
+  }
+  .word-in {
+    animation: none;
+  }
+}
+
 /* slow cinematic zoom on hero photo */
 @keyframes kenburns {
   from {

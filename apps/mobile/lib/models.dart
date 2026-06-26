@@ -66,6 +66,7 @@ class Trip {
   final int? seatsAvailable;
   final String? vehicle;
   final List<String> amenities;
+  final List<String> bookedSeats; // populated by GET /trips/:id
 
   const Trip({
     required this.id,
@@ -80,6 +81,7 @@ class Trip {
     this.seatsAvailable,
     this.vehicle,
     required this.amenities,
+    this.bookedSeats = const [],
   });
 
   bool get isQuote => price == 0;
@@ -97,5 +99,6 @@ class Trip {
         seatsAvailable: j['seatsAvailable'],
         vehicle: j['vehicle'],
         amenities: (j['amenities'] as List?)?.cast<String>() ?? const [],
+        bookedSeats: (j['bookedSeats'] as List?)?.cast<String>() ?? const [],
       );
 }

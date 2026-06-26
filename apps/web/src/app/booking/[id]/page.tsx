@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BookingForm } from "@/components/BookingForm";
 import { getTrip } from "@/lib/api";
+import { applySegment } from "@/lib/segment";
 import { AMENITY_LABELS } from "@/lib/mock";
 import { formatDuration, formatPKR, formatTime } from "@/lib/format";
 import {
@@ -15,12 +16,17 @@ import {
 
 export default async function BookingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string; to?: string }>;
 }) {
   const { id } = await params;
-  const trip = await getTrip(id);
-  if (!trip) notFound();
+  const { from, to } = await searchParams;
+  const base = await getTrip(id);
+  if (!base) notFound();
+  // re-price the searched segment (multi-stop routes) so the page bills correctly
+  const trip = applySegment(base, from, to);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">

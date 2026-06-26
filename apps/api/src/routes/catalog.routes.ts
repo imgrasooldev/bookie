@@ -6,6 +6,7 @@ import { Operator } from "../models/Operator.js";
 import { Booking } from "../models/Booking.js";
 import { VERTICALS, SERVICE_TYPES } from "../lib/verticals.js";
 import { serializeTrip } from "../lib/serialize.js";
+import { subSegment } from "../lib/segment.js";
 import { ah, HttpError } from "../middleware/error.js";
 
 export const catalogRouter = Router();
@@ -113,7 +114,7 @@ catalogRouter.get(
     res.json(
       trips
         .map((t) => {
-          const seg = q.originId && q.destinationId ? segmentOf(t, q.originId, q.destinationId) : null;
+          const seg = q.originId && q.destinationId ? subSegment(t, q.originId, q.destinationId) : null;
           // a multi-stop trip only matches if the segment is valid (in order)
           const rs = t.routeStops ?? [];
           if (!seg && rs.length && q.originId && q.destinationId && !(t.originCode === q.originId && t.destinationCode === q.destinationId)) {
@@ -126,32 +127,6 @@ catalogRouter.get(
     );
   }),
 );
-
-// resolve a searched origin→destination to a segment of a multi-stop route,
-// pricing it as the difference of cumulative fares.
-function segmentOf(t: { routeStops?: { code?: string | null; name?: string | null; fare?: number | null; time?: string | null }[]; price?: number; originCode?: string | null }, origin: string, dest: string) {
-  const stops = t.routeStops ?? [];
-  if (stops.length < 2) return null;
-  const oi = stops.findIndex((s) => s.code === origin);
-  const di = stops.findIndex((s) => s.code === dest);
-  if (oi < 0 || di <= oi) return null;
-  // exact full route already handled by serializeTrip; only override for a sub-segment
-  const isFull = oi === 0 && di === stops.length - 1;
-  if (isFull) return null;
-  const segFare = Number(stops[di].fare ?? 0) - Number(stops[oi].fare ?? 0);
-  const departAt = stops[oi].time ?? undefined;
-  const arriveAt = stops[di].time ?? undefined;
-  const durationMin = departAt && arriveAt ? Math.round((+new Date(arriveAt) - +new Date(departAt)) / 60000) : undefined;
-  return {
-    originId: origin,
-    destinationId: dest,
-    title: `${stops[oi].name || origin} → ${stops[di].name || dest}`,
-    price: segFare > 0 ? segFare : Number(t.price ?? 0),
-    departAt,
-    arriveAt,
-    durationMin,
-  };
-}
 
 // add n days to a yyyy-mm-dd string (UTC-safe)
 function addDaysStr(d: string, n: number): string {
@@ -174,7 +149,8 @@ catalogRouter.get(
   ah(async (req, res) => {
     const trip = await Trip.findById(req.params.id).populate("operator").lean();
     if (!trip) throw new HttpError(404, "Trip not found");
-    res.json(serializeTrip(trip));
+    // include booked seat labels so the customer seat map can mark them taken
+    res.json({ ...serializeTrip(trip), bookedSeats: trip.bookedSeats ?? [] });
   }),
 );
 

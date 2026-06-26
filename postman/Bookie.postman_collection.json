@@ -1,0 +1,534 @@
+{
+  "info": {
+    "name": "Bookie API",
+    "_postman_id": "bookie-api-collection-0001",
+    "description": "Complete API collection for the Bookie travel platform (apps/api, Express + MongoDB).\n\nBase URL defaults to http://localhost:4000.\n\nAuth model:\n- Customer endpoints use a JWT from /auth/register or /auth/login -> saved to {{customerToken}} automatically.\n- Operator endpoints use a JWT from /operator/register or /operator/login -> saved to {{operatorToken}}.\n- Super-admin (/sa) endpoints need a token whose user has the 'admin' role -> {{adminToken}} (log in via /auth/login with an admin account).\n\nMany requests have test scripts that capture ids (tripId, bookingId, bookingRef, travellerId) into collection variables so you can run them in sequence.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000" },
+    { "key": "customerToken", "value": "" },
+    { "key": "operatorToken", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "tripId", "value": "" },
+    { "key": "bookingId", "value": "" },
+    { "key": "bookingRef", "value": "" },
+    { "key": "bookerPhone", "value": "03001234567" },
+    { "key": "travellerId", "value": "" },
+    { "key": "operatorId", "value": "" },
+    { "key": "cityCode", "value": "lhe" }
+  ],
+  "item": [
+    {
+      "name": "Health & Catalog (public)",
+      "item": [
+        {
+          "name": "Health check",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] } }
+        },
+        {
+          "name": "List verticals",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/verticals", "host": ["{{baseUrl}}"], "path": ["verticals"] } }
+        },
+        {
+          "name": "List cities",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/cities", "host": ["{{baseUrl}}"], "path": ["cities"] } }
+        },
+        {
+          "name": "Search trips",
+          "event": [
+            { "listen": "test", "script": { "exec": [
+              "const a = pm.response.json();",
+              "if (Array.isArray(a) && a.length) { pm.collectionVariables.set('tripId', a[0].id); }"
+            ], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trips?serviceType=BUS&originId=lhe&destinationId=isb&date=2026-06-26&passengers=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["trips"],
+              "query": [
+                { "key": "serviceType", "value": "BUS" },
+                { "key": "originId", "value": "lhe" },
+                { "key": "destinationId", "value": "isb" },
+                { "key": "date", "value": "2026-06-26" },
+                { "key": "passengers", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get trip by id",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/trips/{{tripId}}", "host": ["{{baseUrl}}"], "path": ["trips", "{{tripId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register (customer)",
+          "event": [
+            { "listen": "test", "script": { "exec": [
+              "const r = pm.response.json();",
+              "if (r.token) pm.collectionVariables.set('customerToken', r.token);"
+            ], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Ali Raza\",\n  \"phone\": \"03001234567\",\n  \"email\": \"ali@example.com\",\n  \"password\": \"secret1\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "Login (customer)",
+          "event": [
+            { "listen": "test", "script": { "exec": [
+              "const r = pm.response.json();",
+              "if (r.token) pm.collectionVariables.set('customerToken', r.token);"
+            ], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"identifier\": \"03001234567\",\n  \"password\": \"secret1\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Get me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}" }] },
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          }
+        },
+        {
+          "name": "Request OTP (stub)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"03001234567\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/otp/request", "host": ["{{baseUrl}}"], "path": ["auth", "otp", "request"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Account (customer)",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}" }] },
+      "item": [
+        {
+          "name": "Get profile",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/account", "host": ["{{baseUrl}}"], "path": ["account"] } }
+        },
+        {
+          "name": "Update profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Ali Raza\",\n  \"email\": \"ali@example.com\",\n  \"cnic\": \"3520112345671\",\n  \"dob\": \"1995-04-12\",\n  \"gender\": \"Male\",\n  \"city\": \"Lahore\"\n}" },
+            "url": { "raw": "{{baseUrl}}/account/profile", "host": ["{{baseUrl}}"], "path": ["account", "profile"] }
+          }
+        },
+        {
+          "name": "Change password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"current\": \"secret1\",\n  \"next\": \"secret2\"\n}" },
+            "url": { "raw": "{{baseUrl}}/account/password", "host": ["{{baseUrl}}"], "path": ["account", "password"] }
+          }
+        },
+        {
+          "name": "Update notification prefs",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"trips\": true,\n  \"promos\": false,\n  \"wallet\": true,\n  \"newsletter\": false\n}" },
+            "url": { "raw": "{{baseUrl}}/account/notif-prefs", "host": ["{{baseUrl}}"], "path": ["account", "notif-prefs"] }
+          }
+        },
+        {
+          "name": "Get wallet",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/account/wallet", "host": ["{{baseUrl}}"], "path": ["account", "wallet"] } }
+        },
+        {
+          "name": "List travellers",
+          "event": [
+            { "listen": "test", "script": { "exec": [
+              "const a = pm.response.json();",
+              "if (Array.isArray(a) && a.length) pm.collectionVariables.set('travellerId', a[a.length-1].id);"
+            ], "type": "text/javascript" } }
+          ],
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/account/travellers", "host": ["{{baseUrl}}"], "path": ["account", "travellers"] } }
+        },
+        {
+          "name": "Add traveller",
+          "event": [
+            { "listen": "test", "script": { "exec": [
+              "const a = pm.response.json();",
+              "if (Array.isArray(a) && a.length) pm.collectionVariables.set('travellerId', a[a.length-1].id);"
+            ], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Sara Ali\",\n  \"relation\": \"Spouse\",\n  \"cnic\": \"3520199999999\",\n  \"dob\": \"1997-09-03\",\n  \"gender\": \"Female\"\n}" },
+            "url": { "raw": "{{baseUrl}}/account/travellers", "host": ["{{baseUrl}}"], "path": ["account", "travellers"] }
+          }
+        },
+        {
+          "name": "Update traveller",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"relation\": \"Sister\"\n}" },
+            "url": { "raw": "{{baseUrl}}/account/travellers/{{travellerId}}", "host": ["{{baseUrl}}"], "path": ["account", "travellers", "{{travellerId}}"] }
+          }
+        },
+        {
+          "name": "Delete traveller",
+          "request": { "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/account/travellers/{{travellerId}}", "host": ["{{baseUrl}}"], "path": ["account", "travellers", "{{travellerId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Create booking",
+          "event": [
+            { "listen": "test", "script": { "exec": [
+              "const r = pm.response.json();",
+              "if (r.id) pm.collectionVariables.set('bookingId', r.id);",
+              "if (r.bookingNo) pm.collectionVariables.set('bookingRef', r.bookingNo);"
+            ], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"tripId\": \"{{tripId}}\",\n  \"originId\": \"lhe\",\n  \"destinationId\": \"isb\",\n  \"seats\": [\"3A\", \"3B\"],\n  \"passengers\": [\n    { \"name\": \"Ali Raza\", \"gender\": \"M\", \"seatLabel\": \"3A\" },\n    { \"name\": \"Sara Ali\", \"gender\": \"F\", \"seatLabel\": \"3B\" }\n  ],\n  \"contact\": { \"name\": \"Ali Raza\", \"cnic\": \"3520112345671\", \"phone\": \"{{bookerPhone}}\", \"email\": \"ali@example.com\" },\n  \"paymentMethod\": \"Easypaisa\"\n}" },
+            "url": { "raw": "{{baseUrl}}/bookings", "host": ["{{baseUrl}}"], "path": ["bookings"] },
+            "description": "Guest checkout works without a token; sending {{customerToken}} links the booking to the account. originId/destinationId drive correct segment pricing on multi-stop routes."
+          }
+        },
+        {
+          "name": "My bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}" }] },
+            "url": { "raw": "{{baseUrl}}/bookings/mine", "host": ["{{baseUrl}}"], "path": ["bookings", "mine"] },
+            "description": "Returns bookings linked to the account AND any guest bookings made with the account's mobile number."
+          }
+        },
+        {
+          "name": "Lookup booking (guest)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/lookup?ref={{bookingRef}}&phone={{bookerPhone}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "lookup"],
+              "query": [
+                { "key": "ref", "value": "{{bookingRef}}" },
+                { "key": "phone", "value": "{{bookerPhone}}" }
+              ]
+            },
+            "description": "PII-guarded: requires both the booking reference and the booker's mobile number."
+          }
+        },
+        {
+          "name": "Get booking (e-ticket) by id",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/bookings/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["bookings", "{{bookingId}}"] } }
+        },
+        {
+          "name": "Cancel booking",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/bookings/{{bookingId}}/cancel", "host": ["{{baseUrl}}"], "path": ["bookings", "{{bookingId}}", "cancel"] },
+            "description": "Releases the seats and credits the fare to the customer's wallet (if the booking is linked to an account)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Operator console",
+      "item": [
+        {
+          "name": "Register operator",
+          "event": [
+            { "listen": "test", "script": { "exec": [
+              "const r = pm.response.json();",
+              "if (r.token) pm.collectionVariables.set('operatorToken', r.token);"
+            ], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"businessName\": \"Bhutta Bus Services\",\n  \"name\": \"Operator Admin\",\n  \"phone\": \"03007654321\",\n  \"email\": \"ops@bhutta.pk\",\n  \"password\": \"secret1\",\n  \"type\": \"bus\",\n  \"category\": \"BUS\"\n}" },
+            "url": { "raw": "{{baseUrl}}/operator/register", "host": ["{{baseUrl}}"], "path": ["operator", "register"] }
+          }
+        },
+        {
+          "name": "Login operator",
+          "event": [
+            { "listen": "test", "script": { "exec": [
+              "const r = pm.response.json();",
+              "if (r.token) pm.collectionVariables.set('operatorToken', r.token);"
+            ], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"identifier\": \"03007654321\",\n  \"password\": \"secret1\"\n}" },
+            "url": { "raw": "{{baseUrl}}/operator/login", "host": ["{{baseUrl}}"], "path": ["operator", "login"] }
+          }
+        },
+        {
+          "name": "Operator me",
+          "request": { "method": "GET", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{operatorToken}}" }] }, "url": { "raw": "{{baseUrl}}/operator/me", "host": ["{{baseUrl}}"], "path": ["operator", "me"] } }
+        },
+        {
+          "name": "List my trips",
+          "request": { "method": "GET", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{operatorToken}}" }] }, "url": { "raw": "{{baseUrl}}/operator/trips", "host": ["{{baseUrl}}"], "path": ["operator", "trips"] } }
+        },
+        {
+          "name": "Create trip (listing)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{operatorToken}}" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"serviceType\": \"BUS\",\n  \"title\": \"Lahore → Islamabad\",\n  \"originCode\": \"lhe\",\n  \"destinationCode\": \"isb\",\n  \"departAt\": \"2026-06-27T07:00:00+05:00\",\n  \"arriveAt\": \"2026-06-27T11:30:00+05:00\",\n  \"durationMin\": 270,\n  \"price\": 2400,\n  \"priceUnit\": \"per_seat\",\n  \"seatsAvailable\": 30,\n  \"vehicle\": \"Volvo 9700 (Business)\",\n  \"amenities\": [\"wifi\", \"ac\", \"usb\"],\n  \"days\": [\"Mon\", \"Wed\", \"Fri\"],\n  \"routeStops\": [\n    { \"code\": \"lhe\", \"name\": \"Lahore\", \"fare\": 0, \"time\": \"2026-06-27T07:00:00+05:00\" },\n    { \"code\": \"isb\", \"name\": \"Islamabad\", \"fare\": 2400, \"time\": \"2026-06-27T11:30:00+05:00\" }\n  ]\n}" },
+            "url": { "raw": "{{baseUrl}}/operator/trips", "host": ["{{baseUrl}}"], "path": ["operator", "trips"] }
+          }
+        },
+        {
+          "name": "Update trip",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{operatorToken}}" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"price\": 2600,\n  \"status\": \"active\",\n  \"bookedSeats\": [\"1A\"]\n}" },
+            "url": { "raw": "{{baseUrl}}/operator/trips/{{tripId}}", "host": ["{{baseUrl}}"], "path": ["operator", "trips", "{{tripId}}"] }
+          }
+        },
+        {
+          "name": "Delete trip",
+          "request": { "method": "DELETE", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{operatorToken}}" }] }, "url": { "raw": "{{baseUrl}}/operator/trips/{{tripId}}", "host": ["{{baseUrl}}"], "path": ["operator", "trips", "{{tripId}}"] } }
+        },
+        {
+          "name": "List vehicles",
+          "request": { "method": "GET", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{operatorToken}}" }] }, "url": { "raw": "{{baseUrl}}/operator/vehicles", "host": ["{{baseUrl}}"], "path": ["operator", "vehicles"] } }
+        },
+        {
+          "name": "Create vehicle",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{operatorToken}}" }] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Volvo 9700\",\n  \"type\": \"Bus\",\n  \"layout\": \"2+2\",\n  \"rows\": 11,\n  \"disabled\": [\"11A\", \"11B\"],\n  \"amenities\": [\"wifi\", \"ac\", \"usb\"]\n}" },
+            "url": { "raw": "{{baseUrl}}/operator/vehicles", "host": ["{{baseUrl}}"], "path": ["operator", "vehicles"] }
+          }
+        },
+        {
+          "name": "Delete vehicle",
+          "request": { "method": "DELETE", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{operatorToken}}" }] }, "url": { "raw": "{{baseUrl}}/operator/vehicles/:id", "host": ["{{baseUrl}}"], "path": ["operator", "vehicles", ":id"] } }
+        },
+        {
+          "name": "Operator bookings",
+          "request": { "method": "GET", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{operatorToken}}" }] }, "url": { "raw": "{{baseUrl}}/operator/bookings", "host": ["{{baseUrl}}"], "path": ["operator", "bookings"] } }
+        },
+        {
+          "name": "Operator stats",
+          "request": { "method": "GET", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{operatorToken}}" }] }, "url": { "raw": "{{baseUrl}}/operator/stats", "host": ["{{baseUrl}}"], "path": ["operator", "stats"] } }
+        }
+      ]
+    },
+    {
+      "name": "Admin console (catalog)",
+      "description": "Used by the admin/operator web console; these specific catalog routes are not auth-guarded in code.",
+      "item": [
+        {
+          "name": "All trips (any status)",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/admin/trips?serviceType=BUS", "host": ["{{baseUrl}}"], "path": ["admin", "trips"], "query": [{ "key": "serviceType", "value": "BUS" }] } }
+        },
+        {
+          "name": "All bookings",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/admin/bookings", "host": ["{{baseUrl}}"], "path": ["admin", "bookings"] } }
+        },
+        {
+          "name": "Dashboard stats",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/admin/stats", "host": ["{{baseUrl}}"], "path": ["admin", "stats"] } }
+        },
+        {
+          "name": "Create trip (direct)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"serviceType\": \"BUS\",\n  \"operatorName\": \"Daewoo Express\",\n  \"title\": \"Lahore → Islamabad\",\n  \"originCode\": \"lhe\",\n  \"destinationCode\": \"isb\",\n  \"departAt\": \"2026-06-27T07:00:00+05:00\",\n  \"arriveAt\": \"2026-06-27T11:30:00+05:00\",\n  \"durationMin\": 270,\n  \"price\": 2400,\n  \"priceUnit\": \"per_seat\",\n  \"seatsAvailable\": 30,\n  \"vehicle\": \"Volvo 9700\",\n  \"amenities\": [\"wifi\", \"ac\"]\n}" },
+            "url": { "raw": "{{baseUrl}}/trips", "host": ["{{baseUrl}}"], "path": ["trips"] }
+          }
+        },
+        {
+          "name": "Update trip (direct)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"price\": 2500,\n  \"status\": \"active\",\n  \"blockedDates\": [\"2026-07-01\"]\n}" },
+            "url": { "raw": "{{baseUrl}}/trips/{{tripId}}", "host": ["{{baseUrl}}"], "path": ["trips", "{{tripId}}"] }
+          }
+        },
+        {
+          "name": "Delete trip (direct)",
+          "request": { "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/trips/{{tripId}}", "host": ["{{baseUrl}}"], "path": ["trips", "{{tripId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "Super admin (/sa)",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}" }] },
+      "description": "All /sa endpoints require a token whose user has the 'admin' role. Log in via Auth > Login with an admin account and copy its token into {{adminToken}}.",
+      "item": [
+        {
+          "name": "List operators",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/sa/operators?status=all&page=1", "host": ["{{baseUrl}}"], "path": ["sa", "operators"], "query": [{ "key": "status", "value": "all" }, { "key": "page", "value": "1" }] } }
+        },
+        {
+          "name": "Onboard operator",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"businessName\": \"New Operator Pvt Ltd\",\n  \"name\": \"Owner Name\",\n  \"phone\": \"03001112233\",\n  \"email\": \"owner@operator.pk\",\n  \"password\": \"secret1\"\n}" },
+            "url": { "raw": "{{baseUrl}}/sa/operators", "host": ["{{baseUrl}}"], "path": ["sa", "operators"] }
+          }
+        },
+        {
+          "name": "Operator detail",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/sa/operators/{{operatorId}}", "host": ["{{baseUrl}}"], "path": ["sa", "operators", "{{operatorId}}"] } }
+        },
+        {
+          "name": "Update operator (approve/suspend)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"approved\": true,\n  \"suspended\": false\n}" },
+            "url": { "raw": "{{baseUrl}}/sa/operators/{{operatorId}}", "host": ["{{baseUrl}}"], "path": ["sa", "operators", "{{operatorId}}"] }
+          }
+        },
+        {
+          "name": "Reset operator password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"password\": \"newsecret1\"\n}" },
+            "url": { "raw": "{{baseUrl}}/sa/operators/{{operatorId}}/password", "host": ["{{baseUrl}}"], "path": ["sa", "operators", "{{operatorId}}", "password"] }
+          }
+        },
+        {
+          "name": "List listings",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/sa/listings?page=1", "host": ["{{baseUrl}}"], "path": ["sa", "listings"], "query": [{ "key": "page", "value": "1" }] } }
+        },
+        {
+          "name": "Approve / unapprove listing",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"approved\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/sa/listings/{{tripId}}", "host": ["{{baseUrl}}"], "path": ["sa", "listings", "{{tripId}}"] }
+          }
+        },
+        {
+          "name": "Platform overview",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/sa/overview?from=2026-06-01&to=2026-06-30", "host": ["{{baseUrl}}"], "path": ["sa", "overview"], "query": [{ "key": "from", "value": "2026-06-01" }, { "key": "to", "value": "2026-06-30" }] } }
+        },
+        {
+          "name": "List cities",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/sa/cities", "host": ["{{baseUrl}}"], "path": ["sa", "cities"] } }
+        },
+        {
+          "name": "Add city",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Multan\",\n  \"code\": \"mux\"\n}" },
+            "url": { "raw": "{{baseUrl}}/sa/cities", "host": ["{{baseUrl}}"], "path": ["sa", "cities"] }
+          }
+        },
+        {
+          "name": "Rename city",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Multan City\"\n}" },
+            "url": { "raw": "{{baseUrl}}/sa/cities/:id", "host": ["{{baseUrl}}"], "path": ["sa", "cities", ":id"] }
+          }
+        },
+        {
+          "name": "Delete city",
+          "request": { "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/sa/cities/:id", "host": ["{{baseUrl}}"], "path": ["sa", "cities", ":id"] } }
+        },
+        {
+          "name": "Permission catalog",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/sa/permissions", "host": ["{{baseUrl}}"], "path": ["sa", "permissions"] } }
+        },
+        {
+          "name": "List roles",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/sa/roles", "host": ["{{baseUrl}}"], "path": ["sa", "roles"] } }
+        },
+        {
+          "name": "Create role",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Support\",\n  \"permissions\": [\"bookings.view\", \"operators.view\"]\n}" },
+            "url": { "raw": "{{baseUrl}}/sa/roles", "host": ["{{baseUrl}}"], "path": ["sa", "roles"] }
+          }
+        },
+        {
+          "name": "Update role",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"permissions\": [\"bookings.view\"]\n}" },
+            "url": { "raw": "{{baseUrl}}/sa/roles/:id", "host": ["{{baseUrl}}"], "path": ["sa", "roles", ":id"] }
+          }
+        },
+        {
+          "name": "Delete role",
+          "request": { "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/sa/roles/:id", "host": ["{{baseUrl}}"], "path": ["sa", "roles", ":id"] } }
+        },
+        {
+          "name": "List team",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/sa/team", "host": ["{{baseUrl}}"], "path": ["sa", "team"] } }
+        },
+        {
+          "name": "Add team member",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Staff Member\",\n  \"email\": \"staff@bookie.pk\",\n  \"phone\": \"03004445566\",\n  \"password\": \"secret1\",\n  \"roleId\": \"<roleObjectId>\"\n}" },
+            "url": { "raw": "{{baseUrl}}/sa/team", "host": ["{{baseUrl}}"], "path": ["sa", "team"] }
+          }
+        },
+        {
+          "name": "Update team member",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"roleId\": \"<roleObjectId>\"\n}" },
+            "url": { "raw": "{{baseUrl}}/sa/team/:id", "host": ["{{baseUrl}}"], "path": ["sa", "team", ":id"] }
+          }
+        }
+      ]
+    }
+  ]
+}

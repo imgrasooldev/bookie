@@ -1,14 +1,20 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-/// Toggle to hit the real backend instead of bundled mock data.
-/// When true, the app uses [apiBaseUrl] below.
-const bool useMock = true;
+/// Set this to your computer's LAN IP when running on a PHYSICAL device
+/// (phone and PC must be on the same Wi-Fi). Find it with `ipconfig`
+/// (Windows) / `ifconfig` (mac/Linux). Set to null to use emulator defaults.
+const String? lanHost = '10.80.39.10';
+
+const int apiPort = 4000;
 
 /// Base URL of the Bookie API (apps/api).
-/// Android emulator reaches the host machine via 10.0.2.2.
+/// - Physical device  -> http://<lanHost>:4000
+/// - Android emulator -> http://10.0.2.2:4000 (host loopback alias)
+/// - iOS simulator / web -> http://localhost:4000
 String get apiBaseUrl {
-  if (kIsWeb) return 'http://localhost:4000';
-  if (Platform.isAndroid) return 'http://10.0.2.2:4000';
-  return 'http://localhost:4000';
+  if (lanHost != null) return 'http://$lanHost:$apiPort';
+  if (kIsWeb) return 'http://localhost:$apiPort';
+  if (Platform.isAndroid) return 'http://10.0.2.2:$apiPort';
+  return 'http://localhost:$apiPort';
 }

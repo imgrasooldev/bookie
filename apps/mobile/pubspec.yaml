@@ -39,6 +39,21 @@ dependencies:
   http: ^1.2.2
   intl: ^0.19.0
 
+  # Architecture: BLoC state management, DI, networking, routing, storage
+  flutter_bloc: ^8.1.6
+  bloc: ^8.1.4
+  equatable: ^2.0.5
+  dio: ^5.7.0
+  get_it: ^7.7.0
+  shared_preferences: ^2.3.2
+  qr_flutter: ^4.1.0
+
+  # E-ticket PDF generation + save/share/open
+  pdf: ^3.11.1
+  printing: ^5.13.4
+  path_provider: ^2.1.4
+  open_filex: ^4.5.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

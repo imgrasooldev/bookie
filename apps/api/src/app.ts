@@ -5,6 +5,7 @@ import morgan from "morgan";
 import { env } from "./config/env.js";
 import { catalogRouter } from "./routes/catalog.routes.js";
 import { authRouter } from "./routes/auth.routes.js";
+import { accountRouter } from "./routes/account.routes.js";
 import { bookingRouter } from "./routes/booking.routes.js";
 import { operatorRouter } from "./routes/operator.routes.js";
 import { superAdminRouter } from "./routes/superadmin.routes.js";
@@ -22,6 +23,7 @@ export function createApp(): Express {
 
   app.use("/", catalogRouter);
   app.use("/auth", authRouter);
+  app.use("/account", accountRouter);
   app.use("/bookings", bookingRouter);
   app.use("/operator", operatorRouter);
   app.use("/sa", superAdminRouter);

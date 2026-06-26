@@ -41,6 +41,37 @@ export function serializeOperator(op: any) {
   };
 }
 
+// Flatten a populated booking into the ticket-friendly shape the web/e-ticket
+// consume. Keeps the wire format stable regardless of the Mongo document shape.
+export function serializeBooking(b: any) {
+  const trip = b.trip && typeof b.trip === "object" ? b.trip : null;
+  const op = b.operator && typeof b.operator === "object" ? b.operator : null;
+  return {
+    id: String(b._id),
+    ref: b.bookingNo,
+    status: b.status,
+    serviceType: b.serviceType,
+    title: trip?.title ?? "—",
+    originCode: b.originCode ?? trip?.originCode ?? null,
+    destinationCode: b.destinationCode ?? trip?.destinationCode ?? null,
+    departAt: trip?.departAt ? new Date(trip.departAt).toISOString() : null,
+    arriveAt: trip?.arriveAt ? new Date(trip.arriveAt).toISOString() : null,
+    operator: op?.name ?? "—",
+    operatorColor: op?.logoColor ?? "#1d4ed8",
+    vehicle: trip?.vehicle ?? null,
+    seats: b.seats ?? [],
+    passengers: (b.passengers ?? []).map((p: any) => ({
+      name: p.name,
+      gender: p.gender ?? null,
+      seatLabel: p.seatLabel ?? null,
+    })),
+    contact: b.contact ? { name: b.contact.name, phone: b.contact.phone, email: b.contact.email ?? null } : null,
+    fare: { total: b.fare?.total ?? 0, currency: b.fare?.currency ?? "PKR" },
+    payment: b.payment ? { method: b.payment.method, status: b.payment.status } : null,
+    createdAt: b.createdAt ? new Date(b.createdAt).toISOString() : null,
+  };
+}
+
 export function serializeTrip(t: PopulatedTrip) {
   return {
     id: String(t._id),

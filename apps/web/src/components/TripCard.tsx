@@ -20,6 +20,20 @@ const STAY = new Set(["HOTEL", "FARMHOUSE", "HUT"]);
 const ymdLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const fmtDay = (s: string) => new Date(`${s}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
+// Carry the searched origin/destination to the booking page only when this card
+// is a multi-stop SUB-segment, so it re-prices that segment (not the full route).
+function bookingHref(trip: Trip): string {
+  const stops = trip.routeStops ?? [];
+  const isSegment =
+    stops.length >= 2 &&
+    trip.originId != null &&
+    trip.destinationId != null &&
+    (trip.originId !== stops[0].code || trip.destinationId !== stops[stops.length - 1].code);
+  return isSegment
+    ? `/booking/${trip.id}?from=${trip.originId}&to=${trip.destinationId}`
+    : `/booking/${trip.id}`;
+}
+
 function suspendLabel(from?: string, to?: string): string {
   if (!from) return "Suspended";
   const today = ymdLocal(new Date());
@@ -199,7 +213,7 @@ export function TripCard({ trip }: { trip: Trip }) {
             </span>
           ) : (
             <Link
-              href={`/booking/${trip.id}`}
+              href={bookingHref(trip)}
               className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
             >
               {cta}

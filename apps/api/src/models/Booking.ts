@@ -3,8 +3,22 @@ import { Schema, model, InferSchemaType } from "mongoose";
 const passengerSchema = new Schema(
   {
     name: { type: String, required: true },
+    gender: { type: String, enum: ["M", "F"] },
+    cnic: { type: String }, // 13-digit national ID (no dashes); optional for travellers
     phone: { type: String },
     seatLabel: { type: String },
+  },
+  { _id: false },
+);
+
+// The person making the booking (the "booker"). Their CNIC is required so the
+// ticket is ID-valid; travellers themselves only need name + gender.
+const contactSchema = new Schema(
+  {
+    name: { type: String, required: true },
+    cnic: { type: String, required: true },
+    phone: { type: String, required: true },
+    email: { type: String },
   },
   { _id: false },
 );
@@ -20,6 +34,10 @@ const bookingSchema = new Schema(
       enum: ["BUS", "CAR", "PICNIC", "CORPORATE"],
       required: true,
     },
+    // booked segment (for multi-stop routes); falls back to the trip's full route
+    originCode: { type: String },
+    destinationCode: { type: String },
+    contact: { type: contactSchema },
     status: {
       type: String,
       enum: [

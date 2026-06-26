@@ -59,6 +59,9 @@ export interface Trip {
   durationMin?: number;
   price: number;
   priceUnit: "per_seat" | "per_night" | "per_person" | "fixed" | "from";
+  // ordered multi-stop route; fare = cumulative fare from route origin to that stop
+  routeStops?: { code: string; name: string; fare: number; time?: string }[];
+  bookedSeats?: string[]; // seat labels already taken (transport)
   seatsAvailable?: number;
   vehicle?: string;
   amenities: string[];

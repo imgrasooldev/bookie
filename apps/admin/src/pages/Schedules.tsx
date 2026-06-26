@@ -241,6 +241,7 @@ export function Schedules() {
       {editing && (
         <EditSchedule
           schedule={editing}
+          cities={cities}
           onClose={() => setEditing(null)}
           onSave={async (id, fields) => {
             setEditing(null);
@@ -257,6 +258,10 @@ export function Schedules() {
                 stops: fields.stops,
                 rating: fields.rating,
                 badge: fields.badge,
+                title: fields.title,
+                originCode: fields.from,
+                destinationCode: fields.to,
+                amenities: fields.amenities,
               });
               if (!r.ok) return flash("⚠ " + r.error);
               await load();
@@ -494,12 +499,14 @@ function L({ label, children }: { label: string; children: React.ReactNode }) {
 
 function EditSchedule({
   schedule,
+  cities,
   onClose,
   onSave,
 }: {
   schedule: Schedule;
+  cities: CatalogCity[];
   onClose: () => void;
-  onSave: (id: string, fields: { price: number; capacity?: number; departTime?: string; arriveTime?: string; checkIn?: string; checkOut?: string; durationDays?: number; vehicleName?: string; stops?: number; rating?: number; badge?: string }) => void;
+  onSave: (id: string, fields: { price: number; capacity?: number; departTime?: string; arriveTime?: string; checkIn?: string; checkOut?: string; durationDays?: number; vehicleName?: string; stops?: number; rating?: number; badge?: string; from?: string; to?: string; amenities?: string[]; title?: string }) => void;
 }) {
   useEscToClose(onClose);
   const kind = categoryOf(schedule.category).kind;
@@ -508,6 +515,7 @@ function EditSchedule({
   const isTransport = kind === "transport";
   const isFlight = schedule.category === "FLIGHT";
   const isHotel = schedule.category === "HOTEL";
+  const facilities = facilitiesFor(schedule.category);
   const [price, setPrice] = useState(String(schedule.price));
   const [capacity, setCapacity] = useState(schedule.capacity != null ? String(schedule.capacity) : "");
   const [departTime, setDepartTime] = useState(schedule.departTime ?? "");
@@ -519,6 +527,10 @@ function EditSchedule({
   const [stops, setStops] = useState(schedule.stops != null ? String(schedule.stops) : "0");
   const [rating, setRating] = useState(schedule.rating != null ? String(schedule.rating) : "");
   const [badge, setBadge] = useState(schedule.badge ?? "");
+  const [from, setFrom] = useState(schedule.from ?? "");
+  const [to, setTo] = useState(schedule.to ?? "");
+  const [amenities, setAmenities] = useState<string[]>(schedule.amenities ?? []);
+  const cityName = (code: string) => cities.find((c) => c.id === code)?.name ?? code;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
@@ -527,7 +539,23 @@ function EditSchedule({
           <h2 className="text-lg font-bold text-ink">Edit “{schedule.title}”</h2>
           <button onClick={onClose} className="text-2xl leading-none text-muted">×</button>
         </div>
-        <div className="space-y-4 p-6">
+        <div className="max-h-[70vh] space-y-4 overflow-y-auto p-6">
+          {isTransport && (
+            <div className="grid grid-cols-2 gap-3">
+              <L label="From">
+                <select value={from} onChange={(e) => setFrom(e.target.value)} className={inp}>
+                  <option value="">Select city</option>
+                  {cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </L>
+              <L label="To">
+                <select value={to} onChange={(e) => setTo(e.target.value)} className={inp}>
+                  <option value="">Select city</option>
+                  {cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </L>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <L label="Price"><input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className={inp} /></L>
             <L label="Capacity"><input type="number" value={capacity} onChange={(e) => setCapacity(e.target.value)} className={inp} /></L>
@@ -562,11 +590,48 @@ function EditSchedule({
             </L>
           )}
           <L label="Badge (optional)"><input value={badge} onChange={(e) => setBadge(e.target.value)} className={inp} /></L>
+
+          {facilities.length > 0 && (
+            <div>
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Facilities</span>
+              <div className="flex flex-wrap gap-2">
+                {facilities.map((a) => {
+                  const on = amenities.includes(a);
+                  return (
+                    <button
+                      key={a}
+                      type="button"
+                      onClick={() => setAmenities((l) => (on ? l.filter((x) => x !== a) : [...l, a]))}
+                      className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 transition ${on ? "bg-brand-50 text-brand-700 ring-brand-300" : "text-muted ring-slate-200 hover:bg-slate-50"}`}
+                    >
+                      {FACILITY_LABEL[a] ?? a}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex gap-3 border-t border-slate-100 px-6 py-4">
           <button onClick={onClose} className="flex-1 rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-ink hover:bg-slate-50">Cancel</button>
           <button
-            onClick={() => onSave(schedule.id, { price: Number(price), capacity: capacity ? Number(capacity) : undefined, departTime: departTime || undefined, arriveTime: arriveTime || undefined, checkIn: checkIn || undefined, checkOut: checkOut || undefined, durationDays: durationDays ? Number(durationDays) : undefined, vehicleName: isTransport ? (vehicleName.trim() || undefined) : undefined, stops: isFlight ? Number(stops) || 0 : undefined, rating: isHotel && rating ? Number(rating) : undefined, badge: badge.trim() || undefined })}
+            onClick={() => onSave(schedule.id, {
+              price: Number(price),
+              capacity: capacity ? Number(capacity) : undefined,
+              departTime: departTime || undefined,
+              arriveTime: arriveTime || undefined,
+              checkIn: checkIn || undefined,
+              checkOut: checkOut || undefined,
+              durationDays: durationDays ? Number(durationDays) : undefined,
+              vehicleName: isTransport ? (vehicleName.trim() || undefined) : undefined,
+              stops: isFlight ? Number(stops) || 0 : undefined,
+              rating: isHotel && rating ? Number(rating) : undefined,
+              badge: badge.trim() || undefined,
+              from: isTransport ? (from || undefined) : undefined,
+              to: isTransport ? (to || undefined) : undefined,
+              amenities,
+              title: isTransport && from && to ? `${cityName(from)} → ${cityName(to)}` : undefined,
+            })}
             className="flex-1 rounded-lg bg-brand-600 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
           >
             Save changes

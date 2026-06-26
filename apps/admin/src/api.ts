@@ -307,7 +307,7 @@ export async function createTrip(s: Schedule): Promise<SaveResult> {
 
 export async function updateTrip(
   id: string,
-  patch: { price?: number; status?: "active" | "hidden"; departAt?: string; arriveAt?: string; seatsAvailable?: number; title?: string; durationDays?: number; checkIn?: string; checkOut?: string; vehicle?: string; stops?: number; rating?: number; badge?: string },
+  patch: { price?: number; status?: "active" | "hidden"; departAt?: string; arriveAt?: string; seatsAvailable?: number; title?: string; durationDays?: number; checkIn?: string; checkOut?: string; vehicle?: string; stops?: number; rating?: number; badge?: string; originCode?: string; destinationCode?: string; amenities?: string[] },
 ): Promise<SaveResult> {
   return send(`/operator/trips/${id}`, "PATCH", patch);
 }

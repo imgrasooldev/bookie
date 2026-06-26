@@ -193,6 +193,9 @@ const patchSchema = z.object({
   departAt: z.string().optional(),
   arriveAt: z.string().optional(),
   seatsAvailable: z.coerce.number().optional(),
+  originCode: z.string().optional(),
+  destinationCode: z.string().optional(),
+  amenities: z.array(z.string()).optional(),
   status: z.enum(["active", "hidden"]).optional(),
   bookedSeats: z.array(z.string()).optional(),
   reservedUnits: z.coerce.number().optional(),
@@ -218,6 +221,8 @@ operatorRouter.patch(
     const update: Record<string, unknown> = { ...b };
     if (b.departAt) update.departAt = new Date(b.departAt);
     if (b.arriveAt) update.arriveAt = new Date(b.arriveAt);
+    if (b.originCode) update.originCode = b.originCode.toLowerCase();
+    if (b.destinationCode) update.destinationCode = b.destinationCode.toLowerCase();
     await Trip.updateOne({ _id: trip._id }, update);
     const full = await Trip.findById(trip._id).populate("operator").lean();
     res.json(serializeAdminTrip(full!));

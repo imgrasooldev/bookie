@@ -30,7 +30,10 @@ export interface ConfirmResult {
   message?: string;
 }
 
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
+// Payments are simulated unless a real PK gateway is wired up — independent of
+// the data USE_MOCK flag. No Easypaisa/JazzCash gateway is integrated yet, so
+// this stays mock even when trips/cities are served live from the API.
+const USE_MOCK = process.env.NEXT_PUBLIC_PAYMENTS_LIVE !== "true";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 /** Demo OTP accepted in mock mode. The real flow sends this via SMS. */

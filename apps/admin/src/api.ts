@@ -186,7 +186,7 @@ type TripJson = {
   bookedSeats?: string[]; reservedUnits?: number; blockedDates?: string[];
   serviceScope?: "intracity" | "intercity" | "both" | null; approved?: boolean;
   amenities?: string[]; vehicle?: string; durationDays?: number; checkIn?: string; checkOut?: string;
-  stops?: number; rating?: number; badge?: string;
+  stops?: number; rating?: number; badge?: string; days?: string[];
 };
 
 function toSchedule(t: TripJson): Schedule | null {
@@ -203,7 +203,7 @@ function toSchedule(t: TripJson): Schedule | null {
   return {
     id: t.id, category, operator: t.operator?.name ?? "—", title: t.title,
     from: t.originId, to: t.destinationId,
-    departTime: hhmm(t.departAt), arriveTime: hhmm(t.arriveAt), days: [],
+    departTime: hhmm(t.departAt), arriveTime: hhmm(t.arriveAt), days: t.days ?? [],
     location: t.location, vehicle2: t.vehicle, vehicleName: t.vehicle,
     durationDays: t.durationDays,
     checkIn: t.checkIn, checkOut: t.checkOut,
@@ -302,12 +302,13 @@ export async function createTrip(s: Schedule): Promise<SaveResult> {
     rating: s.rating,
     badge: s.badge,
     bookedSeats: s.bookedSeats,
+    days: s.days,
   });
 }
 
 export async function updateTrip(
   id: string,
-  patch: { price?: number; status?: "active" | "hidden"; departAt?: string; arriveAt?: string; seatsAvailable?: number; title?: string; durationDays?: number; checkIn?: string; checkOut?: string; vehicle?: string; stops?: number; rating?: number; badge?: string; originCode?: string; destinationCode?: string; amenities?: string[] },
+  patch: { price?: number; status?: "active" | "hidden"; departAt?: string; arriveAt?: string; seatsAvailable?: number; title?: string; durationDays?: number; checkIn?: string; checkOut?: string; vehicle?: string; stops?: number; rating?: number; badge?: string; originCode?: string; destinationCode?: string; amenities?: string[]; days?: string[] },
 ): Promise<SaveResult> {
   return send(`/operator/trips/${id}`, "PATCH", patch);
 }

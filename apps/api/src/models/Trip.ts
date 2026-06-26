@@ -16,6 +16,7 @@ const tripSchema = new Schema(
     departAt: { type: Date },
     arriveAt: { type: Date },
     durationMin: { type: Number },
+    days: { type: [String], default: [] }, // recurrence e.g. ["Mon","Wed","Fri"]
     price: { type: Number, required: true }, // PKR; 0 = quote on request
     priceUnit: {
       type: String,

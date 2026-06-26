@@ -13,6 +13,7 @@ type PopulatedTrip = {
   departAt?: Date | null;
   arriveAt?: Date | null;
   durationMin?: number | null;
+  days?: string[] | null;
   price: number;
   priceUnit: string;
   seatsAvailable?: number | null;
@@ -50,6 +51,7 @@ export function serializeTrip(t: PopulatedTrip) {
     departAt: t.departAt ? new Date(t.departAt).toISOString() : undefined,
     arriveAt: t.arriveAt ? new Date(t.arriveAt).toISOString() : undefined,
     durationMin: t.durationMin ?? undefined,
+    days: t.days ?? [],
     price: t.price,
     priceUnit: t.priceUnit,
     seatsAvailable:

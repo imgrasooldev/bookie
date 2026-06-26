@@ -164,6 +164,7 @@ const createSchema = z.object({
   nights: z.coerce.number().int().min(1).optional(),
   badge: z.string().optional(),
   bookedSeats: z.array(z.string()).optional(),
+  days: z.array(z.string()).optional(),
 });
 
 operatorRouter.post(
@@ -196,6 +197,7 @@ const patchSchema = z.object({
   originCode: z.string().optional(),
   destinationCode: z.string().optional(),
   amenities: z.array(z.string()).optional(),
+  days: z.array(z.string()).optional(),
   status: z.enum(["active", "hidden"]).optional(),
   bookedSeats: z.array(z.string()).optional(),
   reservedUnits: z.coerce.number().optional(),

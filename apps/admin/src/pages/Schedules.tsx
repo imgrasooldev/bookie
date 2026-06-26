@@ -262,6 +262,7 @@ export function Schedules() {
                 originCode: fields.from,
                 destinationCode: fields.to,
                 amenities: fields.amenities,
+                days: fields.days,
               });
               if (!r.ok) return flash("⚠ " + r.error);
               await load();
@@ -506,7 +507,7 @@ function EditSchedule({
   schedule: Schedule;
   cities: CatalogCity[];
   onClose: () => void;
-  onSave: (id: string, fields: { price: number; capacity?: number; departTime?: string; arriveTime?: string; checkIn?: string; checkOut?: string; durationDays?: number; vehicleName?: string; stops?: number; rating?: number; badge?: string; from?: string; to?: string; amenities?: string[]; title?: string }) => void;
+  onSave: (id: string, fields: { price: number; capacity?: number; departTime?: string; arriveTime?: string; checkIn?: string; checkOut?: string; durationDays?: number; vehicleName?: string; stops?: number; rating?: number; badge?: string; from?: string; to?: string; amenities?: string[]; title?: string; days?: string[] }) => void;
 }) {
   useEscToClose(onClose);
   const kind = categoryOf(schedule.category).kind;
@@ -530,7 +531,9 @@ function EditSchedule({
   const [from, setFrom] = useState(schedule.from ?? "");
   const [to, setTo] = useState(schedule.to ?? "");
   const [amenities, setAmenities] = useState<string[]>(schedule.amenities ?? []);
+  const [days, setDays] = useState<string[]>(schedule.days ?? []);
   const cityName = (code: string) => cities.find((c) => c.id === code)?.name ?? code;
+  const daysLabel = isPackage ? "Departure days" : kind === "charter" ? "Available days" : "Runs on";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
@@ -564,6 +567,26 @@ function EditSchedule({
             <div className="grid grid-cols-2 gap-3">
               <L label="Departure"><input type="time" value={departTime} onChange={(e) => setDepartTime(e.target.value)} className={inp} /></L>
               <L label="Arrival"><input type="time" value={arriveTime} onChange={(e) => setArriveTime(e.target.value)} className={inp} /></L>
+            </div>
+          )}
+          {!isStay && (
+            <div>
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{daysLabel}</span>
+              <div className="flex flex-wrap gap-1.5">
+                {DAYS.map((d) => {
+                  const on = days.includes(d);
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setDays((l) => (on ? l.filter((x) => x !== d) : [...l, d]))}
+                      className={`h-9 w-12 rounded-lg text-xs font-semibold ring-1 transition ${on ? "bg-brand-600 text-white ring-brand-600" : "text-muted ring-slate-200 hover:bg-slate-50"}`}
+                    >
+                      {d}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
           {isStay && (
@@ -630,6 +653,7 @@ function EditSchedule({
               from: isTransport ? (from || undefined) : undefined,
               to: isTransport ? (to || undefined) : undefined,
               amenities,
+              days: isStay ? undefined : days,
               title: isTransport && from && to ? `${cityName(from)} → ${cityName(to)}` : undefined,
             })}
             className="flex-1 rounded-lg bg-brand-600 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"

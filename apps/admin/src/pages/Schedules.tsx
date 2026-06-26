@@ -561,6 +561,43 @@ function SuspendDates({
 }
 
 const inp = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm";
+
+// Operators enter per-leg fares (from the previous stop). We store cumulative
+// fares from the origin so a segment's price is just fare(to) − fare(from).
+function buildRouteStops(
+  from: string,
+  to: string,
+  price: number,
+  inter: { code: string; time: string; fare: string }[],
+  departTime: string | undefined,
+  arriveTime: string | undefined,
+  cityName: (c: string) => string,
+): RouteStop[] {
+  let cum = 0;
+  const mid = inter
+    .filter((s) => s.code)
+    .map((s) => {
+      cum += Number(s.fare) || 0;
+      return { code: s.code, name: cityName(s.code), fare: cum, time: s.time || undefined };
+    });
+  return [
+    { code: from, name: cityName(from), fare: 0, time: departTime },
+    ...mid,
+    { code: to, name: cityName(to), fare: Math.max(price, cum), time: arriveTime },
+  ];
+}
+// stored cumulative → per-leg for the editor
+function routeStopsToPerLeg(stops: RouteStop[] | undefined): { code: string; time: string; fare: string }[] {
+  const list = stops ?? [];
+  if (list.length < 2) return [];
+  let prev = list[0].fare ?? 0;
+  return list.slice(1, -1).map((s) => {
+    const leg = (s.fare ?? 0) - prev;
+    prev = s.fare ?? 0;
+    return { code: s.code, time: s.time ?? "", fare: String(leg) };
+  });
+}
+
 function L({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
@@ -606,7 +643,7 @@ function EditSchedule({
   const [amenities, setAmenities] = useState<string[]>(schedule.amenities ?? []);
   const [days, setDays] = useState<string[]>(schedule.days ?? []);
   const [interStops, setInterStops] = useState<{ code: string; time: string; fare: string }[]>(
-    (schedule.routeStops ?? []).slice(1, -1).map((s) => ({ code: s.code, time: s.time ?? "", fare: String(s.fare ?? "") })),
+    routeStopsToPerLeg(schedule.routeStops),
   );
   const cityName = (code: string) => cities.find((c) => c.id === code)?.name ?? code;
   const daysLabel = isPackage ? "Departure days" : kind === "charter" ? "Available days" : "Runs on";
@@ -692,7 +729,7 @@ function EditSchedule({
               {!isFlight && (
                 <div>
                   <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Stops along the way <span className="font-normal text-muted">(optional)</span></span>
-                  <p className="mb-2 text-xs text-muted">City · arrival time · fare from the start. Customers searching a sub-route get that segment’s fare.</p>
+                  <p className="mb-2 text-xs text-muted">Each stop’s <b>leg fare</b> is from the previous stop. A sub-route pays the sum of the legs in between.</p>
                   {interStops.map((s, i) => (
                     <div key={i} className="mb-2 rounded-xl border border-slate-200 p-2.5">
                       <div className="flex items-center gap-2">
@@ -705,7 +742,7 @@ function EditSchedule({
                       </div>
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         <input type="time" value={s.time} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, time: e.target.value } : x)))} className={inp} title="Arrival time at this stop" />
-                        <input type="number" value={s.fare} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, fare: e.target.value } : x)))} placeholder="Fare from start" className={inp} title="Cumulative fare from the origin" />
+                        <input type="number" value={s.fare} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, fare: e.target.value } : x)))} placeholder="Leg fare" className={inp} title="Fare for this leg (from the previous stop)" />
                       </div>
                     </div>
                   ))}
@@ -765,11 +802,9 @@ function EditSchedule({
               amenities,
               days: isStay ? undefined : days,
               title: isTransport && from && to ? `${cityName(from)} → ${cityName(to)}` : undefined,
-              routeStops: isTransport ? (interStops.some((s) => s.code) ? [
-                { code: from, name: cityName(from), fare: 0, time: departTime || undefined },
-                ...interStops.filter((s) => s.code).map((s) => ({ code: s.code, name: cityName(s.code), fare: Number(s.fare) || 0, time: s.time || undefined })),
-                { code: to, name: cityName(to), fare: Number(price) || 0, time: arriveTime || undefined },
-              ] : []) : undefined,
+              routeStops: isTransport
+                ? (interStops.some((s) => s.code) ? buildRouteStops(from, to, Number(price) || 0, interStops, departTime, arriveTime, cityName) : [])
+                : undefined,
             })}
             className="flex-1 rounded-lg bg-brand-600 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
           >
@@ -869,11 +904,9 @@ function AddSchedule({
       rating: isHotel && rating ? Number(rating) : undefined,
       badge: badge.trim() || undefined,
       bookedSeats: isBus && bookedAtCreate.length ? bookedAtCreate : undefined,
-      routeStops: isTransport && interStops.some((s) => s.code) ? [
-        { code: from, name: cityName(from), fare: 0, time: departTime },
-        ...interStops.filter((s) => s.code).map((s) => ({ code: s.code, name: cityName(s.code), fare: Number(s.fare) || 0, time: s.time || undefined })),
-        { code: to, name: cityName(to), fare: Number(price) || 0, time: arriveTime },
-      ] : undefined,
+      routeStops: isTransport && interStops.some((s) => s.code)
+        ? buildRouteStops(from, to, Number(price) || 0, interStops, departTime, arriveTime, cityName)
+        : undefined,
       price: Number(price),
       unit: unitWord,
       capacity: seats || undefined,
@@ -993,7 +1026,7 @@ function AddSchedule({
               {!isFlight && (
                 <div>
                   <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Stops along the way <span className="font-normal text-muted">(optional)</span></span>
-                  <p className="mb-2 text-xs text-muted">Add cities the bus stops at, with the fare from the start. Customers searching a sub-route (e.g. a stop → {to ? cityName(to) : "destination"}) get that segment’s fare.</p>
+                  <p className="mb-2 text-xs text-muted">Add each stop with the <b>fare for that leg</b> (from the previous stop). A customer searching a sub-route pays the sum of the legs in between — e.g. a stop → {to ? cityName(to) : "destination"}.</p>
                   {interStops.map((s, i) => (
                     <div key={i} className="mb-2 rounded-xl border border-slate-200 p-2.5">
                       <div className="flex items-center gap-2">
@@ -1006,7 +1039,7 @@ function AddSchedule({
                       </div>
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         <input type="time" value={s.time} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, time: e.target.value } : x)))} className={inp} title="Arrival time at this stop" />
-                        <input type="number" value={s.fare} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, fare: e.target.value } : x)))} placeholder="Fare from start" className={inp} title="Cumulative fare from the origin" />
+                        <input type="number" value={s.fare} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, fare: e.target.value } : x)))} placeholder="Leg fare" className={inp} title="Fare for this leg (from the previous stop)" />
                       </div>
                     </div>
                   ))}

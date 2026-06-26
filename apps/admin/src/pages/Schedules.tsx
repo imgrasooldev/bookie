@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   categoryOf,
   capacityOf,
+  seatLabels,
   facilitiesFor,
   FACILITY_LABEL,
   DAYS,
@@ -10,7 +11,7 @@ import {
   type CategoryKey,
   type Vehicle,
 } from "../data";
-import { createTrip, listSchedules, updateTrip, deleteTrip, setAvailability, listVehicles } from "../api";
+import { createTrip, listSchedules, updateTrip, deleteTrip, setAvailability, listVehicles, listCatalogCities, type CatalogCity } from "../api";
 import { getOperator } from "../auth";
 import { PageHeader } from "../components/ui";
 import { useEscToClose } from "../components/useEscToClose";
@@ -36,6 +37,7 @@ export function Schedules() {
   const [managing, setManaging] = useState<Schedule | null>(null);
   const [pendingDel, setPendingDel] = useState<Schedule | null>(null);
   const [fleet, setFleet] = useState<Vehicle[]>([]);
+  const [cities, setCities] = useState<CatalogCity[]>([]);
   const [toast, setToast] = useState<string | null>(null);
 
   const flash = (m: string) => {
@@ -46,6 +48,7 @@ export function Schedules() {
   async function load() {
     setLoading(true);
     listVehicles().then((v) => { if (v.ok) setFleet(v.data); });
+    listCatalogCities().then(setCities);
     const r = await listSchedules();
     if (r.ok) {
       setList(r.data);
@@ -213,6 +216,7 @@ export function Schedules() {
         <AddSchedule
           category={cat}
           fleet={fleet}
+          cities={cities}
           onClose={() => setOpen(false)}
           onAdd={async (s) => {
             setOpen(false);
@@ -576,11 +580,13 @@ function EditSchedule({
 function AddSchedule({
   category,
   fleet,
+  cities,
   onClose,
   onAdd,
 }: {
   category: CategoryKey;
   fleet: Vehicle[];
+  cities: CatalogCity[];
   onClose: () => void;
   onAdd: (s: Schedule) => void;
 }) {
@@ -617,12 +623,17 @@ function AddSchedule({
   const [stops, setStops] = useState("0");
   const [rating, setRating] = useState("");
   const [badge, setBadge] = useState("");
+  const [bookedAtCreate, setBookedAtCreate] = useState<string[]>([]);
   const facilities = facilitiesFor(category);
   const isFlight = category === "FLIGHT";
   const isHotel = category === "HOTEL";
 
   const busVehicle = fleet.find((v) => v.id === vehicle);
   const seats = isBus && busVehicle ? capacityOf(busVehicle) : Number(capacity) || 0;
+  const cityName = (code: string) => cities.find((c) => c.id === code)?.name ?? code;
+  const seatList = isBus && busVehicle ? seatLabels(busVehicle).filter((s) => !busVehicle.disabled.includes(s)) : [];
+  const toggleBooked = (label: string) =>
+    setBookedAtCreate((b) => (b.includes(label) ? b.filter((x) => x !== label) : [...b, label]));
 
   const valid =
     operator.trim().length > 1 &&
@@ -635,9 +646,9 @@ function AddSchedule({
       id: "s" + Date.now(),
       category,
       operator: operator.trim(),
-      title: showName ? title.trim() : `${from.trim()} → ${to.trim()}`,
-      from: showName ? undefined : from.trim(),
-      to: showName ? undefined : to.trim(),
+      title: showName ? title.trim() : `${cityName(from)} → ${cityName(to)}`,
+      from: showName ? undefined : from,
+      to: showName ? undefined : to,
       departTime: isTransport ? departTime : undefined,
       arriveTime: isTransport ? arriveTime : undefined,
       days: isStay ? undefined : days,
@@ -651,6 +662,7 @@ function AddSchedule({
       stops: isFlight ? Number(stops) || 0 : undefined,
       rating: isHotel && rating ? Number(rating) : undefined,
       badge: badge.trim() || undefined,
+      bookedSeats: isBus && bookedAtCreate.length ? bookedAtCreate : undefined,
       price: Number(price),
       unit: unitWord,
       capacity: seats || undefined,
@@ -701,9 +713,22 @@ function AddSchedule({
             </>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              <L label="From"><input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="Lahore" className={inp} /></L>
-              <L label="To"><input value={to} onChange={(e) => setTo(e.target.value)} placeholder="Islamabad" className={inp} /></L>
+              <L label="From">
+                <select value={from} onChange={(e) => setFrom(e.target.value)} className={inp}>
+                  <option value="">Select city</option>
+                  {cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </L>
+              <L label="To">
+                <select value={to} onChange={(e) => setTo(e.target.value)} className={inp}>
+                  <option value="">Select city</option>
+                  {cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </L>
             </div>
+          )}
+          {!showName && cities.length === 0 && (
+            <p className="text-xs text-amber-700">No cities available yet — ask an admin to add cities under <b>Cities &amp; Routes</b>.</p>
           )}
 
           {kind === "ride" && (
@@ -792,6 +817,30 @@ function AddSchedule({
                       className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 transition ${on ? "bg-brand-50 text-brand-700 ring-brand-300" : "text-muted ring-slate-200 hover:bg-slate-50"}`}
                     >
                       {FACILITY_LABEL[a] ?? a}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {isBus && busVehicle && seatList.length > 0 && (
+            <div>
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
+                Already-booked seats <span className="font-normal text-muted">({bookedAtCreate.length} of {seatList.length})</span>
+              </span>
+              <p className="mb-2 text-xs text-muted">Tap any seats already sold (e.g. at the counter). Customers will see the rest as available.</p>
+              <div className="flex flex-wrap gap-1.5">
+                {seatList.map((label) => {
+                  const on = bookedAtCreate.includes(label);
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => toggleBooked(label)}
+                      className={`grid h-9 w-9 place-items-center rounded-lg text-xs font-bold transition ${on ? "bg-red-500 text-white" : "bg-white text-brand-700 ring-1 ring-brand-200 hover:bg-brand-50"}`}
+                    >
+                      {label}
                     </button>
                   );
                 })}

@@ -13,6 +13,7 @@ export const PERMISSIONS: Permission[] = [
   { key: "listings.approve", label: "Approve & unpublish listings", group: "Listings" },
   { key: "bookings.view", label: "View bookings", group: "Bookings" },
   { key: "reports.view", label: "View reports & overview", group: "Reports" },
+  { key: "cities.manage", label: "Manage cities & routes", group: "Administration" },
   { key: "roles.manage", label: "Manage roles, permissions & team", group: "Administration" },
 ];
 

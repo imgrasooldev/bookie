@@ -6,6 +6,7 @@ import { Operator } from "../models/Operator.js";
 import { Trip } from "../models/Trip.js";
 import { Booking } from "../models/Booking.js";
 import { Role } from "../models/Role.js";
+import { City } from "../models/City.js";
 import { requireAdmin, requirePermission } from "../middleware/auth.js";
 import { PERMISSIONS, PERMISSION_KEYS } from "../lib/permissions.js";
 import { ah, HttpError } from "../middleware/error.js";
@@ -319,6 +320,64 @@ superAdminRouter.get(
       topOperators: topOps.map((t) => ({ name: t.name, category: t.category ?? "—", count: t.count })),
       daily,
     });
+  }),
+);
+
+/* ---------------- cities & routes ---------------- */
+
+const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+// GET /sa/cities — all cities with listing counts
+superAdminRouter.get(
+  "/cities",
+  requirePermission("cities.manage"),
+  ah(async (_req, res) => {
+    const cities = await City.find().sort({ name: 1 }).lean();
+    const counts = await Trip.aggregate([
+      { $group: { _id: null, codes: { $push: "$originCode" }, dests: { $push: "$destinationCode" } } },
+    ]);
+    const used: string[] = [...(counts[0]?.codes ?? []), ...(counts[0]?.dests ?? [])].filter(Boolean);
+    const countOf = (code: string) => used.filter((c) => c === code).length;
+    res.json(cities.map((c) => ({ id: String(c._id), code: c.code, name: c.name, listings: countOf(c.code) })));
+  }),
+);
+
+const citySchema = z.object({ name: z.string().min(2), code: z.string().optional() });
+
+superAdminRouter.post(
+  "/cities",
+  requirePermission("cities.manage"),
+  ah(async (req, res) => {
+    const b = citySchema.parse(req.body);
+    const code = (b.code?.trim() || slug(b.name)).toLowerCase();
+    if (!code) throw new HttpError(400, "Invalid city name.");
+    if (await City.findOne({ code })) throw new HttpError(409, "A city with this code already exists.");
+    const city = await City.create({ code, name: b.name.trim() });
+    res.status(201).json({ id: String(city._id), code: city.code, name: city.name });
+  }),
+);
+
+superAdminRouter.patch(
+  "/cities/:id",
+  requirePermission("cities.manage"),
+  ah(async (req, res) => {
+    const b = z.object({ name: z.string().min(2) }).parse(req.body);
+    const city = await City.findByIdAndUpdate(req.params.id, { name: b.name.trim() }, { new: true }).lean();
+    if (!city) throw new HttpError(404, "City not found");
+    res.json({ id: String(city._id), code: city.code, name: city.name });
+  }),
+);
+
+superAdminRouter.delete(
+  "/cities/:id",
+  requirePermission("cities.manage"),
+  ah(async (req, res) => {
+    const city = await City.findById(req.params.id).lean();
+    if (!city) throw new HttpError(404, "City not found");
+    const inUse = await Trip.countDocuments({ $or: [{ originCode: city.code }, { destinationCode: city.code }] });
+    if (inUse) throw new HttpError(400, `This city is used by ${inUse} listing(s).`);
+    await City.deleteOne({ _id: city._id });
+    res.json({ ok: true });
   }),
 );
 

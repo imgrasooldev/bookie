@@ -163,6 +163,7 @@ const createSchema = z.object({
   rating: z.coerce.number().min(0).max(5).optional(),
   nights: z.coerce.number().int().min(1).optional(),
   badge: z.string().optional(),
+  bookedSeats: z.array(z.string()).optional(),
 });
 
 operatorRouter.post(

@@ -1,13 +1,9 @@
 import { SearchPanel } from "@/components/SearchPanel";
 import { SearchResults } from "@/components/SearchResults";
-import { searchTrips } from "@/lib/api";
-import { CITIES, VERTICALS } from "@/lib/mock";
+import { searchTrips, getCities } from "@/lib/api";
+import { VERTICALS } from "@/lib/mock";
 import type { ServiceType } from "@/lib/types";
 import { VERTICAL_ICONS } from "@/components/icons";
-
-function cityName(id?: string) {
-  return CITIES.find((c) => c.id === id)?.name;
-}
 
 export default async function SearchPage({
   searchParams,
@@ -18,6 +14,9 @@ export default async function SearchPage({
   const type = (sp.type as ServiceType) ?? "BUS";
   const vertical = VERTICALS.find((v) => v.type === type) ?? VERTICALS[0];
   const Icon = VERTICAL_ICONS[vertical.type];
+
+  const cities = await getCities();
+  const cityName = (id?: string) => cities.find((c) => c.id === id)?.name;
 
   const trips = await searchTrips({
     serviceType: type,

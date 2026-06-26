@@ -1,11 +1,12 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../AuthContext";
-import { GridIcon, UsersIcon, CalendarIcon, TicketIcon, LogoutIcon } from "../icons";
+import { GridIcon, UsersIcon, CalendarIcon, TicketIcon, RouteIcon, LogoutIcon } from "../icons";
 
 const NAV = [
   { to: "/", label: "Overview", icon: GridIcon, end: true, perm: "reports.view" },
   { to: "/operators", label: "Operators", icon: UsersIcon, perm: "operators.view" },
   { to: "/approvals", label: "Approvals", icon: CalendarIcon, perm: "listings.view" },
+  { to: "/cities", label: "Cities & Routes", icon: RouteIcon, perm: "cities.manage" },
   { to: "/roles", label: "Roles & Permissions", icon: TicketIcon, perm: "roles.manage" },
   { to: "/team", label: "Team", icon: UsersIcon, perm: "roles.manage" },
 ];

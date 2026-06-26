@@ -154,6 +154,14 @@ export function approveListing(id: string, approved: boolean): Promise<SaveResul
   return send(`/sa/listings/${id}`, "PATCH", { approved });
 }
 
+/* ---- cities ---- */
+
+export interface AdminCity { id: string; code: string; name: string; listings: number }
+export const listCities = () => getJson<AdminCity[]>("/sa/cities").catch(() => [] as AdminCity[]);
+export const createCity = (b: { name: string; code?: string }) => send("/sa/cities", "POST", b);
+export const updateCity = (id: string, name: string) => send(`/sa/cities/${id}`, "PATCH", { name });
+export const deleteCity = (id: string) => send(`/sa/cities/${id}`, "DELETE");
+
 /* ---- RBAC ---- */
 
 export interface RoleItem { id: string; name: string; permissions: string[]; super: boolean; system: boolean }
@@ -229,6 +237,11 @@ async function send(path: string, method: string, body?: unknown): Promise<SaveR
   }
 }
 
+/* ---------------- catalog (cities) ---------------- */
+
+export interface CatalogCity { id: string; name: string }
+export const listCatalogCities = () => getJson<CatalogCity[]>("/cities").catch(() => [] as CatalogCity[]);
+
 /* ---------------- reads ---------------- */
 
 export async function listSchedules(): Promise<{ ok: boolean; data: Schedule[] }> {
@@ -288,6 +301,7 @@ export async function createTrip(s: Schedule): Promise<SaveResult> {
     stops: s.stops,
     rating: s.rating,
     badge: s.badge,
+    bookedSeats: s.bookedSeats,
   });
 }
 

@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CITIES, VERTICALS } from "@/lib/mock";
-import type { ServiceType } from "@/lib/types";
+import { getCities } from "@/lib/api";
+import type { City, ServiceType } from "@/lib/types";
 import { VERTICAL_ICONS, SwapIcon, ArrowRightIcon } from "@/components/icons";
 
 // Local-date yyyy-mm-dd (not UTC, so the default matches the user's day).
@@ -20,7 +21,13 @@ export function SearchPanel({ initialType = "BUS" as ServiceType }) {
   const [date, setDate] = useState(() => ymd(new Date()));
   const [checkOut, setCheckOut] = useState(() => ymd(new Date(Date.now() + 864e5)));
   const [pax, setPax] = useState(1);
+  const [cities, setCities] = useState<City[]>(CITIES);
   const today = ymd(new Date());
+
+  // pull the live, admin-managed city list (falls back to the bundled set)
+  useEffect(() => {
+    getCities().then((c) => { if (c.length) setCities(c); }).catch(() => {});
+  }, []);
 
   const vertical = VERTICALS.find((v) => v.type === type)!;
   const flavor = vertical.flavor;
@@ -85,10 +92,10 @@ export function SearchPanel({ initialType = "BUS" as ServiceType }) {
         {isRoute ? (
           <div className="relative grid grid-cols-2 gap-3 sm:col-span-2 lg:col-span-6">
             <Field label={originLabel}>
-              <CitySelect value={originId} onChange={setOriginId} />
+              <CitySelect value={originId} onChange={setOriginId} cities={cities} />
             </Field>
             <Field label="To">
-              <CitySelect value={destinationId} onChange={setDestinationId} />
+              <CitySelect value={destinationId} onChange={setDestinationId} cities={cities} />
             </Field>
             <button
               type="button"
@@ -101,7 +108,7 @@ export function SearchPanel({ initialType = "BUS" as ServiceType }) {
           </div>
         ) : (
           <Field label={originLabel} className="sm:col-span-2 lg:col-span-6">
-            <CitySelect value={originId} onChange={setOriginId} />
+            <CitySelect value={originId} onChange={setOriginId} cities={cities} />
           </Field>
         )}
 
@@ -157,13 +164,15 @@ export function SearchPanel({ initialType = "BUS" as ServiceType }) {
 function CitySelect({
   value,
   onChange,
+  cities,
 }: {
   value: string;
   onChange: (v: string) => void;
+  cities: City[];
 }) {
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)} className="input">
-      {CITIES.map((c) => (
+      {cities.map((c) => (
         <option key={c.id} value={c.id}>
           {c.name}
         </option>

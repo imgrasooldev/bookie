@@ -71,8 +71,9 @@ async function authCall(path: string, body: unknown): Promise<AuthResult> {
 /* ---------------- super-admin ---------------- */
 
 export interface AdminOperator { id: string; name: string; category: string; status: string; rating: number; listings: number }
-export interface AdminListing { id: string; title: string; serviceType: string; operator: string; price: number; approved: boolean; status: string }
+export interface AdminListing { id: string; title: string; serviceType: string; operator: string; price: number; approved: boolean; status: string; createdAt?: string }
 export interface Overview {
+  range: { from: string; to: string };
   operators: number; pendingOperators: number; listings: number; pendingListings: number;
   bookings: number; revenue: number;
   byCategory: { category: string; count: number }[];
@@ -80,11 +81,29 @@ export interface Overview {
   topOperators: { name: string; category: string; count: number }[];
   daily: { date: string; bookings: number; revenue: number }[];
 }
+export interface ListingsPage { items: AdminListing[]; total: number; page: number; limit: number }
+export interface ListingsQuery { page?: number; limit?: number; status?: "pending" | "approved" | "all"; serviceType?: string; q?: string }
 
-export const adminOverview = () => getJson<Overview>("/sa/overview").catch(() => null);
+export const adminOverview = (range?: { from?: string; to?: string }) => {
+  const qs = new URLSearchParams();
+  if (range?.from) qs.set("from", range.from);
+  if (range?.to) qs.set("to", range.to);
+  const s = qs.toString();
+  return getJson<Overview>(`/sa/overview${s ? `?${s}` : ""}`).catch(() => null);
+};
 export const listOperators = () => getJson<AdminOperator[]>("/sa/operators").catch(() => [] as AdminOperator[]);
-export const listListings = (pending = false) =>
-  getJson<AdminListing[]>(`/sa/listings${pending ? "?pending=1" : ""}`).catch(() => [] as AdminListing[]);
+export const listListings = (params: ListingsQuery = {}) => {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set("page", String(params.page));
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.status && params.status !== "all") qs.set("status", params.status);
+  if (params.serviceType) qs.set("serviceType", params.serviceType);
+  if (params.q) qs.set("q", params.q);
+  const s = qs.toString();
+  return getJson<ListingsPage>(`/sa/listings${s ? `?${s}` : ""}`).catch(
+    () => ({ items: [], total: 0, page: params.page ?? 1, limit: params.limit ?? 10 } as ListingsPage),
+  );
+};
 
 export interface OperatorListing { id: string; title: string; serviceType: string; price: number; approved: boolean; status: string }
 export interface OperatorDetail {

@@ -156,16 +156,41 @@ superAdminRouter.post(
   }),
 );
 
-// GET /sa/listings?pending=1 — listings (optionally only unapproved)
+// GET /sa/listings — paginated + filterable listings
+const listingsQuery = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+  status: z.enum(["pending", "approved", "all"]).default("all"),
+  serviceType: z.string().optional(),
+  q: z.string().optional(),
+  // legacy: ?pending=1 still scopes to unapproved
+  pending: z.coerce.boolean().optional(),
+});
+
 superAdminRouter.get(
   "/listings",
   requirePermission("listings.view"),
   ah(async (req, res) => {
+    const p = listingsQuery.parse(req.query);
     const filter: Record<string, unknown> = {};
-    if (req.query.pending) filter.approved = false;
-    const trips = await Trip.find(filter).populate("operator").sort({ createdAt: -1 }).limit(200).lean();
-    res.json(
-      trips.map((t) => ({
+    const status = p.pending ? "pending" : p.status;
+    if (status === "pending") filter.approved = false;
+    if (status === "approved") filter.approved = true;
+    if (p.serviceType) filter.serviceType = p.serviceType;
+    if (p.q) filter.title = { $regex: p.q.trim(), $options: "i" };
+
+    const [total, trips] = await Promise.all([
+      Trip.countDocuments(filter),
+      Trip.find(filter)
+        .populate("operator")
+        .sort({ createdAt: -1 })
+        .skip((p.page - 1) * p.limit)
+        .limit(p.limit)
+        .lean(),
+    ]);
+
+    res.json({
+      items: trips.map((t) => ({
         id: String(t._id),
         title: t.title,
         serviceType: t.serviceType,
@@ -173,8 +198,12 @@ superAdminRouter.get(
         price: t.price,
         approved: t.approved ?? false,
         status: t.status,
+        createdAt: t.createdAt,
       })),
-    );
+      total,
+      page: p.page,
+      limit: p.limit,
+    });
   }),
 );
 
@@ -194,22 +223,32 @@ superAdminRouter.patch(
 superAdminRouter.get(
   "/overview",
   requirePermission("reports.view"),
-  ah(async (_req, res) => {
-    const since = new Date();
-    since.setHours(0, 0, 0, 0);
-    since.setDate(since.getDate() - 13); // 14-day window incl. today
+  ah(async (req, res) => {
+    const q = z.object({ from: z.string().optional(), to: z.string().optional() }).parse(req.query);
+
+    // resolve [from, to] as whole UTC days; default = last 14 days incl. today
+    const now = new Date();
+    const to = q.to
+      ? new Date(`${q.to}T23:59:59.999Z`)
+      : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+    const from = q.from
+      ? new Date(`${q.from}T00:00:00.000Z`)
+      : new Date(+to - 13 * 86_400_000);
+    from.setUTCHours(0, 0, 0, 0);
+    const inRange = { createdAt: { $gte: from, $lte: to } };
+    const days = Math.min(120, Math.max(1, Math.round((+to - +from) / 86_400_000)));
 
     const [operators, pendingOps, listings, pendingListings, bookings, rev, byCat, byStatus, dailyAgg, topOps] = await Promise.all([
       Operator.countDocuments({}),
       Operator.countDocuments({ status: "pending" }),
       Trip.countDocuments({}),
       Trip.countDocuments({ approved: false }),
-      Booking.countDocuments({}),
-      Booking.aggregate([{ $group: { _id: null, total: { $sum: "$fare.total" } } }]),
+      Booking.countDocuments(inRange),
+      Booking.aggregate([{ $match: inRange }, { $group: { _id: null, total: { $sum: "$fare.total" } } }]),
       Trip.aggregate([{ $group: { _id: "$serviceType", n: { $sum: 1 } } }, { $sort: { n: -1 } }]),
       Operator.aggregate([{ $group: { _id: "$status", n: { $sum: 1 } } }]),
       Booking.aggregate([
-        { $match: { createdAt: { $gte: since } } },
+        { $match: inRange },
         { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, bookings: { $sum: 1 }, revenue: { $sum: "$fare.total" } } },
       ]),
       Trip.aggregate([
@@ -222,17 +261,16 @@ superAdminRouter.get(
       ]),
     ]);
 
-    // fill the 14-day window so the chart has no gaps
+    // fill every day in the range so the chart has no gaps (UTC day steps)
     const daily: { date: string; bookings: number; revenue: number }[] = [];
-    for (let i = 0; i < 14; i++) {
-      const d = new Date(since);
-      d.setDate(since.getDate() + i);
-      const key = d.toISOString().slice(0, 10);
+    for (let i = 0; i < days; i++) {
+      const key = new Date(+from + i * 86_400_000).toISOString().slice(0, 10);
       const f = dailyAgg.find((x) => x._id === key);
       daily.push({ date: key, bookings: f?.bookings ?? 0, revenue: f?.revenue ?? 0 });
     }
 
     res.json({
+      range: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) },
       operators,
       pendingOperators: pendingOps,
       listings,

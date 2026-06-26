@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { adminOverview, type Overview } from "../../api";
 import { PageHeader } from "../../components/ui";
+import { DateRangePicker, defaultRange, type Range } from "../../components/DateRangePicker";
+import { ListingsTable } from "../../components/ListingsTable";
 import { formatPKR } from "../../data";
 
 const PALETTE = [
@@ -10,21 +12,27 @@ const PALETTE = [
 
 export function AdminOverview() {
   const [o, setO] = useState<Overview | null>(null);
+  const [range, setRange] = useState<Range>(defaultRange());
 
   useEffect(() => {
-    adminOverview().then(setO);
-  }, []);
+    setO(null);
+    adminOverview({ from: range.from, to: range.to }).then(setO);
+  }, [range.from, range.to]);
 
   const tiles = [
     { label: "Operators", value: o ? String(o.operators) : "—", sub: o ? `${o.pendingOperators} pending` : "" },
     { label: "Listings", value: o ? String(o.listings) : "—", sub: o ? `${o.pendingListings} awaiting approval` : "" },
-    { label: "Bookings", value: o ? String(o.bookings) : "—", sub: "last 14 days below" },
-    { label: "Revenue", value: o ? formatPKR(o.revenue) : "—", sub: "all time" },
+    { label: "Bookings", value: o ? String(o.bookings) : "—", sub: "in selected range" },
+    { label: "Revenue", value: o ? formatPKR(o.revenue) : "—", sub: "in selected range" },
   ];
 
   return (
     <div>
-      <PageHeader title="Overview" subtitle="Platform health across all operators" />
+      <PageHeader
+        title="Overview"
+        subtitle="Platform health across all operators"
+        action={<DateRangePicker value={range} onChange={setRange} />}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map((t) => (
@@ -75,6 +83,10 @@ export function AdminOverview() {
 
       <div className="card mt-6 p-5">
         <CategoryBars data={o?.byCategory ?? []} loading={!o} />
+      </div>
+
+      <div className="mt-8">
+        <ListingsTable title="All listings" subtitle="Filter and page through every listing on the platform." />
       </div>
     </div>
   );

@@ -45,7 +45,7 @@ export function AdminOverview() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="card p-5">
           <MiniDonut
             title="Operators by status"
@@ -67,9 +67,10 @@ export function AdminOverview() {
             ] : []}
           />
         </div>
-        <div className="card p-5">
-          <RankBars title="Top operators by listings" data={o?.topOperators ?? []} loading={!o} />
-        </div>
+      </div>
+
+      <div className="card mt-6 p-5">
+        <RankBars title="Top operators by listings" data={o?.topOperators ?? []} loading={!o} />
       </div>
 
       <div className="card mt-6 p-5">
@@ -99,14 +100,14 @@ function MiniDonut({ title, data, loading }: { title: string; data: { label: str
   const cx = 80, cy = 80, r = 58;
 
   return (
-    <div>
+    <div className="flex h-full flex-col">
       <h2 className="mb-2 font-bold text-ink">{title}</h2>
       {loading ? (
-        <div className="grid h-[160px] place-items-center text-sm text-muted">Loading…</div>
+        <div className="grid flex-1 place-items-center text-sm text-muted">Loading…</div>
       ) : total === 0 ? (
-        <div className="grid h-[160px] place-items-center text-sm text-muted">No data yet.</div>
+        <div className="grid flex-1 place-items-center text-sm text-muted">No data yet.</div>
       ) : (
-        <div className="flex items-center gap-4">
+        <div className="flex flex-1 items-center gap-4">
           <svg viewBox="0 0 160 160" className="h-36 w-36 shrink-0" role="img" aria-label={title}>
             {segments.map((s, i) => {
               if (s.end <= s.start) return null;

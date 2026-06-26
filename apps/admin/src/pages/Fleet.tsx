@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { vehicles as seed, capacityOf, type Vehicle, type SeatLayout } from "../data";
+import { useEffect, useState } from "react";
+import { capacityOf, type Vehicle, type SeatLayout } from "../data";
+import { listVehicles, createVehicle, deleteVehicle } from "../api";
 import { PageHeader } from "../components/ui";
 import { useEscToClose } from "../components/useEscToClose";
 import { SeatMapBuilder } from "../components/SeatMapBuilder";
@@ -11,8 +12,30 @@ const AMENITY_LABEL: Record<string, string> = {
 };
 
 export function Fleet() {
-  const [list, setList] = useState<Vehicle[]>(seed);
+  const [list, setList] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [live, setLive] = useState(true);
   const [open, setOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const flash = (m: string) => { setToast(m); setTimeout(() => setToast(null), 3000); };
+
+  async function load() {
+    setLoading(true);
+    const r = await listVehicles();
+    if (r.ok) { setList(r.data); setLive(true); }
+    else { setList([]); setLive(false); }
+    setLoading(false);
+  }
+  useEffect(() => { load(); }, []);
+
+  async function remove(id: string) {
+    const prev = list;
+    setList((l) => l.filter((x) => x.id !== id));
+    const r = await deleteVehicle(id);
+    if (!r.ok) { setList(prev); flash("⚠ " + r.error); }
+    else flash("Removed");
+  }
 
   return (
     <div>
@@ -22,52 +45,85 @@ export function Fleet() {
         action={
           <button
             onClick={() => setOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+            disabled={!live}
+            title={live ? undefined : "Can’t add while offline — the server is unreachable."}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <PlusIcon className="h-4 w-4" /> Add vehicle
           </button>
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {list.map((v) => (
-          <div key={v.id} className="card p-5">
-            <div className="flex items-start justify-between">
-              <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-600">
-                <BusIcon className="h-6 w-6" />
-              </span>
-              <button
-                onClick={() => setList((l) => l.filter((x) => x.id !== v.id))}
-                className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-red-50 hover:text-red-600"
-                title="Remove"
-              >
-                <TrashIcon className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mt-3 font-bold text-ink">{v.name}</div>
-            <div className="text-sm text-muted">{v.type} · {v.layout} · {v.rows} rows</div>
-            <div className="mt-3 inline-block rounded-lg bg-slate-100 px-2.5 py-1 text-sm font-bold text-ink">
-              {capacityOf(v)} seats
-            </div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {v.amenities.map((a) => (
-                <span key={a} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-muted">
-                  {AMENITY_LABEL[a] ?? a}
-                </span>
-              ))}
-            </div>
-          </div>
-        ))}
+      <div className="mb-4 flex items-center gap-2 text-xs font-semibold">
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${live ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
+          <span className={`h-2 w-2 rounded-full ${live ? "bg-green-500" : "bg-amber-500"}`} />
+          {live ? "Live · MongoDB" : "Offline · server unreachable"}
+        </span>
+        <button onClick={load} className="text-muted hover:text-ink">Refresh</button>
       </div>
+
+      {loading ? (
+        <div className="card p-12 text-center text-muted">Loading fleet…</div>
+      ) : !live ? (
+        <div className="card p-12 text-center">
+          <div className="font-semibold text-amber-700">Can’t reach the server</div>
+          <p className="mt-1 text-sm text-muted">
+            Your fleet can’t load right now, so new vehicles won’t be saved. Check that the API is running, then
+            <button onClick={load} className="ml-1 font-semibold text-brand-700 hover:underline">retry</button>.
+          </p>
+        </div>
+      ) : list.length === 0 ? (
+        <div className="card p-12 text-center text-muted">No vehicles yet. Click “Add vehicle”.</div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {list.map((v) => (
+            <div key={v.id} className="card p-5">
+              <div className="flex items-start justify-between">
+                <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-600">
+                  <BusIcon className="h-6 w-6" />
+                </span>
+                <button
+                  onClick={() => remove(v.id)}
+                  className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-red-50 hover:text-red-600"
+                  title="Remove"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="mt-3 font-bold text-ink">{v.name}</div>
+              <div className="text-sm text-muted">{v.type} · {v.layout} · {v.rows} rows</div>
+              <div className="mt-3 inline-block rounded-lg bg-slate-100 px-2.5 py-1 text-sm font-bold text-ink">
+                {capacityOf(v)} seats
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {v.amenities.map((a) => (
+                  <span key={a} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-muted">
+                    {AMENITY_LABEL[a] ?? a}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {open && (
         <AddVehicle
           onClose={() => setOpen(false)}
-          onAdd={(v) => {
-            setList((l) => [v, ...l]);
+          onAdd={async (v) => {
             setOpen(false);
+            flash("Saving…");
+            const r = await createVehicle(v);
+            if (r.ok) { await load(); flash("✓ Vehicle saved"); }
+            else flash("⚠ " + r.error);
           }}
         />
+      )}
+
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white shadow-lg">
+          {toast}
+        </div>
       )}
     </div>
   );

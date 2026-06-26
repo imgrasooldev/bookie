@@ -4,6 +4,7 @@ import { z } from "zod";
 import { User } from "../models/User.js";
 import { Operator } from "../models/Operator.js";
 import { Trip } from "../models/Trip.js";
+import { Vehicle } from "../models/Vehicle.js";
 import { Booking } from "../models/Booking.js";
 import { Role } from "../models/Role.js";
 import { signToken, requireOperator } from "../middleware/auth.js";
@@ -219,6 +220,56 @@ operatorRouter.delete(
   ah(async (req, res) => {
     const r = await Trip.findOneAndDelete({ _id: req.params.id, ...owned(req) });
     if (!r) throw new HttpError(404, "Listing not found");
+    res.json({ ok: true });
+  }),
+);
+
+/* ---------------- fleet / vehicles (scoped to operator) ---------------- */
+
+const serializeVehicle = (v: { _id: unknown; name: string; type?: string; layout?: string; rows?: number; disabled?: string[]; amenities?: string[] }) => ({
+  id: String(v._id),
+  name: v.name,
+  type: v.type ?? "Bus",
+  layout: v.layout ?? "2+2",
+  rows: v.rows ?? 0,
+  disabled: v.disabled ?? [],
+  amenities: v.amenities ?? [],
+});
+
+operatorRouter.get(
+  "/vehicles",
+  requireOperator,
+  ah(async (req, res) => {
+    const vehicles = await Vehicle.find(owned(req)).sort({ createdAt: -1 }).lean();
+    res.json(vehicles.map(serializeVehicle));
+  }),
+);
+
+const vehicleSchema = z.object({
+  name: z.string().min(2),
+  type: z.string().optional(),
+  layout: z.enum(["2+2", "2+1", "sleeper"]).optional(),
+  rows: z.coerce.number().int().min(1).max(40),
+  disabled: z.array(z.string()).optional(),
+  amenities: z.array(z.string()).optional(),
+});
+
+operatorRouter.post(
+  "/vehicles",
+  requireOperator,
+  ah(async (req, res) => {
+    const b = vehicleSchema.parse(req.body);
+    const vehicle = await Vehicle.create({ ...b, operator: req.user!.operatorId });
+    res.status(201).json(serializeVehicle(vehicle));
+  }),
+);
+
+operatorRouter.delete(
+  "/vehicles/:id",
+  requireOperator,
+  ah(async (req, res) => {
+    const r = await Vehicle.findOneAndDelete({ _id: req.params.id, ...owned(req) });
+    if (!r) throw new HttpError(404, "Vehicle not found");
     res.json({ ok: true });
   }),
 );

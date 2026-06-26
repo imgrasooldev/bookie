@@ -1,7 +1,7 @@
 // Admin → backend. All calls are scoped to the logged-in operator (Bearer JWT),
 // so an operator only sees & manages their own listings, bookings and stats.
 
-import type { CategoryKey, Schedule } from "./data";
+import type { CategoryKey, Schedule, Vehicle } from "./data";
 import { authHeaders, setSession, type OperatorAccount, type Role } from "./auth";
 
 const API_URL = (import.meta.env.VITE_API_URL as string) ?? "http://localhost:4000";
@@ -294,6 +294,27 @@ export async function updateTrip(
 
 export async function deleteTrip(id: string): Promise<SaveResult> {
   return send(`/operator/trips/${id}`, "DELETE");
+}
+
+/* ---------------- fleet / vehicles ---------------- */
+
+export async function listVehicles(): Promise<{ ok: boolean; data: Vehicle[] }> {
+  try {
+    return { ok: true, data: await getJson<Vehicle[]>("/operator/vehicles") };
+  } catch {
+    return { ok: false, data: [] };
+  }
+}
+
+export async function createVehicle(v: Omit<Vehicle, "id">): Promise<SaveResult> {
+  return send("/operator/vehicles", "POST", {
+    name: v.name, type: v.type, layout: v.layout, rows: v.rows,
+    disabled: v.disabled, amenities: v.amenities,
+  });
+}
+
+export async function deleteVehicle(id: string): Promise<SaveResult> {
+  return send(`/operator/vehicles/${id}`, "DELETE");
 }
 
 export async function setAvailability(

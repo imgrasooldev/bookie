@@ -679,8 +679,8 @@ function EditSchedule({
               <L label={isFlight ? "Aircraft" : "Vehicle"}><input value={vehicleName} onChange={(e) => setVehicleName(e.target.value)} className={inp} /></L>
               <div>
                 <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Route type</span>
-                <div className="flex items-center gap-3">
-                  <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-ink">
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap text-sm text-ink">
                     <input type="checkbox" checked={direct} onChange={(e) => setDirect(e.target.checked)} className="h-4 w-4 rounded accent-brand-600" />
                     Direct (non-stop)
                   </label>
@@ -694,14 +694,19 @@ function EditSchedule({
                   <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Stops along the way <span className="font-normal text-muted">(optional)</span></span>
                   <p className="mb-2 text-xs text-muted">City · arrival time · fare from the start. Customers searching a sub-route get that segment’s fare.</p>
                   {interStops.map((s, i) => (
-                    <div key={i} className="mb-2 flex items-center gap-2">
-                      <select value={s.code} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, code: e.target.value } : x)))} className={`${inp} flex-1`}>
-                        <option value="">City</option>
-                        {cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                      <input type="time" value={s.time} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, time: e.target.value } : x)))} className={`${inp} w-24`} title="Arrival time" />
-                      <input type="number" value={s.fare} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, fare: e.target.value } : x)))} placeholder="Fare" className={`${inp} w-24`} title="Fare from origin" />
-                      <button type="button" onClick={() => setInterStops((l) => l.filter((_, j) => j !== i))} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted hover:bg-red-50 hover:text-red-600">×</button>
+                    <div key={i} className="mb-2 rounded-xl border border-slate-200 p-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-bold text-slate-500">{i + 1}</span>
+                        <select value={s.code} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, code: e.target.value } : x)))} className={`${inp} min-w-0 flex-1`}>
+                          <option value="">Select city</option>
+                          {cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                        <button type="button" onClick={() => setInterStops((l) => l.filter((_, j) => j !== i))} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-lg text-muted hover:bg-red-50 hover:text-red-600" title="Remove stop">×</button>
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <input type="time" value={s.time} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, time: e.target.value } : x)))} className={inp} title="Arrival time at this stop" />
+                        <input type="number" value={s.fare} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, fare: e.target.value } : x)))} placeholder="Fare from start" className={inp} title="Cumulative fare from the origin" />
+                      </div>
                     </div>
                   ))}
                   <button type="button" onClick={() => setInterStops((l) => [...l, { code: "", time: "", fare: "" }])} className="text-sm font-semibold text-brand-700 hover:underline">+ Add stop</button>
@@ -973,8 +978,8 @@ function AddSchedule({
               </L>
               <div>
                 <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Route type</span>
-                <div className="flex items-center gap-3">
-                  <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-ink">
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap text-sm text-ink">
                     <input type="checkbox" checked={direct} onChange={(e) => setDirect(e.target.checked)} className="h-4 w-4 rounded accent-brand-600" />
                     Direct (non-stop)
                   </label>
@@ -990,14 +995,19 @@ function AddSchedule({
                   <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Stops along the way <span className="font-normal text-muted">(optional)</span></span>
                   <p className="mb-2 text-xs text-muted">Add cities the bus stops at, with the fare from the start. Customers searching a sub-route (e.g. a stop → {to ? cityName(to) : "destination"}) get that segment’s fare.</p>
                   {interStops.map((s, i) => (
-                    <div key={i} className="mb-2 flex items-center gap-2">
-                      <select value={s.code} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, code: e.target.value } : x)))} className={`${inp} flex-1`}>
-                        <option value="">City</option>
-                        {cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                      <input type="time" value={s.time} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, time: e.target.value } : x)))} className={`${inp} w-24`} title="Arrival time" />
-                      <input type="number" value={s.fare} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, fare: e.target.value } : x)))} placeholder="Fare" className={`${inp} w-24`} title="Fare from origin" />
-                      <button type="button" onClick={() => setInterStops((l) => l.filter((_, j) => j !== i))} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted hover:bg-red-50 hover:text-red-600">×</button>
+                    <div key={i} className="mb-2 rounded-xl border border-slate-200 p-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-bold text-slate-500">{i + 1}</span>
+                        <select value={s.code} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, code: e.target.value } : x)))} className={`${inp} min-w-0 flex-1`}>
+                          <option value="">Select city</option>
+                          {cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                        <button type="button" onClick={() => setInterStops((l) => l.filter((_, j) => j !== i))} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-lg text-muted hover:bg-red-50 hover:text-red-600" title="Remove stop">×</button>
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <input type="time" value={s.time} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, time: e.target.value } : x)))} className={inp} title="Arrival time at this stop" />
+                        <input type="number" value={s.fare} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, fare: e.target.value } : x)))} placeholder="Fare from start" className={inp} title="Cumulative fare from the origin" />
+                      </div>
                     </div>
                   ))}
                   <button type="button" onClick={() => setInterStops((l) => [...l, { code: "", time: "", fare: "" }])} className="text-sm font-semibold text-brand-700 hover:underline">+ Add stop</button>

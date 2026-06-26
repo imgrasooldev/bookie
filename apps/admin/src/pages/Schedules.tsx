@@ -590,7 +590,8 @@ function EditSchedule({
   const [checkOut, setCheckOut] = useState(schedule.checkOut ?? "");
   const [durationDays, setDurationDays] = useState(schedule.durationDays != null ? String(schedule.durationDays) : "");
   const [vehicleName, setVehicleName] = useState(schedule.vehicleName ?? "");
-  const [stops, setStops] = useState(schedule.stops != null ? String(schedule.stops) : "0");
+  const [direct, setDirect] = useState((schedule.stops ?? 0) === 0);
+  const [stops, setStops] = useState(schedule.stops ? String(schedule.stops) : "1");
   const [rating, setRating] = useState(schedule.rating != null ? String(schedule.rating) : "");
   const [badge, setBadge] = useState(schedule.badge ?? "");
   const [from, setFrom] = useState(schedule.from ?? "");
@@ -664,10 +665,21 @@ function EditSchedule({
             <L label="Duration (days)"><input type="number" min="1" value={durationDays} onChange={(e) => setDurationDays(e.target.value)} className={inp} /></L>
           )}
           {isTransport && (
-            <div className="grid grid-cols-2 gap-3">
+            <>
               <L label={isFlight ? "Aircraft" : "Vehicle"}><input value={vehicleName} onChange={(e) => setVehicleName(e.target.value)} className={inp} /></L>
-              {isFlight && <L label="Stops"><input type="number" min="0" value={stops} onChange={(e) => setStops(e.target.value)} className={inp} /></L>}
-            </div>
+              <div>
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Route type</span>
+                <div className="flex items-center gap-3">
+                  <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-ink">
+                    <input type="checkbox" checked={direct} onChange={(e) => setDirect(e.target.checked)} className="h-4 w-4 rounded accent-brand-600" />
+                    Direct (non-stop)
+                  </label>
+                  {!direct && (
+                    <input type="number" min="1" value={stops} onChange={(e) => setStops(e.target.value)} placeholder="Stops" className={`${inp} w-28`} />
+                  )}
+                </div>
+              </div>
+            </>
           )}
           {isHotel && (
             <L label="Star rating">
@@ -712,7 +724,7 @@ function EditSchedule({
               checkOut: checkOut || undefined,
               durationDays: durationDays ? Number(durationDays) : undefined,
               vehicleName: isTransport ? (vehicleName.trim() || undefined) : undefined,
-              stops: isFlight ? Number(stops) || 0 : undefined,
+              stops: isTransport ? (direct ? 0 : Math.max(1, Number(stops) || 1)) : undefined,
               rating: isHotel && rating ? Number(rating) : undefined,
               badge: badge.trim() || undefined,
               from: isTransport ? (from || undefined) : undefined,
@@ -774,7 +786,8 @@ function AddSchedule({
   const [checkOut, setCheckOut] = useState("12:00");
   const [coach, setCoach] = useState("");
   const [vehicleName, setVehicleName] = useState("");
-  const [stops, setStops] = useState("0");
+  const [direct, setDirect] = useState(true);
+  const [stops, setStops] = useState("1");
   const [rating, setRating] = useState("");
   const [badge, setBadge] = useState("");
   const [bookedAtCreate, setBookedAtCreate] = useState<string[]>([]);
@@ -813,7 +826,7 @@ function AddSchedule({
       durationDays: isPackage ? Number(durationDays) || undefined : undefined,
       checkIn: isStay ? checkIn : undefined,
       checkOut: isStay ? checkOut : undefined,
-      stops: isFlight ? Number(stops) || 0 : undefined,
+      stops: isTransport ? (direct ? 0 : Math.max(1, Number(stops) || 1)) : undefined,
       rating: isHotel && rating ? Number(rating) : undefined,
       badge: badge.trim() || undefined,
       bookedSeats: isBus && bookedAtCreate.length ? bookedAtCreate : undefined,
@@ -919,11 +932,19 @@ function AddSchedule({
                   className={inp}
                 />
               </L>
-              {isFlight && (
-                <L label="Stops (0 = direct)">
-                  <input type="number" min="0" value={stops} onChange={(e) => setStops(e.target.value)} className={inp} />
-                </L>
-              )}
+              <div>
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Route type</span>
+                <div className="flex items-center gap-3">
+                  <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-ink">
+                    <input type="checkbox" checked={direct} onChange={(e) => setDirect(e.target.checked)} className="h-4 w-4 rounded accent-brand-600" />
+                    Direct (non-stop)
+                  </label>
+                  {!direct && (
+                    <input type="number" min="1" value={stops} onChange={(e) => setStops(e.target.value)} placeholder="Stops" className={`${inp} w-28`} />
+                  )}
+                  {!direct && <span className="text-xs text-muted">stop(s) on the way</span>}
+                </div>
+              </div>
             </>
           )}
 

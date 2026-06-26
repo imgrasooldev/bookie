@@ -73,6 +73,11 @@ export function TripCard({ trip }: { trip: Trip }) {
                   {suspendLabel(trip.suspendedFrom, trip.suspendedTo)}
                 </span>
               )}
+              {TRANSPORT.has(trip.serviceType) && trip.stops === 0 && (
+                <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700">
+                  Direct
+                </span>
+              )}
               {trip.badge && (
                 <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700">
                   {trip.badge}

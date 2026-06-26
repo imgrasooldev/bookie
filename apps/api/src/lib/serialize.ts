@@ -41,6 +41,17 @@ export function serializeOperator(op: any) {
   };
 }
 
+// Project a recurring trip's departure time onto the actual booked date.
+function departOn(departAt: any, dateStr?: string | null): string | null {
+  if (!departAt) return null;
+  const iso = new Date(departAt).toISOString();
+  if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return iso;
+  const PKT = 5 * 3600 * 1000;
+  const pkt = new Date(new Date(iso).getTime() + PKT);
+  const [Y, M, D] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(Y, M - 1, D, pkt.getUTCHours(), pkt.getUTCMinutes(), pkt.getUTCSeconds()) - PKT).toISOString();
+}
+
 // Flatten a populated booking into the ticket-friendly shape the web/e-ticket
 // consume. Keeps the wire format stable regardless of the Mongo document shape.
 export function serializeBooking(b: any) {
@@ -54,7 +65,8 @@ export function serializeBooking(b: any) {
     title: trip?.title ?? "—",
     originCode: b.originCode ?? trip?.originCode ?? null,
     destinationCode: b.destinationCode ?? trip?.destinationCode ?? null,
-    departAt: trip?.departAt ? new Date(trip.departAt).toISOString() : null,
+    date: b.date ?? null,
+    departAt: departOn(trip?.departAt, b.date),
     arriveAt: trip?.arriveAt ? new Date(trip.arriveAt).toISOString() : null,
     operator: op?.name ?? "—",
     operatorColor: op?.logoColor ?? "#1d4ed8",

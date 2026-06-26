@@ -50,7 +50,7 @@ export default async function SearchPage({
           </div>
         </div>
 
-        <SearchResults trips={trips} cacheKey={`${type}:${sp.origin ?? ""}:${sp.destination ?? ""}`} />
+        <SearchResults trips={trips} cacheKey={`${type}:${sp.origin ?? ""}:${sp.destination ?? ""}`} date={sp.date} />
       </div>
     </div>
   );

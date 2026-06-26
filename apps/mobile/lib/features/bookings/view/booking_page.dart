@@ -19,14 +19,15 @@ import 'ticket_page.dart';
 
 class BookingPage extends StatefulWidget {
   final Trip trip;
-  const BookingPage({super.key, required this.trip});
+  final String? date;
+  const BookingPage({super.key, required this.trip, this.date});
   @override
   State<BookingPage> createState() => _BookingPageState();
 }
 
 class _BookingPageState extends State<BookingPage> {
   final _cnic = TextEditingController();
-  late Future<Trip> _detail = sl<TripRepository>().trip(widget.trip.id);
+  late Future<Trip> _detail = sl<TripRepository>().trip(widget.trip.id, date: widget.date);
   Map<String, String> _seats = {}; // seat -> gender
   bool _busy = false;
 
@@ -52,6 +53,7 @@ class _BookingPageState extends State<BookingPage> {
       final seats = _seats.keys.toList();
       final ticket = await sl<BookingRepository>().create(
         tripId: widget.trip.id,
+        date: widget.date,
         seats: _isBus ? seats : null,
         quantity: _isBus ? null : 1,
         passengers: _isBus

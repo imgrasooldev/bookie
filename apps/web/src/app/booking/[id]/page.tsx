@@ -19,11 +19,12 @@ export default async function BookingPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; date?: string }>;
 }) {
   const { id } = await params;
-  const { from, to } = await searchParams;
-  const base = await getTrip(id);
+  const { from, to, date } = await searchParams;
+  // fetch per-departure-date seat availability for the seat map
+  const base = await getTrip(id, date);
   if (!base) notFound();
   // re-price the searched segment (multi-stop routes) so the page bills correctly
   const trip = applySegment(base, from, to);
@@ -110,7 +111,7 @@ export default async function BookingPage({
           </div>
 
           <div className="mt-6">
-            <BookingForm trip={trip} />
+            <BookingForm trip={trip} date={date} />
           </div>
         </div>
 

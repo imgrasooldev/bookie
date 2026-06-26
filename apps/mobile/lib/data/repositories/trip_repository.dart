@@ -25,8 +25,8 @@ class TripRepository {
     return (res.data as List).map((e) => Trip.fromJson(e)).toList();
   }
 
-  Future<Trip> trip(String id) async {
-    final res = await _api.dio.get('/trips/$id');
+  Future<Trip> trip(String id, {String? date}) async {
+    final res = await _api.dio.get('/trips/$id', queryParameters: {if (date != null) 'date': date});
     return Trip.fromJson(res.data as Map<String, dynamic>);
   }
 }

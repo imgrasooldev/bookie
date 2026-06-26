@@ -7,6 +7,7 @@ import { Booking } from "../models/Booking.js";
 import { VERTICALS, SERVICE_TYPES } from "../lib/verticals.js";
 import { serializeTrip } from "../lib/serialize.js";
 import { subSegment } from "../lib/segment.js";
+import { takenSeats, today } from "../lib/inventory.js";
 import { ah, HttpError } from "../middleware/error.js";
 
 export const catalogRouter = Router();
@@ -110,10 +111,16 @@ catalogRouter.get(
       if (q.destinationId) filter.destinationCode = q.destinationId;
     }
 
+    const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const wantedDay = q.date ? DOW[new Date(`${q.date}T00:00:00.000Z`).getUTCDay()] : null;
+
     const trips = await Trip.find(filter).populate("operator").sort({ departAt: 1, price: 1 }).lean();
     res.json(
       trips
         .map((t) => {
+          // recurrence filter: if the bus runs only on specific days, hide it on
+          // dates it doesn't operate (empty days = runs every day).
+          if (wantedDay && (t.days?.length ?? 0) > 0 && !t.days!.includes(wantedDay)) return null;
           const seg = q.originId && q.destinationId ? subSegment(t, q.originId, q.destinationId) : null;
           // a multi-stop trip only matches if the segment is valid (in order)
           const rs = t.routeStops ?? [];
@@ -121,12 +128,31 @@ catalogRouter.get(
             return null;
           }
           const range = q.date ? suspendedRange(t.blockedDates ?? [], q.date) : null;
-          return { ...serializeTrip(t), ...(seg ?? {}), suspended: !!range, suspendedFrom: range?.from, suspendedTo: range?.to };
+          const base = { ...serializeTrip(t), ...(seg ?? {}), suspended: !!range, suspendedFrom: range?.from, suspendedTo: range?.to };
+          // project the recurring trip's times onto the searched date
+          return { ...base, ...shiftToDate(base.departAt, base.arriveAt, q.date) };
         })
         .filter(Boolean),
     );
   }),
 );
+
+// Recurring buses store ONE fixed departAt; when a specific date is searched,
+// project departAt/arriveAt onto that date (keeping PKT time-of-day + duration)
+// so the results match the selected date.
+function shiftToDate(departAt?: string, arriveAt?: string, dateStr?: string): { departAt?: string; arriveAt?: string } {
+  if (!dateStr || !departAt || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return { departAt, arriveAt };
+  const PKT = 5 * 3600 * 1000; // Pakistan is UTC+5, no DST
+  const dep = new Date(departAt);
+  const durMs = arriveAt ? new Date(arriveAt).getTime() - dep.getTime() : 0;
+  const pkt = new Date(dep.getTime() + PKT); // wall-clock fields in PKT
+  const [Y, M, D] = dateStr.split("-").map(Number);
+  const newDepMs = Date.UTC(Y, M - 1, D, pkt.getUTCHours(), pkt.getUTCMinutes(), pkt.getUTCSeconds()) - PKT;
+  return {
+    departAt: new Date(newDepMs).toISOString(),
+    arriveAt: arriveAt ? new Date(newDepMs + durMs).toISOString() : undefined,
+  };
+}
 
 // add n days to a yyyy-mm-dd string (UTC-safe)
 function addDaysStr(d: string, n: number): string {
@@ -143,14 +169,24 @@ function suspendedRange(blocked: string[], date: string): { from: string; to: st
   return { from: date, to };
 }
 
-// GET /trips/:id
+// GET /trips/:id?date=yyyy-mm-dd — date-aware availability for the seat map.
 catalogRouter.get(
   "/trips/:id",
   ah(async (req, res) => {
     const trip = await Trip.findById(req.params.id).populate("operator").lean();
     if (!trip) throw new HttpError(404, "Trip not found");
-    // include booked seat labels so the customer seat map can mark them taken
-    res.json({ ...serializeTrip(trip), bookedSeats: trip.bookedSeats ?? [] });
+    const q = req.query.date;
+    const date = typeof q === "string" && /^\d{4}-\d{2}-\d{2}$/.test(q) ? q : today();
+    const taken = await takenSeats(trip._id, date); // confirmed + active holds for THIS date
+    const rawCapacity = trip.seatsAvailable ?? undefined;
+    const ser = serializeTrip(trip);
+    res.json({
+      ...ser,
+      ...shiftToDate(ser.departAt, ser.arriveAt, date), // show the searched date
+      date,
+      bookedSeats: [...taken],
+      seatsAvailable: rawCapacity != null ? Math.max(0, rawCapacity - taken.size) : undefined,
+    });
   }),
 );
 

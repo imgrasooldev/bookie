@@ -26,7 +26,7 @@ function bucketOf(iso?: string): string | null {
   return BUCKETS.find((b) => h >= b.lo && h < b.hi)?.key ?? null;
 }
 
-export function SearchResults({ trips, cacheKey = "" }: { trips: Trip[]; cacheKey?: string }) {
+export function SearchResults({ trips, cacheKey = "", date }: { trips: Trip[]; cacheKey?: string; date?: string }) {
   const priced = trips.filter((t) => t.price > 0).map((t) => t.price);
   const maxPrice = priced.length ? Math.max(...priced) : 0;
   // slider spans cheapest → priciest available fare; floor to 0 when every
@@ -237,7 +237,7 @@ export function SearchResults({ trips, cacheKey = "" }: { trips: Trip[]; cacheKe
         ) : (
           <div className="space-y-4">
             {filtered.map((t) => (
-              <TripCard key={t.id} trip={t} />
+              <TripCard key={t.id} trip={t} date={date} />
             ))}
           </div>
         )}

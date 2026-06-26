@@ -62,7 +62,7 @@ function buildSeats(trip: Trip): { labels: string[]; rows: number; booked: Set<s
   return { labels, rows: r - 1, booked };
 }
 
-export function BookingForm({ trip }: { trip: Trip }) {
+export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
   const isBus = trip.serviceType === "BUS";
   const isQuote = trip.price === 0;
 
@@ -214,6 +214,7 @@ export function BookingForm({ trip }: { trip: Trip }) {
       tripId: trip.id,
       originId: trip.originId,
       destinationId: trip.destinationId,
+      date,
       seats: isBus ? selected : undefined,
       quantity: isBus ? undefined : pax,
       passengers,

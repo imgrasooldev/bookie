@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/bookie_app_bar.dart';
 import '../../../models.dart';
 import '../bloc/trip_bloc.dart';
 import 'results_page.dart';
@@ -27,19 +27,32 @@ class _SearchPageState extends State<SearchPage> {
   String _service = 'BUS';
   String _origin = 'lhe';
   String _dest = 'isb';
+  DateTime _date = DateTime.now();
+
+  String get _dateStr => DateFormat('yyyy-MM-dd').format(_date);
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: now.add(const Duration(days: 120)),
+    );
+    if (picked != null) setState(() => _date = picked);
+  }
 
   void _openResults(BuildContext context, List<City> cities) {
     FocusScope.of(context).unfocus();
     String name(String id) => cities.firstWhere((c) => c.id == id, orElse: () => City(id: id, name: id.toUpperCase())).name;
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => ResultsPage(serviceType: _service, originId: _origin, destinationId: _dest, title: '${name(_origin)} → ${name(_dest)}'),
+      builder: (_) => ResultsPage(serviceType: _service, originId: _origin, destinationId: _dest, date: _dateStr, title: '${name(_origin)} → ${name(_dest)}'),
     ));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const BookieAppBar(showLogo: true),
       body: BlocBuilder<TripBloc, TripState>(
         buildWhen: (a, b) => a.cities != b.cities,
         builder: (context, state) {
@@ -68,7 +81,14 @@ class _SearchPageState extends State<SearchPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const BookieWordmark(size: 24, color: Colors.white),
+                  const Spacer(),
+                  Icon(Icons.notifications_none_rounded, color: Colors.white.withValues(alpha: 0.9)),
+                ],
+              ),
+              const SizedBox(height: 20),
               const Text("Where to,\nfriend?", style: TextStyle(color: Colors.white, fontSize: 30, height: 1.1, fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
               Text('Buses, flights, trains & stays across Pakistan.', style: TextStyle(color: Colors.white.withValues(alpha: 0.85))),
@@ -146,6 +166,26 @@ class _SearchPageState extends State<SearchPage> {
                 ),
               ),
             ],
+          ),
+          const Divider(height: 1),
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: _pickDate,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(children: [
+                const Icon(Icons.calendar_month_rounded, size: 18, color: AppColors.brand),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('Departure date', style: TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 1),
+                    Text(DateFormat('EEE, d MMM yyyy').format(_date), style: const TextStyle(fontSize: 16, color: AppColors.ink, fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+                const Icon(Icons.expand_more_rounded, color: AppColors.muted),
+              ]),
+            ),
           ),
           const SizedBox(height: 14),
           SizedBox(

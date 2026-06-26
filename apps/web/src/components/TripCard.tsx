@@ -20,18 +20,24 @@ const STAY = new Set(["HOTEL", "FARMHOUSE", "HUT"]);
 const ymdLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const fmtDay = (s: string) => new Date(`${s}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
-// Carry the searched origin/destination to the booking page only when this card
-// is a multi-stop SUB-segment, so it re-prices that segment (not the full route).
-function bookingHref(trip: Trip): string {
+// Carry the searched origin/destination + date to the booking page. Origin/dest
+// only when this card is a multi-stop SUB-segment (so it re-prices that segment);
+// date always, so the booking uses the correct per-departure seat inventory.
+function bookingHref(trip: Trip, date?: string): string {
   const stops = trip.routeStops ?? [];
   const isSegment =
     stops.length >= 2 &&
     trip.originId != null &&
     trip.destinationId != null &&
     (trip.originId !== stops[0].code || trip.destinationId !== stops[stops.length - 1].code);
-  return isSegment
-    ? `/booking/${trip.id}?from=${trip.originId}&to=${trip.destinationId}`
-    : `/booking/${trip.id}`;
+  const params = new URLSearchParams();
+  if (isSegment) {
+    params.set("from", trip.originId!);
+    params.set("to", trip.destinationId!);
+  }
+  if (date) params.set("date", date);
+  const qs = params.toString();
+  return qs ? `/booking/${trip.id}?${qs}` : `/booking/${trip.id}`;
 }
 
 function suspendLabel(from?: string, to?: string): string {
@@ -41,7 +47,7 @@ function suspendLabel(from?: string, to?: string): string {
   return from === today ? `Suspended today – ${fmtDay(to)}` : `Suspended ${fmtDay(from)} – ${fmtDay(to)}`;
 }
 
-export function TripCard({ trip }: { trip: Trip }) {
+export function TripCard({ trip, date }: { trip: Trip; date?: string }) {
   const isTransport = TRANSPORT.has(trip.serviceType);
   const quote = trip.price === 0;
   const lowSeats =
@@ -213,7 +219,7 @@ export function TripCard({ trip }: { trip: Trip }) {
             </span>
           ) : (
             <Link
-              href={bookingHref(trip)}
+              href={bookingHref(trip, date)}
               className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
             >
               {cta}

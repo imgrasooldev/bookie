@@ -20,13 +20,15 @@ class TripSearchRequested extends TripEvent {
   final String serviceType;
   final String? originId;
   final String? destinationId;
+  final String? date;
   const TripSearchRequested({
     this.serviceType = 'BUS',
     this.originId,
     this.destinationId,
+    this.date,
   });
   @override
-  List<Object?> get props => [serviceType, originId, destinationId];
+  List<Object?> get props => [serviceType, originId, destinationId, date];
 }
 
 /* state */
@@ -80,6 +82,7 @@ class TripBloc extends Bloc<TripEvent, TripState> {
           serviceType: event.serviceType,
           originId: event.originId,
           destinationId: event.destinationId,
+          date: event.date,
         );
         emit(state.copyWith(status: TripStatus.success, trips: trips));
       } catch (e) {

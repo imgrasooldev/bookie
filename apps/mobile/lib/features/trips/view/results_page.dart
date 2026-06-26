@@ -22,8 +22,9 @@ class ResultsPage extends StatefulWidget {
   final String serviceType;
   final String originId;
   final String destinationId;
+  final String date;
   final String title;
-  const ResultsPage({super.key, required this.serviceType, required this.originId, required this.destinationId, required this.title});
+  const ResultsPage({super.key, required this.serviceType, required this.originId, required this.destinationId, required this.date, required this.title});
 
   @override
   State<ResultsPage> createState() => _ResultsPageState();
@@ -33,7 +34,7 @@ class _ResultsPageState extends State<ResultsPage> {
   @override
   void initState() {
     super.initState();
-    context.read<TripBloc>().add(TripSearchRequested(serviceType: widget.serviceType, originId: widget.originId, destinationId: widget.destinationId));
+    context.read<TripBloc>().add(TripSearchRequested(serviceType: widget.serviceType, originId: widget.originId, destinationId: widget.destinationId, date: widget.date));
   }
 
   @override
@@ -74,7 +75,7 @@ class _ResultsPageState extends State<ResultsPage> {
                   child: Text('${state.trips.length} ${state.trips.length == 1 ? 'option' : 'options'} found', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink)),
                 );
               }
-              return _TripCard(trip: state.trips[i - 1]);
+              return _TripCard(trip: state.trips[i - 1], date: widget.date);
             },
           );
         },
@@ -85,7 +86,8 @@ class _ResultsPageState extends State<ResultsPage> {
 
 class _TripCard extends StatelessWidget {
   final Trip trip;
-  const _TripCard({required this.trip});
+  final String date;
+  const _TripCard({required this.trip, required this.date});
 
   Color get _opColor {
     final hex = trip.operator.logoColor.replaceAll('#', '');
@@ -97,7 +99,7 @@ class _TripCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => BookingPage(trip: trip))),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => BookingPage(trip: trip, date: date))),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(

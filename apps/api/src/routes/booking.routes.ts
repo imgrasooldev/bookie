@@ -7,8 +7,10 @@ import { ah, HttpError } from "../middleware/error.js";
 import { fareForSegment } from "../lib/segment.js";
 import { serializeBooking } from "../lib/serialize.js";
 import { User } from "../models/User.js";
+import { confirmSeats, holdSeats, releaseSeats, takenSeats, today } from "../lib/inventory.js";
 
 const onlyDigits = (s: string) => s.replace(/\D/g, "");
+const isDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
 
 export const bookingRouter = Router();
 
@@ -39,10 +41,29 @@ const createSchema = z.object({
     .optional(),
   seats: z.array(z.string()).optional(),
   quantity: z.coerce.number().int().positive().optional(),
+  date: z.string().optional(), // yyyy-mm-dd departure date
+  holdId: z.string().optional(),
   paymentMethod: z
     .enum(["JazzCash", "Easypaisa", "Card", "Cash", "Wallet"])
     .optional(),
 });
+
+// POST /bookings/hold — atomically reserve seats for a departure during checkout.
+const holdSchema = z.object({
+  tripId: z.string(),
+  date: z.string().optional(),
+  seats: z.array(z.string()).min(1),
+});
+bookingRouter.post(
+  "/hold",
+  ah(async (req, res) => {
+    const body = holdSchema.parse(req.body);
+    const date = isDate(body.date) ? body.date! : today();
+    const holdId = await holdSeats(body.tripId, date, body.seats);
+    if (!holdId) throw new HttpError(409, "One or more of those seats were just taken. Please pick again.");
+    res.json({ holdId, date, seats: body.seats, heldForMinutes: 10 });
+  }),
+);
 
 function bookingNo(): string {
   return "BK" + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
@@ -59,12 +80,18 @@ bookingRouter.post(
 
     const qty = body.seats?.length || body.quantity || body.passengers?.length || 1;
     const isQuote = trip.price === 0;
+    const date = isDate(body.date) ? body.date! : today();
     // bill the searched segment fare (not the full-route price) for multi-stop trips
     const unitFare = fareForSegment(trip, body.originId, body.destinationId);
     const subtotal = unitFare * qty;
 
-    // NOTE: real seat-locking (Redis) lands in Phase 1 backend hardening.
-    // Here we just record the booking intent.
+    // Atomically claim the seats for THIS departure date. If any seat was just
+    // taken by a concurrent booking, this fails — no double-booking.
+    if (trip.serviceType === "BUS" && body.seats?.length) {
+      const ok = await confirmSeats(trip._id, date, body.seats);
+      if (!ok) throw new HttpError(409, "One or more of those seats were just booked. Please pick again.");
+    }
+
     const booking = await Booking.create({
       bookingNo: bookingNo(),
       customer: req.user?.sub,
@@ -73,6 +100,7 @@ bookingRouter.post(
       serviceType: trip.serviceType,
       originCode: body.originId ?? trip.originCode,
       destinationCode: body.destinationId ?? trip.destinationCode,
+      date,
       contact: body.contact,
       status: isQuote ? "QUOTE_REQUESTED" : "AWAITING_PAYMENT",
       passengers: body.passengers ?? [],
@@ -83,12 +111,6 @@ bookingRouter.post(
         ? { method: body.paymentMethod, status: "INITIATED" }
         : undefined,
     });
-
-    // mark the picked seats taken so later customers see them as reserved
-    // (best-effort demo seat-locking; real atomic hold lands with Redis).
-    if (trip.serviceType === "BUS" && body.seats?.length) {
-      await Trip.updateOne({ _id: trip._id }, { $addToSet: { bookedSeats: { $each: body.seats } } });
-    }
 
     // remember everyone on this booking as a saved traveller (the booker as
     // "Self" + any named co-passengers) so the account portal stays populated.
@@ -186,9 +208,9 @@ bookingRouter.post(
     const wasPaid = booking.payment?.status === "SUCCESS";
     if (wasPaid) booking.payment!.status = "REFUNDED";
     await booking.save();
-    // free the seats back into inventory
-    if (booking.serviceType === "BUS" && booking.seats?.length) {
-      await Trip.updateOne({ _id: booking.trip }, { $pull: { bookedSeats: { $in: booking.seats } } });
+    // free the seats back into the per-date inventory
+    if (booking.serviceType === "BUS" && booking.seats?.length && booking.date) {
+      await releaseSeats(booking.trip, booking.date, booking.seats);
     }
     // refund the fare to the customer's Bookie wallet (refunds are credited as
     // wallet balance — the PK norm, since gateway reversals are slow)

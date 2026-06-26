@@ -27,6 +27,8 @@ export interface CreateBookingInput {
   /** searched origin/destination — so the backend bills the segment fare */
   originId?: string;
   destinationId?: string;
+  /** departure date (yyyy-mm-dd) — selects the per-date seat inventory */
+  date?: string;
   seats?: string[];
   quantity?: number;
   passengers?: Passenger[];

@@ -53,8 +53,9 @@ export async function searchTrips(q: SearchQuery): Promise<Trip[]> {
   return withFallback(`/trips?${params}`, mock);
 }
 
-export async function getTrip(id: string): Promise<Trip | undefined> {
+export async function getTrip(id: string, date?: string): Promise<Trip | undefined> {
   const mock = TRIPS.find((t) => t.id === id);
   if (USE_MOCK) return mock;
-  return withFallback<Trip | undefined>(`/trips/${id}`, mock);
+  const qs = date ? `?date=${encodeURIComponent(date)}` : "";
+  return withFallback<Trip | undefined>(`/trips/${id}${qs}`, mock);
 }

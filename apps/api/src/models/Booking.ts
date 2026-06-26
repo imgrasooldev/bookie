@@ -37,6 +37,7 @@ const bookingSchema = new Schema(
     // booked segment (for multi-stop routes); falls back to the trip's full route
     originCode: { type: String },
     destinationCode: { type: String },
+    date: { type: String }, // yyyy-mm-dd departure date (date-aware inventory)
     contact: { type: contactSchema },
     status: {
       type: String,

@@ -6,17 +6,21 @@ import { CITIES, VERTICALS } from "@/lib/mock";
 import type { ServiceType } from "@/lib/types";
 import { VERTICAL_ICONS, SwapIcon, ArrowRightIcon } from "@/components/icons";
 
-const today = new Date().toISOString().slice(0, 10);
-const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
+// Local-date yyyy-mm-dd (not UTC, so the default matches the user's day).
+const ymd = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 export function SearchPanel({ initialType = "BUS" as ServiceType }) {
   const router = useRouter();
   const [type, setType] = useState<ServiceType>(initialType);
   const [originId, setOriginId] = useState("lhe");
   const [destinationId, setDestinationId] = useState("isb");
-  const [date, setDate] = useState(today);
-  const [checkOut, setCheckOut] = useState(tomorrow);
+  // computed lazily per client; date inputs use suppressHydrationWarning to
+  // tolerate the server↔client "today" boundary difference.
+  const [date, setDate] = useState(() => ymd(new Date()));
+  const [checkOut, setCheckOut] = useState(() => ymd(new Date(Date.now() + 864e5)));
   const [pax, setPax] = useState(1);
+  const today = ymd(new Date());
 
   const vertical = VERTICALS.find((v) => v.type === type)!;
   const flavor = vertical.flavor;
@@ -108,6 +112,7 @@ export function SearchPanel({ initialType = "BUS" as ServiceType }) {
             min={today}
             onChange={(e) => setDate(e.target.value)}
             className="input"
+            suppressHydrationWarning
           />
         </Field>
 
@@ -119,6 +124,7 @@ export function SearchPanel({ initialType = "BUS" as ServiceType }) {
               min={date}
               onChange={(e) => setCheckOut(e.target.value)}
               className="input"
+              suppressHydrationWarning
             />
           </Field>
         ) : (

@@ -99,14 +99,19 @@ catalogRouter.get(
     };
     if (q.originId) filter.originCode = q.originId;
     if (q.destinationId) filter.destinationCode = q.destinationId;
-    // hide listings the operator suspended for the searched date (Eid/Moharram, etc.)
-    if (q.date) filter.blockedDates = { $ne: q.date };
 
     const trips = await Trip.find(filter)
       .populate("operator")
       .sort({ departAt: 1, price: 1 })
       .lean();
-    res.json(trips.map(serializeTrip));
+    // keep operator-suspended listings visible but flag them for the searched
+    // date (Eid/Moharram, etc.) so the UI can mark them unbookable.
+    res.json(
+      trips.map((t) => ({
+        ...serializeTrip(t),
+        suspended: q.date ? (t.blockedDates ?? []).includes(q.date) : false,
+      })),
+    );
   }),
 );
 

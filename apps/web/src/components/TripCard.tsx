@@ -33,7 +33,7 @@ export function TripCard({ trip }: { trip: Trip }) {
           : "Select";
 
   return (
-    <div className="card-soft lift overflow-hidden">
+    <div className={`card-soft overflow-hidden ${trip.suspended ? "opacity-75 grayscale-[35%]" : "lift"}`}>
       <div className="flex flex-col gap-5 p-5 md:flex-row md:items-center">
         <div className="flex flex-1 items-start gap-4">
           {TRIP_IMAGES[trip.id] ? (
@@ -58,6 +58,11 @@ export function TripCard({ trip }: { trip: Trip }) {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-bold text-ink">{trip.title}</span>
+              {trip.suspended && (
+                <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+                  Suspended on this date
+                </span>
+              )}
               {trip.badge && (
                 <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700">
                   {trip.badge}
@@ -169,13 +174,23 @@ export function TripCard({ trip }: { trip: Trip }) {
               </div>
             )}
           </div>
-          <Link
-            href={`/booking/${trip.id}`}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
-          >
-            {cta}
-            <ArrowRightIcon className="h-4 w-4" />
-          </Link>
+          {trip.suspended ? (
+            <span
+              aria-disabled="true"
+              title="The operator has suspended this service on the selected date."
+              className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-400"
+            >
+              Unavailable
+            </span>
+          ) : (
+            <Link
+              href={`/booking/${trip.id}`}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+            >
+              {cta}
+              <ArrowRightIcon className="h-4 w-4" />
+            </Link>
+          )}
         </div>
       </div>
     </div>

@@ -71,6 +71,7 @@ export interface Trip {
   checkOut?: string; // stay check-out time "12:00"
   rating?: number; // hotel star rating
   badge?: string; // e.g. "Direct", "Bestseller", "5★"
+  suspended?: boolean; // operator suspended this listing for the searched date
 }
 
 export interface SearchQuery {

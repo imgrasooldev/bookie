@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import {
   listOperators, onboardOperator, setOperatorStatus, getOperatorDetail, updateOperator, setOperatorPassword,
-  type AdminOperator, type OperatorDetail, type OperatorsPage,
+  type AdminOperator, type OperatorDetail, type OperatorsPage, type OperatorsQuery, type SortDir,
 } from "../../api";
-import { PageHeader, StatusBadge } from "../../components/ui";
+import { PageHeader, StatusBadge, SortableTh } from "../../components/ui";
+
+type OperatorSort = NonNullable<OperatorsQuery["sort"]>;
 import { formatPKR } from "../../data";
 import { PlusIcon, SearchIcon } from "../../icons";
 
@@ -17,22 +19,29 @@ export function AdminOperators() {
   const [category, setCategory] = useState("");
   const [q, setQ] = useState("");
   const [dq, setDq] = useState("");
+  const [sort, setSort] = useState<OperatorSort>("createdAt");
+  const [dir, setDir] = useState<SortDir>("desc");
   const [open, setOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editing, setEditing] = useState<AdminOperator | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const pageSize = 10;
+  function onSort(field: string) {
+    const f = field as OperatorSort;
+    if (f === sort) setDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSort(f); setDir(f === "createdAt" || f === "listings" ? "desc" : "asc"); }
+  }
   useEffect(() => { const t = setTimeout(() => setDq(q), 350); return () => clearTimeout(t); }, [q]);
-  useEffect(() => { setPage(1); }, [statusFilter, category, dq]);
+  useEffect(() => { setPage(1); }, [statusFilter, category, dq, sort, dir]);
 
   async function load() {
     setLoading(true);
-    const r = await listOperators({ page, limit: pageSize, status: statusFilter, category: category || undefined, q: dq || undefined });
+    const r = await listOperators({ page, limit: pageSize, status: statusFilter, category: category || undefined, q: dq || undefined, sort, dir });
     setData(r);
     setLoading(false);
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, statusFilter, category, dq]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, statusFilter, category, dq, sort, dir]);
 
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2500); };
 
@@ -81,10 +90,10 @@ export function AdminOperators() {
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-muted">
             <tr className="border-b border-slate-100">
-              <th className="px-5 py-3 font-semibold">Business</th>
-              <th className="px-5 py-3 font-semibold">Category</th>
-              <th className="px-5 py-3 font-semibold">Listings</th>
-              <th className="px-5 py-3 font-semibold">Status</th>
+              <SortableTh label="Business" field="name" sort={sort} dir={dir} onSort={onSort} />
+              <SortableTh label="Category" field="category" sort={sort} dir={dir} onSort={onSort} />
+              <SortableTh label="Listings" field="listings" sort={sort} dir={dir} onSort={onSort} />
+              <SortableTh label="Status" field="status" sort={sort} dir={dir} onSort={onSort} />
               <th className="px-5 py-3 font-semibold"></th>
             </tr>
           </thead>

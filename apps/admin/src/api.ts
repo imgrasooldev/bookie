@@ -82,9 +82,10 @@ export interface Overview {
   daily: { date: string; bookings: number; revenue: number }[];
 }
 export interface ListingsPage { items: AdminListing[]; total: number; page: number; limit: number }
-export interface ListingsQuery { page?: number; limit?: number; status?: "pending" | "approved" | "all"; serviceType?: string; q?: string }
+export type SortDir = "asc" | "desc";
+export interface ListingsQuery { page?: number; limit?: number; status?: "pending" | "approved" | "all"; serviceType?: string; q?: string; sort?: "title" | "serviceType" | "price" | "approved" | "createdAt"; dir?: SortDir }
 export interface OperatorsPage { items: AdminOperator[]; total: number; page: number; limit: number }
-export interface OperatorsQuery { page?: number; limit?: number; status?: "active" | "pending" | "suspended" | "all"; category?: string; q?: string }
+export interface OperatorsQuery { page?: number; limit?: number; status?: "active" | "pending" | "suspended" | "all"; category?: string; q?: string; sort?: "name" | "category" | "status" | "listings" | "createdAt"; dir?: SortDir }
 
 export const adminOverview = (range?: { from?: string; to?: string }) => {
   const qs = new URLSearchParams();
@@ -100,6 +101,8 @@ export const listOperators = (params: OperatorsQuery = {}) => {
   if (params.status && params.status !== "all") qs.set("status", params.status);
   if (params.category) qs.set("category", params.category);
   if (params.q) qs.set("q", params.q);
+  if (params.sort) qs.set("sort", params.sort);
+  if (params.dir) qs.set("dir", params.dir);
   const s = qs.toString();
   return getJson<OperatorsPage>(`/sa/operators${s ? `?${s}` : ""}`).catch(
     () => ({ items: [], total: 0, page: params.page ?? 1, limit: params.limit ?? 10 } as OperatorsPage),
@@ -112,6 +115,8 @@ export const listListings = (params: ListingsQuery = {}) => {
   if (params.status && params.status !== "all") qs.set("status", params.status);
   if (params.serviceType) qs.set("serviceType", params.serviceType);
   if (params.q) qs.set("q", params.q);
+  if (params.sort) qs.set("sort", params.sort);
+  if (params.dir) qs.set("dir", params.dir);
   const s = qs.toString();
   return getJson<ListingsPage>(`/sa/listings${s ? `?${s}` : ""}`).catch(
     () => ({ items: [], total: 0, page: params.page ?? 1, limit: params.limit ?? 10 } as ListingsPage),

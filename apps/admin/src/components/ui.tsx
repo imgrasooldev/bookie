@@ -47,6 +47,27 @@ export function TypeBadge({ type }: { type: string }) {
   );
 }
 
+export function SortableTh({
+  label, field, sort, dir, onSort, align = "left",
+}: {
+  label: string;
+  field: string;
+  sort: string;
+  dir: "asc" | "desc";
+  onSort: (field: string) => void;
+  align?: "left" | "right";
+}) {
+  const active = sort === field;
+  return (
+    <th className={`px-5 py-3 font-semibold ${align === "right" ? "text-right" : ""}`}>
+      <button onClick={() => onSort(field)} className="inline-flex items-center gap-1 hover:text-ink" title={`Sort by ${label}`}>
+        <span>{label}</span>
+        <span className={`text-[10px] ${active ? "text-brand-600" : "text-slate-300"}`}>{active ? (dir === "asc" ? "▲" : "▼") : "↕"}</span>
+      </button>
+    </th>
+  );
+}
+
 export function Avatar({ name, color }: { name: string; color: string }) {
   return (
     <span

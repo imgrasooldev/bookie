@@ -24,6 +24,8 @@ const operatorsQuery = z.object({
   status: z.enum(["active", "pending", "suspended", "all"]).default("all"),
   category: z.string().optional(),
   q: z.string().optional(),
+  sort: z.enum(["name", "category", "status", "listings", "createdAt"]).default("createdAt"),
+  dir: z.enum(["asc", "desc"]).default("desc"),
 });
 
 superAdminRouter.get(
@@ -31,28 +33,37 @@ superAdminRouter.get(
   requirePermission("operators.view"),
   ah(async (req, res) => {
     const p = operatorsQuery.parse(req.query);
-    const filter: Record<string, unknown> = {};
-    if (p.status !== "all") filter.status = p.status;
-    if (p.category) filter.category = p.category.toUpperCase();
-    if (p.q) filter.name = { $regex: p.q.trim(), $options: "i" };
+    const match: Record<string, unknown> = {};
+    if (p.status !== "all") match.status = p.status;
+    if (p.category) match.category = p.category.toUpperCase();
+    if (p.q) match.name = { $regex: p.q.trim(), $options: "i" };
+    const sortSpec = { [p.sort]: p.dir === "asc" ? 1 : -1 } as Record<string, 1 | -1>;
 
-    const [total, ops] = await Promise.all([
-      Operator.countDocuments(filter),
-      Operator.find(filter).sort({ createdAt: -1 }).skip((p.page - 1) * p.limit).limit(p.limit).lean(),
+    // aggregate so we can sort by computed listing count
+    const result = await Operator.aggregate([
+      { $match: match },
+      { $lookup: { from: "trips", localField: "_id", foreignField: "operator", as: "_trips" } },
+      { $addFields: { listings: { $size: "$_trips" } } },
+      { $project: { _trips: 0 } },
+      { $sort: sortSpec },
+      {
+        $facet: {
+          items: [{ $skip: (p.page - 1) * p.limit }, { $limit: p.limit }],
+          total: [{ $count: "n" }],
+        },
+      },
     ]);
-
-    const ids = ops.map((o) => o._id);
-    const counts = await Trip.aggregate([{ $match: { operator: { $in: ids } } }, { $group: { _id: "$operator", n: { $sum: 1 } } }]);
-    const countOf = (id: string) => counts.find((l) => String(l._id) === id)?.n ?? 0;
+    const ops = result[0]?.items ?? [];
+    const total = result[0]?.total?.[0]?.n ?? 0;
 
     res.json({
-      items: ops.map((o) => ({
+      items: ops.map((o: { _id: unknown; name: string; category?: string; status: string; rating: number; listings: number; createdAt: Date }) => ({
         id: String(o._id),
         name: o.name,
         category: o.category ?? "BUS",
         status: o.status,
         rating: o.rating,
-        listings: countOf(String(o._id)),
+        listings: o.listings,
         createdAt: o.createdAt,
       })),
       total,
@@ -186,6 +197,8 @@ const listingsQuery = z.object({
   status: z.enum(["pending", "approved", "all"]).default("all"),
   serviceType: z.string().optional(),
   q: z.string().optional(),
+  sort: z.enum(["title", "serviceType", "price", "approved", "createdAt"]).default("createdAt"),
+  dir: z.enum(["asc", "desc"]).default("desc"),
   // legacy: ?pending=1 still scopes to unapproved
   pending: z.coerce.boolean().optional(),
 });
@@ -201,12 +214,13 @@ superAdminRouter.get(
     if (status === "approved") filter.approved = true;
     if (p.serviceType) filter.serviceType = p.serviceType;
     if (p.q) filter.title = { $regex: p.q.trim(), $options: "i" };
+    const sortSpec = { [p.sort]: p.dir === "asc" ? 1 : -1 } as Record<string, 1 | -1>;
 
     const [total, trips] = await Promise.all([
       Trip.countDocuments(filter),
       Trip.find(filter)
         .populate("operator")
-        .sort({ createdAt: -1 })
+        .sort(sortSpec)
         .skip((p.page - 1) * p.limit)
         .limit(p.limit)
         .lean(),

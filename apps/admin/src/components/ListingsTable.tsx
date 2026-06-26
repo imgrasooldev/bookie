@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { listListings, approveListing, type AdminListing, type ListingsPage } from "../api";
+import { listListings, approveListing, type AdminListing, type ListingsPage, type ListingsQuery, type SortDir } from "../api";
 import { formatPKR } from "../data";
-import { StatusBadge, TypeBadge } from "./ui";
+import { StatusBadge, TypeBadge, SortableTh } from "./ui";
 import { SearchIcon } from "../icons";
+
+type ListingSort = NonNullable<ListingsQuery["sort"]>;
 
 const SERVICE_TYPES = ["BUS", "FLIGHT", "TRAIN", "CAR", "HOTEL", "EVENT", "TOUR", "UMRAH", "PICNIC", "CORPORATE", "FARMHOUSE", "HUT", "WATERPARK"];
 
@@ -22,11 +24,19 @@ export function ListingsTable({
   const [serviceType, setServiceType] = useState("");
   const [q, setQ] = useState("");
   const [dq, setDq] = useState(""); // debounced query
+  const [sort, setSort] = useState<ListingSort>("createdAt");
+  const [dir, setDir] = useState<SortDir>("desc");
   const [data, setData] = useState<ListingsPage>({ items: [], total: 0, page: 1, limit: pageSize });
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
 
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2500); };
+
+  function onSort(field: string) {
+    const f = field as ListingSort;
+    if (f === sort) setDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSort(f); setDir(f === "createdAt" || f === "price" ? "desc" : "asc"); }
+  }
 
   // debounce the search box
   useEffect(() => {
@@ -34,16 +44,16 @@ export function ListingsTable({
     return () => clearTimeout(t);
   }, [q]);
 
-  // reset to page 1 whenever a filter changes
-  useEffect(() => { setPage(1); }, [status, serviceType, dq]);
+  // reset to page 1 whenever a filter or sort changes
+  useEffect(() => { setPage(1); }, [status, serviceType, dq, sort, dir]);
 
   async function load() {
     setLoading(true);
-    const r = await listListings({ page, limit: pageSize, status, serviceType: serviceType || undefined, q: dq || undefined });
+    const r = await listListings({ page, limit: pageSize, status, serviceType: serviceType || undefined, q: dq || undefined, sort, dir });
     setData(r);
     setLoading(false);
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, status, serviceType, dq]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, status, serviceType, dq, sort, dir]);
 
   async function approve(id: string, approved: boolean) {
     const r = await approveListing(id, approved);
@@ -92,10 +102,10 @@ export function ListingsTable({
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-muted">
             <tr className="border-b border-slate-100">
-              <th className="px-5 py-3 font-semibold">Listing</th>
+              <SortableTh label="Listing" field="title" sort={sort} dir={dir} onSort={onSort} />
               <th className="px-5 py-3 font-semibold">Operator</th>
-              <th className="px-5 py-3 font-semibold">Price</th>
-              <th className="px-5 py-3 font-semibold">State</th>
+              <SortableTh label="Price" field="price" sort={sort} dir={dir} onSort={onSort} />
+              <SortableTh label="State" field="approved" sort={sort} dir={dir} onSort={onSort} />
               <th className="px-5 py-3 font-semibold"></th>
             </tr>
           </thead>

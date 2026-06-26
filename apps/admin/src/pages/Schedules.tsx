@@ -598,6 +598,43 @@ function routeStopsToPerLeg(stops: RouteStop[] | undefined): { code: string; tim
   });
 }
 
+// every bookable segment fare = fare(to) − fare(from)
+function segmentPreview(
+  from: string, to: string, price: number,
+  inter: { code: string; time: string; fare: string }[],
+  cityName: (c: string) => string,
+): { label: string; fare: number }[] {
+  if (!from || !to || !inter.some((s) => s.code)) return [];
+  const stops = buildRouteStops(from, to, price, inter, undefined, undefined, cityName);
+  const out: { label: string; fare: number }[] = [];
+  for (let i = 0; i < stops.length; i++)
+    for (let j = i + 1; j < stops.length; j++)
+      out.push({ label: `${stops[i].name} → ${stops[j].name}`, fare: (stops[j].fare ?? 0) - (stops[i].fare ?? 0) });
+  return out;
+}
+
+function SegmentPreview({ from, to, price, inter, cityName }: {
+  from: string; to: string; price: number;
+  inter: { code: string; time: string; fare: string }[];
+  cityName: (c: string) => string;
+}) {
+  const rows = segmentPreview(from, to, price, inter, cityName);
+  if (rows.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-brand-100 bg-brand-50/60 p-3">
+      <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-brand-700">Fare preview · what customers pay</div>
+      <div className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
+        {rows.map((r, i) => (
+          <div key={i} className="flex justify-between gap-2">
+            <span className="truncate text-ink">{r.label}</span>
+            <span className="shrink-0 font-semibold text-brand-700">{formatPKR(r.fare)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function L({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
@@ -747,6 +784,11 @@ function EditSchedule({
                     </div>
                   ))}
                   <button type="button" onClick={() => setInterStops((l) => [...l, { code: "", time: "", fare: "" }])} className="text-sm font-semibold text-brand-700 hover:underline">+ Add stop</button>
+                  {interStops.some((s) => s.code) && (
+                    <div className="mt-3">
+                      <SegmentPreview from={from} to={to} price={Number(price) || 0} inter={interStops} cityName={cityName} />
+                    </div>
+                  )}
                 </div>
               )}
             </>
@@ -1044,6 +1086,11 @@ function AddSchedule({
                     </div>
                   ))}
                   <button type="button" onClick={() => setInterStops((l) => [...l, { code: "", time: "", fare: "" }])} className="text-sm font-semibold text-brand-700 hover:underline">+ Add stop</button>
+                  {interStops.some((s) => s.code) && (
+                    <div className="mt-3">
+                      <SegmentPreview from={from} to={to} price={Number(price) || 0} inter={interStops} cityName={cityName} />
+                    </div>
+                  )}
                 </div>
               )}
             </>

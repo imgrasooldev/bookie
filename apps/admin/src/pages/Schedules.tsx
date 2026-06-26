@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  schedules as seed,
   vehicles,
   categoryOf,
   capacityOf,
@@ -48,7 +47,9 @@ export function Schedules() {
       setList(r.data);
       setLive(true);
     } else {
-      setList(seed);
+      // Can't reach the API — show an honest empty/offline state rather than
+      // mock data, so a failed save isn't mistaken for a successful one.
+      setList([]);
       setLive(false);
     }
     setLoading(false);
@@ -87,7 +88,9 @@ export function Schedules() {
         action={
           <button
             onClick={() => setOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+            disabled={!live}
+            title={live ? undefined : "Can’t add while offline — the server is unreachable."}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <PlusIcon className="h-4 w-4" /> Add {c.label.toLowerCase()}
           </button>
@@ -112,6 +115,14 @@ export function Schedules() {
 
       {loading ? (
         <div className="card p-12 text-center text-muted">Loading schedules…</div>
+      ) : !live ? (
+        <div className="card p-12 text-center">
+          <div className="font-semibold text-amber-700">Can’t reach the server</div>
+          <p className="mt-1 text-sm text-muted">
+            Your listings can’t load right now, so new ones won’t be saved. Check that the API is running, then
+            <button onClick={load} className="ml-1 font-semibold text-brand-700 hover:underline">retry</button>.
+          </p>
+        </div>
       ) : rows.length === 0 ? (
         <div className="card p-12 text-center text-muted">
           No {c.label.toLowerCase()} schedules yet. Click “Add {c.label.toLowerCase()}”.

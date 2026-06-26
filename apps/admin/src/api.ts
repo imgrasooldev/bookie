@@ -1,7 +1,7 @@
 // Admin → backend. All calls are scoped to the logged-in operator (Bearer JWT),
 // so an operator only sees & manages their own listings, bookings and stats.
 
-import type { CategoryKey, Schedule, Vehicle } from "./data";
+import type { CategoryKey, Schedule, Vehicle, RouteStop } from "./data";
 import { authHeaders, setSession, type OperatorAccount, type Role } from "./auth";
 
 const API_URL = (import.meta.env.VITE_API_URL as string) ?? "http://localhost:4000";
@@ -187,7 +187,25 @@ type TripJson = {
   serviceScope?: "intracity" | "intercity" | "both" | null; approved?: boolean;
   amenities?: string[]; vehicle?: string; durationDays?: number; checkIn?: string; checkOut?: string;
   stops?: number; rating?: number; badge?: string; days?: string[];
+  routeStops?: { code: string; name?: string; fare?: number; time?: string }[];
 };
+
+// cumulative local-time → ISO for route stops (rolls to next day on time wrap)
+function routeStopsToIso(stops: RouteStop[]): { code: string; name: string; fare: number; time?: string }[] {
+  let dayOffset = 0;
+  let prevMin = -1;
+  return stops.map((s) => {
+    if (!s.time) return { code: s.code, name: s.name, fare: s.fare };
+    const [h, m] = s.time.split(":").map(Number);
+    const mins = h * 60 + m;
+    if (prevMin >= 0 && mins < prevMin) dayOffset++;
+    prevMin = mins;
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    d.setDate(d.getDate() + dayOffset);
+    return { code: s.code, name: s.name, fare: s.fare, time: d.toISOString() };
+  });
+}
 
 function toSchedule(t: TripJson): Schedule | null {
   const category = CATEGORY[t.serviceType];
@@ -208,6 +226,7 @@ function toSchedule(t: TripJson): Schedule | null {
     durationDays: t.durationDays,
     checkIn: t.checkIn, checkOut: t.checkOut,
     stops: t.stops, rating: t.rating, badge: t.badge,
+    routeStops: (t.routeStops ?? []).map((s) => ({ code: s.code, name: s.name ?? s.code, fare: s.fare ?? 0, time: hhmm(s.time) })),
     price: t.price, unit,
     capacity: t.seatsAvailable != null ? t.seatsAvailable + booked + reserved : undefined,
     status: t.status === "hidden" ? "paused" : "active",
@@ -303,14 +322,16 @@ export async function createTrip(s: Schedule): Promise<SaveResult> {
     badge: s.badge,
     bookedSeats: s.bookedSeats,
     days: s.days,
+    routeStops: s.routeStops && s.routeStops.length ? routeStopsToIso(s.routeStops) : undefined,
   });
 }
 
 export async function updateTrip(
   id: string,
-  patch: { price?: number; status?: "active" | "hidden"; departAt?: string; arriveAt?: string; seatsAvailable?: number; title?: string; durationDays?: number; checkIn?: string; checkOut?: string; vehicle?: string; stops?: number; rating?: number; badge?: string; originCode?: string; destinationCode?: string; amenities?: string[]; days?: string[] },
+  patch: { price?: number; status?: "active" | "hidden"; departAt?: string; arriveAt?: string; seatsAvailable?: number; title?: string; durationDays?: number; checkIn?: string; checkOut?: string; vehicle?: string; stops?: number; rating?: number; badge?: string; originCode?: string; destinationCode?: string; amenities?: string[]; days?: string[]; routeStops?: RouteStop[] },
 ): Promise<SaveResult> {
-  return send(`/operator/trips/${id}`, "PATCH", patch);
+  const body = { ...patch, routeStops: patch.routeStops ? routeStopsToIso(patch.routeStops) : undefined };
+  return send(`/operator/trips/${id}`, "PATCH", body);
 }
 
 export async function deleteTrip(id: string): Promise<SaveResult> {

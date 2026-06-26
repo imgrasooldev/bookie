@@ -168,6 +168,13 @@ export const vehicles: Vehicle[] = [
 
 /* ---- Schedules / timetable ---- */
 
+export interface RouteStop {
+  code: string;
+  name: string;
+  fare: number; // cumulative fare from the route origin
+  time?: string; // "HH:MM" at this stop
+}
+
 export interface Schedule {
   id: string;
   category: CategoryKey;
@@ -187,6 +194,7 @@ export interface Schedule {
   checkIn?: string; // stay check-in time
   checkOut?: string; // stay check-out time
   stops?: number; // flight stops (0 = direct)
+  routeStops?: RouteStop[]; // ordered stops with cumulative fare from origin
   rating?: number; // hotel star rating
   badge?: string; // marketing label e.g. "Direct", "Bestseller"
   price: number;

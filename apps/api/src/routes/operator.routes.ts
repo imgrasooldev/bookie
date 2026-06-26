@@ -165,6 +165,7 @@ const createSchema = z.object({
   badge: z.string().optional(),
   bookedSeats: z.array(z.string()).optional(),
   days: z.array(z.string()).optional(),
+  routeStops: z.array(z.object({ code: z.string(), name: z.string().optional(), fare: z.coerce.number().nonnegative(), time: z.string().optional() })).optional(),
 });
 
 operatorRouter.post(
@@ -211,6 +212,7 @@ const patchSchema = z.object({
   stops: z.coerce.number().int().min(0).optional(),
   rating: z.coerce.number().min(0).max(5).optional(),
   badge: z.string().optional(),
+  routeStops: z.array(z.object({ code: z.string(), name: z.string().optional(), fare: z.coerce.number().nonnegative(), time: z.string().optional() })).optional(),
 });
 
 operatorRouter.patch(

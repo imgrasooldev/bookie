@@ -17,6 +17,12 @@ const tripSchema = new Schema(
     arriveAt: { type: Date },
     durationMin: { type: Number },
     days: { type: [String], default: [] }, // recurrence e.g. ["Mon","Wed","Fri"]
+    // ordered route stops for segment search/pricing. fare = cumulative fare
+    // from the route origin to that stop; time = ISO datetime at the stop.
+    routeStops: {
+      type: [{ code: String, name: String, fare: Number, time: String }],
+      default: [],
+    },
     price: { type: Number, required: true }, // PKR; 0 = quote on request
     priceUnit: {
       type: String,

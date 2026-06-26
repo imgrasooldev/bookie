@@ -10,6 +10,7 @@ import {
   type Schedule,
   type CategoryKey,
   type Vehicle,
+  type RouteStop,
 } from "../data";
 import { createTrip, listSchedules, updateTrip, deleteTrip, setAvailability, listVehicles, listCatalogCities, type CatalogCity } from "../api";
 import { getOperator } from "../auth";
@@ -185,6 +186,11 @@ export function Schedules() {
                     )}
                     {s.vehicle2 && <span className="text-muted">{s.vehicle2}</span>}
                     {s.vehicleName && <span className="text-muted">{s.vehicleName}</span>}
+                    {s.routeStops && s.routeStops.length > 2 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                        via {s.routeStops.slice(1, -1).map((r) => r.name).join(", ")}
+                      </span>
+                    )}
                     {kind === "transport" && typeof s.stops === "number" && (
                       <span className="text-muted">{s.stops === 0 ? "Direct" : `${s.stops} stop${s.stops > 1 ? "s" : ""}`}</span>
                     )}
@@ -268,6 +274,7 @@ export function Schedules() {
                 destinationCode: fields.to,
                 amenities: fields.amenities,
                 days: fields.days,
+                routeStops: fields.routeStops,
               });
               if (!r.ok) return flash("⚠ " + r.error);
               await load();
@@ -572,7 +579,7 @@ function EditSchedule({
   schedule: Schedule;
   cities: CatalogCity[];
   onClose: () => void;
-  onSave: (id: string, fields: { price: number; capacity?: number; departTime?: string; arriveTime?: string; checkIn?: string; checkOut?: string; durationDays?: number; vehicleName?: string; stops?: number; rating?: number; badge?: string; from?: string; to?: string; amenities?: string[]; title?: string; days?: string[] }) => void;
+  onSave: (id: string, fields: { price: number; capacity?: number; departTime?: string; arriveTime?: string; checkIn?: string; checkOut?: string; durationDays?: number; vehicleName?: string; stops?: number; rating?: number; badge?: string; from?: string; to?: string; amenities?: string[]; title?: string; days?: string[]; routeStops?: RouteStop[] }) => void;
 }) {
   useEscToClose(onClose);
   const kind = categoryOf(schedule.category).kind;
@@ -598,6 +605,9 @@ function EditSchedule({
   const [to, setTo] = useState(schedule.to ?? "");
   const [amenities, setAmenities] = useState<string[]>(schedule.amenities ?? []);
   const [days, setDays] = useState<string[]>(schedule.days ?? []);
+  const [interStops, setInterStops] = useState<{ code: string; time: string; fare: string }[]>(
+    (schedule.routeStops ?? []).slice(1, -1).map((s) => ({ code: s.code, time: s.time ?? "", fare: String(s.fare ?? "") })),
+  );
   const cityName = (code: string) => cities.find((c) => c.id === code)?.name ?? code;
   const daysLabel = isPackage ? "Departure days" : kind === "charter" ? "Available days" : "Runs on";
 
@@ -679,6 +689,24 @@ function EditSchedule({
                   )}
                 </div>
               </div>
+              {!isFlight && (
+                <div>
+                  <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Stops along the way <span className="font-normal text-muted">(optional)</span></span>
+                  <p className="mb-2 text-xs text-muted">City · arrival time · fare from the start. Customers searching a sub-route get that segment’s fare.</p>
+                  {interStops.map((s, i) => (
+                    <div key={i} className="mb-2 flex items-center gap-2">
+                      <select value={s.code} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, code: e.target.value } : x)))} className={`${inp} flex-1`}>
+                        <option value="">City</option>
+                        {cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                      <input type="time" value={s.time} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, time: e.target.value } : x)))} className={`${inp} w-24`} title="Arrival time" />
+                      <input type="number" value={s.fare} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, fare: e.target.value } : x)))} placeholder="Fare" className={`${inp} w-24`} title="Fare from origin" />
+                      <button type="button" onClick={() => setInterStops((l) => l.filter((_, j) => j !== i))} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted hover:bg-red-50 hover:text-red-600">×</button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setInterStops((l) => [...l, { code: "", time: "", fare: "" }])} className="text-sm font-semibold text-brand-700 hover:underline">+ Add stop</button>
+                </div>
+              )}
             </>
           )}
           {isHotel && (
@@ -732,6 +760,11 @@ function EditSchedule({
               amenities,
               days: isStay ? undefined : days,
               title: isTransport && from && to ? `${cityName(from)} → ${cityName(to)}` : undefined,
+              routeStops: isTransport ? (interStops.some((s) => s.code) ? [
+                { code: from, name: cityName(from), fare: 0, time: departTime || undefined },
+                ...interStops.filter((s) => s.code).map((s) => ({ code: s.code, name: cityName(s.code), fare: Number(s.fare) || 0, time: s.time || undefined })),
+                { code: to, name: cityName(to), fare: Number(price) || 0, time: arriveTime || undefined },
+              ] : []) : undefined,
             })}
             className="flex-1 rounded-lg bg-brand-600 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
           >
@@ -791,6 +824,7 @@ function AddSchedule({
   const [rating, setRating] = useState("");
   const [badge, setBadge] = useState("");
   const [bookedAtCreate, setBookedAtCreate] = useState<string[]>([]);
+  const [interStops, setInterStops] = useState<{ code: string; time: string; fare: string }[]>([]);
   const facilities = facilitiesFor(category);
   const isFlight = category === "FLIGHT";
   const isHotel = category === "HOTEL";
@@ -830,6 +864,11 @@ function AddSchedule({
       rating: isHotel && rating ? Number(rating) : undefined,
       badge: badge.trim() || undefined,
       bookedSeats: isBus && bookedAtCreate.length ? bookedAtCreate : undefined,
+      routeStops: isTransport && interStops.some((s) => s.code) ? [
+        { code: from, name: cityName(from), fare: 0, time: departTime },
+        ...interStops.filter((s) => s.code).map((s) => ({ code: s.code, name: cityName(s.code), fare: Number(s.fare) || 0, time: s.time || undefined })),
+        { code: to, name: cityName(to), fare: Number(price) || 0, time: arriveTime },
+      ] : undefined,
       price: Number(price),
       unit: unitWord,
       capacity: seats || undefined,
@@ -945,6 +984,25 @@ function AddSchedule({
                   {!direct && <span className="text-xs text-muted">stop(s) on the way</span>}
                 </div>
               </div>
+
+              {!isFlight && (
+                <div>
+                  <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Stops along the way <span className="font-normal text-muted">(optional)</span></span>
+                  <p className="mb-2 text-xs text-muted">Add cities the bus stops at, with the fare from the start. Customers searching a sub-route (e.g. a stop → {to ? cityName(to) : "destination"}) get that segment’s fare.</p>
+                  {interStops.map((s, i) => (
+                    <div key={i} className="mb-2 flex items-center gap-2">
+                      <select value={s.code} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, code: e.target.value } : x)))} className={`${inp} flex-1`}>
+                        <option value="">City</option>
+                        {cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                      <input type="time" value={s.time} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, time: e.target.value } : x)))} className={`${inp} w-24`} title="Arrival time" />
+                      <input type="number" value={s.fare} onChange={(e) => setInterStops((l) => l.map((x, j) => (j === i ? { ...x, fare: e.target.value } : x)))} placeholder="Fare" className={`${inp} w-24`} title="Fare from origin" />
+                      <button type="button" onClick={() => setInterStops((l) => l.filter((_, j) => j !== i))} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted hover:bg-red-50 hover:text-red-600">×</button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setInterStops((l) => [...l, { code: "", time: "", fare: "" }])} className="text-sm font-semibold text-brand-700 hover:underline">+ Add stop</button>
+                </div>
+              )}
             </>
           )}
 

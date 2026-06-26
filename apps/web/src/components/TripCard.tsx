@@ -17,6 +17,16 @@ const PRICE_SUFFIX: Record<Trip["priceUnit"], string> = {
 const TRANSPORT = new Set(["BUS", "FLIGHT", "TRAIN"]);
 const STAY = new Set(["HOTEL", "FARMHOUSE", "HUT"]);
 
+const ymdLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const fmtDay = (s: string) => new Date(`${s}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+
+function suspendLabel(from?: string, to?: string): string {
+  if (!from) return "Suspended";
+  const today = ymdLocal(new Date());
+  if (!to || from === to) return from === today ? "Suspended today" : `Suspended on ${fmtDay(from)}`;
+  return from === today ? `Suspended today – ${fmtDay(to)}` : `Suspended ${fmtDay(from)} – ${fmtDay(to)}`;
+}
+
 export function TripCard({ trip }: { trip: Trip }) {
   const isTransport = TRANSPORT.has(trip.serviceType);
   const quote = trip.price === 0;
@@ -59,8 +69,8 @@ export function TripCard({ trip }: { trip: Trip }) {
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-bold text-ink">{trip.title}</span>
               {trip.suspended && (
-                <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
-                  Suspended on this date
+                <span suppressHydrationWarning className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+                  {suspendLabel(trip.suspendedFrom, trip.suspendedTo)}
                 </span>
               )}
               {trip.badge && (

@@ -72,6 +72,8 @@ export interface Trip {
   rating?: number; // hotel star rating
   badge?: string; // e.g. "Direct", "Bestseller", "5★"
   suspended?: boolean; // operator suspended this listing for the searched date
+  suspendedFrom?: string; // first suspended day (the searched date)
+  suspendedTo?: string; // last consecutive suspended day
 }
 
 export interface SearchQuery {

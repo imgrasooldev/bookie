@@ -105,15 +105,31 @@ catalogRouter.get(
       .sort({ departAt: 1, price: 1 })
       .lean();
     // keep operator-suspended listings visible but flag them for the searched
-    // date (Eid/Moharram, etc.) so the UI can mark them unbookable.
+    // date (Eid/Moharram, etc.) so the UI can mark them unbookable. Report the
+    // contiguous suspended span from the searched date forward.
     res.json(
-      trips.map((t) => ({
-        ...serializeTrip(t),
-        suspended: q.date ? (t.blockedDates ?? []).includes(q.date) : false,
-      })),
+      trips.map((t) => {
+        const range = q.date ? suspendedRange(t.blockedDates ?? [], q.date) : null;
+        return { ...serializeTrip(t), suspended: !!range, suspendedFrom: range?.from, suspendedTo: range?.to };
+      }),
     );
   }),
 );
+
+// add n days to a yyyy-mm-dd string (UTC-safe)
+function addDaysStr(d: string, n: number): string {
+  const dt = new Date(`${d}T00:00:00.000Z`);
+  dt.setUTCDate(dt.getUTCDate() + n);
+  return dt.toISOString().slice(0, 10);
+}
+// if `date` is suspended, return [date .. last consecutive suspended day]
+function suspendedRange(blocked: string[], date: string): { from: string; to: string } | null {
+  const set = new Set(blocked);
+  if (!set.has(date)) return null;
+  let to = date;
+  while (set.has(addDaysStr(to, 1))) to = addDaysStr(to, 1);
+  return { from: date, to };
+}
 
 // GET /trips/:id
 catalogRouter.get(

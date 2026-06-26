@@ -99,6 +99,8 @@ catalogRouter.get(
     };
     if (q.originId) filter.originCode = q.originId;
     if (q.destinationId) filter.destinationCode = q.destinationId;
+    // hide listings the operator suspended for the searched date (Eid/Moharram, etc.)
+    if (q.date) filter.blockedDates = { $ne: q.date };
 
     const trips = await Trip.find(filter)
       .populate("operator")

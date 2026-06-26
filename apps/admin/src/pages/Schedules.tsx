@@ -189,6 +189,11 @@ export function Schedules() {
                       <span className="text-muted">{s.stops === 0 ? "Direct" : `${s.stops} stop${s.stops > 1 ? "s" : ""}`}</span>
                     )}
                     {s.rating ? <span className="text-muted">{s.rating}★</span> : null}
+                    {s.blockedDates && s.blockedDates.length > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+                        ⏸ {s.blockedDates.length} day{s.blockedDates.length > 1 ? "s" : ""} suspended
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -341,14 +346,13 @@ function AvailabilityModal({
   const [booked, setBooked] = useState<string[]>(schedule.bookedSeats ?? []);
   const [reserved, setReserved] = useState<number>(schedule.reservedUnits ?? 0);
   const [blocked, setBlocked] = useState<string[]>(schedule.blockedDates ?? []);
-  const [newDate, setNewDate] = useState("");
   const [scope, setScope] = useState<"intracity" | "intercity" | "both">(schedule.serviceScope ?? "both");
 
   function save() {
     const patch: AvailPatch = {};
     if (isSeated) patch.bookedSeats = booked;
     if (isUnits) patch.reservedUnits = reserved;
-    if (isStay) patch.blockedDates = blocked;
+    if (isStay || isSeated) patch.blockedDates = blocked;
     if (isRide) patch.serviceScope = scope;
     onSave(schedule.id, patch);
   }
@@ -408,6 +412,17 @@ function AvailabilityModal({
                   {seats.map((n) => seatBtn(n))}
                 </div>
               )}
+
+              {!isCar && (
+                <div className="mt-5 border-t border-slate-100 pt-5">
+                  <SuspendDates
+                    blocked={blocked}
+                    setBlocked={setBlocked}
+                    label="Suspended / off-service dates"
+                    hint="Days this service won’t run (Eid, Moharram, etc.). Pick a single day or a date range. It won’t appear in customer search on these dates."
+                  />
+                </div>
+              )}
             </>
           )}
 
@@ -432,23 +447,12 @@ function AvailabilityModal({
 
               {isStay && (
                 <div className="mt-5">
-                  <div className="mb-1 text-sm font-medium text-ink">Blocked dates</div>
-                  <div className="flex gap-2">
-                    <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-                    <button
-                      onClick={() => { if (newDate && !blocked.includes(newDate)) { setBlocked((b) => [...b, newDate].sort()); setNewDate(""); } }}
-                      className="rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
-                    >Block</button>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {blocked.length === 0 && <span className="text-xs text-muted">No blocked dates.</span>}
-                    {blocked.map((d) => (
-                      <span key={d} className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700">
-                        {d}
-                        <button onClick={() => setBlocked((b) => b.filter((x) => x !== d))} className="ml-0.5">×</button>
-                      </span>
-                    ))}
-                  </div>
+                  <SuspendDates
+                    blocked={blocked}
+                    setBlocked={setBlocked}
+                    label="Blocked dates"
+                    hint="Dates this property is unavailable. Pick a single day or a range."
+                  />
                 </div>
               )}
             </>
@@ -484,6 +488,67 @@ function AvailabilityModal({
           <button onClick={save} className="flex-1 rounded-lg bg-brand-600 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Save availability</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+const ymdLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+function datesInRange(from: string, to: string): string[] {
+  if (!from) return [];
+  const start = new Date(`${from}T00:00:00`);
+  const end = new Date(`${to || from}T00:00:00`);
+  if (Number.isNaN(+start) || Number.isNaN(+end) || end < start) return [from];
+  const out: string[] = [];
+  for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) out.push(ymdLocal(d));
+  return out;
+}
+
+function SuspendDates({
+  blocked,
+  setBlocked,
+  label,
+  hint,
+}: {
+  blocked: string[];
+  setBlocked: React.Dispatch<React.SetStateAction<string[]>>;
+  label: string;
+  hint?: string;
+}) {
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const fieldInp = "rounded-lg border border-slate-200 px-2.5 py-2 text-sm";
+
+  const add = () => {
+    const range = datesInRange(from, to);
+    if (range.length === 0) return;
+    setBlocked((b) => Array.from(new Set([...b, ...range])).sort());
+    setFrom("");
+    setTo("");
+  };
+
+  return (
+    <div>
+      <div className="text-sm font-medium text-ink">{label}</div>
+      {hint && <p className="mb-2 mt-0.5 text-xs text-muted">{hint}</p>}
+      <div className="flex flex-wrap items-center gap-2">
+        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={fieldInp} />
+        <span className="text-muted">→</span>
+        <input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className={fieldInp} />
+        <button onClick={add} disabled={!from} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">Block</button>
+      </div>
+      <p className="mt-1 text-[11px] text-muted">Leave the second date empty to block a single day.</p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {blocked.length === 0 && <span className="text-xs text-muted">No dates blocked.</span>}
+        {blocked.map((d) => (
+          <span key={d} className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700">
+            {d}
+            <button onClick={() => setBlocked((b) => b.filter((x) => x !== d))} className="ml-0.5">×</button>
+          </span>
+        ))}
+      </div>
+      {blocked.length > 0 && (
+        <button onClick={() => setBlocked([])} className="mt-2 text-xs font-semibold text-red-600 hover:underline">Clear all</button>
+      )}
     </div>
   );
 }

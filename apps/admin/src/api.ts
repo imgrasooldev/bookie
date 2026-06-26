@@ -83,6 +83,8 @@ export interface Overview {
 }
 export interface ListingsPage { items: AdminListing[]; total: number; page: number; limit: number }
 export interface ListingsQuery { page?: number; limit?: number; status?: "pending" | "approved" | "all"; serviceType?: string; q?: string }
+export interface OperatorsPage { items: AdminOperator[]; total: number; page: number; limit: number }
+export interface OperatorsQuery { page?: number; limit?: number; status?: "active" | "pending" | "suspended" | "all"; category?: string; q?: string }
 
 export const adminOverview = (range?: { from?: string; to?: string }) => {
   const qs = new URLSearchParams();
@@ -91,7 +93,18 @@ export const adminOverview = (range?: { from?: string; to?: string }) => {
   const s = qs.toString();
   return getJson<Overview>(`/sa/overview${s ? `?${s}` : ""}`).catch(() => null);
 };
-export const listOperators = () => getJson<AdminOperator[]>("/sa/operators").catch(() => [] as AdminOperator[]);
+export const listOperators = (params: OperatorsQuery = {}) => {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set("page", String(params.page));
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.status && params.status !== "all") qs.set("status", params.status);
+  if (params.category) qs.set("category", params.category);
+  if (params.q) qs.set("q", params.q);
+  const s = qs.toString();
+  return getJson<OperatorsPage>(`/sa/operators${s ? `?${s}` : ""}`).catch(
+    () => ({ items: [], total: 0, page: params.page ?? 1, limit: params.limit ?? 10 } as OperatorsPage),
+  );
+};
 export const listListings = (params: ListingsQuery = {}) => {
   const qs = new URLSearchParams();
   if (params.page) qs.set("page", String(params.page));

@@ -1,23 +1,38 @@
 import { useEffect, useState } from "react";
 import {
   listOperators, onboardOperator, setOperatorStatus, getOperatorDetail, updateOperator, setOperatorPassword,
-  type AdminOperator, type OperatorDetail,
+  type AdminOperator, type OperatorDetail, type OperatorsPage,
 } from "../../api";
 import { PageHeader, StatusBadge } from "../../components/ui";
 import { formatPKR } from "../../data";
-import { PlusIcon } from "../../icons";
+import { PlusIcon, SearchIcon } from "../../icons";
 
 const CATEGORIES = ["BUS", "CAR", "FLIGHT", "TRAIN", "HOTEL", "FARMHOUSE", "HUT", "WATERPARK", "TOUR", "PICNIC"];
 
 export function AdminOperators() {
-  const [list, setList] = useState<AdminOperator[]>([]);
+  const [data, setData] = useState<OperatorsPage>({ items: [], total: 0, page: 1, limit: 10 });
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<"active" | "pending" | "suspended" | "all">("all");
+  const [category, setCategory] = useState("");
+  const [q, setQ] = useState("");
+  const [dq, setDq] = useState("");
   const [open, setOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editing, setEditing] = useState<AdminOperator | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  const load = () => listOperators().then(setList);
-  useEffect(() => { load(); }, []);
+  const pageSize = 10;
+  useEffect(() => { const t = setTimeout(() => setDq(q), 350); return () => clearTimeout(t); }, [q]);
+  useEffect(() => { setPage(1); }, [statusFilter, category, dq]);
+
+  async function load() {
+    setLoading(true);
+    const r = await listOperators({ page, limit: pageSize, status: statusFilter, category: category || undefined, q: dq || undefined });
+    setData(r);
+    setLoading(false);
+  }
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, statusFilter, category, dq]);
 
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2500); };
 
@@ -26,6 +41,11 @@ export function AdminOperators() {
     if (r.ok) { await load(); flash(status === "active" ? "Operator approved" : "Operator suspended"); }
     else flash("⚠ " + r.error);
   }
+
+  const totalPages = Math.max(1, Math.ceil(data.total / pageSize));
+  const start = data.total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, data.total);
+  const sel = "rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm";
 
   return (
     <div>
@@ -39,6 +59,24 @@ export function AdminOperators() {
         }
       />
 
+      {/* filters */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 sm:max-w-xs">
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search businesses…" className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm" />
+        </div>
+        <select value={category} onChange={(e) => setCategory(e.target.value)} className={sel}>
+          <option value="">All categories</option>
+          {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className={sel}>
+          <option value="all">All status</option>
+          <option value="active">Active</option>
+          <option value="pending">Pending</option>
+          <option value="suspended">Suspended</option>
+        </select>
+      </div>
+
       <div className="card overflow-hidden">
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-muted">
@@ -51,7 +89,11 @@ export function AdminOperators() {
             </tr>
           </thead>
           <tbody>
-            {list.map((o) => (
+            {loading ? (
+              <tr><td colSpan={5} className="px-5 py-10 text-center text-muted">Loading…</td></tr>
+            ) : data.items.length === 0 ? (
+              <tr><td colSpan={5} className="px-5 py-10 text-center text-muted">No operators match these filters.</td></tr>
+            ) : data.items.map((o) => (
               <tr key={o.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60">
                 <td className="px-5 py-3">
                   <button onClick={() => setDetailId(o.id)} className="font-semibold text-ink hover:text-brand-700 hover:underline">{o.name}</button>
@@ -72,9 +114,18 @@ export function AdminOperators() {
                 </td>
               </tr>
             ))}
-            {list.length === 0 && <tr><td colSpan={5} className="px-5 py-10 text-center text-muted">No operators yet.</td></tr>}
           </tbody>
         </table>
+
+        {/* pagination */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-3 text-sm">
+          <span className="text-muted">{start}–{end} of {data.total}</span>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50 disabled:opacity-40">‹ Prev</button>
+            <span className="text-muted">Page {page} of {totalPages}</span>
+            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-slate-50 disabled:opacity-40">Next ›</button>
+          </div>
+        </div>
       </div>
 
       {open && <Onboard onClose={() => setOpen(false)} onDone={async () => { setOpen(false); await load(); flash("✓ Operator onboarded"); }} />}

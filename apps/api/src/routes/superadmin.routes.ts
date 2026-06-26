@@ -17,16 +17,36 @@ const COLORS = ["#1d4ed8", "#b91c1c", "#047857", "#7c3aed", "#0891b2", "#be185d"
 
 superAdminRouter.use(requireAdmin);
 
-// GET /sa/operators — all operators with counts
+// GET /sa/operators — paginated + filterable operators with listing counts
+const operatorsQuery = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+  status: z.enum(["active", "pending", "suspended", "all"]).default("all"),
+  category: z.string().optional(),
+  q: z.string().optional(),
+});
+
 superAdminRouter.get(
   "/operators",
   requirePermission("operators.view"),
-  ah(async (_req, res) => {
-    const ops = await Operator.find().sort({ createdAt: -1 }).lean();
-    const listings = await Trip.aggregate([{ $group: { _id: "$operator", n: { $sum: 1 } } }]);
-    const countOf = (id: string) => listings.find((l) => String(l._id) === id)?.n ?? 0;
-    res.json(
-      ops.map((o) => ({
+  ah(async (req, res) => {
+    const p = operatorsQuery.parse(req.query);
+    const filter: Record<string, unknown> = {};
+    if (p.status !== "all") filter.status = p.status;
+    if (p.category) filter.category = p.category.toUpperCase();
+    if (p.q) filter.name = { $regex: p.q.trim(), $options: "i" };
+
+    const [total, ops] = await Promise.all([
+      Operator.countDocuments(filter),
+      Operator.find(filter).sort({ createdAt: -1 }).skip((p.page - 1) * p.limit).limit(p.limit).lean(),
+    ]);
+
+    const ids = ops.map((o) => o._id);
+    const counts = await Trip.aggregate([{ $match: { operator: { $in: ids } } }, { $group: { _id: "$operator", n: { $sum: 1 } } }]);
+    const countOf = (id: string) => counts.find((l) => String(l._id) === id)?.n ?? 0;
+
+    res.json({
+      items: ops.map((o) => ({
         id: String(o._id),
         name: o.name,
         category: o.category ?? "BUS",
@@ -35,7 +55,10 @@ superAdminRouter.get(
         listings: countOf(String(o._id)),
         createdAt: o.createdAt,
       })),
-    );
+      total,
+      page: p.page,
+      limit: p.limit,
+    });
   }),
 );
 

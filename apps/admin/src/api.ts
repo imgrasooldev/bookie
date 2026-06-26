@@ -74,7 +74,10 @@ export interface AdminOperator { id: string; name: string; category: string; sta
 export interface AdminListing { id: string; title: string; serviceType: string; operator: string; price: number; approved: boolean; status: string }
 export interface Overview {
   operators: number; pendingOperators: number; listings: number; pendingListings: number;
-  bookings: number; revenue: number; byCategory: { category: string; count: number }[];
+  bookings: number; revenue: number;
+  byCategory: { category: string; count: number }[];
+  byStatus: { status: string; count: number }[];
+  daily: { date: string; bookings: number; revenue: number }[];
 }
 
 export const adminOverview = () => getJson<Overview>("/sa/overview").catch(() => null);

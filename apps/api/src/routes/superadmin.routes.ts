@@ -195,7 +195,11 @@ superAdminRouter.get(
   "/overview",
   requirePermission("reports.view"),
   ah(async (_req, res) => {
-    const [operators, pendingOps, listings, pendingListings, bookings, rev, byCat] = await Promise.all([
+    const since = new Date();
+    since.setHours(0, 0, 0, 0);
+    since.setDate(since.getDate() - 13); // 14-day window incl. today
+
+    const [operators, pendingOps, listings, pendingListings, bookings, rev, byCat, byStatus, dailyAgg] = await Promise.all([
       Operator.countDocuments({}),
       Operator.countDocuments({ status: "pending" }),
       Trip.countDocuments({}),
@@ -203,7 +207,23 @@ superAdminRouter.get(
       Booking.countDocuments({}),
       Booking.aggregate([{ $group: { _id: null, total: { $sum: "$fare.total" } } }]),
       Trip.aggregate([{ $group: { _id: "$serviceType", n: { $sum: 1 } } }, { $sort: { n: -1 } }]),
+      Operator.aggregate([{ $group: { _id: "$status", n: { $sum: 1 } } }]),
+      Booking.aggregate([
+        { $match: { createdAt: { $gte: since } } },
+        { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, bookings: { $sum: 1 }, revenue: { $sum: "$fare.total" } } },
+      ]),
     ]);
+
+    // fill the 14-day window so the chart has no gaps
+    const daily: { date: string; bookings: number; revenue: number }[] = [];
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(since);
+      d.setDate(since.getDate() + i);
+      const key = d.toISOString().slice(0, 10);
+      const f = dailyAgg.find((x) => x._id === key);
+      daily.push({ date: key, bookings: f?.bookings ?? 0, revenue: f?.revenue ?? 0 });
+    }
+
     res.json({
       operators,
       pendingOperators: pendingOps,
@@ -212,6 +232,8 @@ superAdminRouter.get(
       bookings,
       revenue: rev[0]?.total ?? 0,
       byCategory: byCat.map((c) => ({ category: c._id, count: c.n })),
+      byStatus: byStatus.map((s) => ({ status: s._id, count: s.n })),
+      daily,
     });
   }),
 );

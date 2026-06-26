@@ -29,6 +29,9 @@ function bucketOf(iso?: string): string | null {
 export function SearchResults({ trips }: { trips: Trip[] }) {
   const priced = trips.filter((t) => t.price > 0).map((t) => t.price);
   const maxPrice = priced.length ? Math.max(...priced) : 0;
+  // floor of the slider — drop to 0 when every result shares one price so the
+  // slider still has a draggable range.
+  const minPrice = priced.length && Math.min(...priced) < maxPrice ? Math.min(...priced) : 0;
 
   const operators = useMemo(
     () => Array.from(new Set(trips.map((t) => t.operator.name))),
@@ -72,6 +75,7 @@ export function SearchResults({ trips }: { trips: Trip[] }) {
     });
   }, [trips, priceMax, ops, times, ams, sort]);
 
+  const pricePct = maxPrice > minPrice ? ((priceMax - minPrice) / (maxPrice - minPrice)) * 100 : 100;
   const activeFilters = ops.size + times.size + ams.size + (priceMax < maxPrice ? 1 : 0);
 
   function clearAll() {
@@ -100,12 +104,19 @@ export function SearchResults({ trips }: { trips: Trip[] }) {
           </div>
           <input
             type="range"
-            min={Math.min(...priced)}
+            min={minPrice}
             max={maxPrice}
             value={priceMax}
             onChange={(e) => setPriceMax(Number(e.target.value))}
-            className="w-full accent-brand-600"
+            className="price-range"
+            style={{
+              background: `linear-gradient(to right, var(--color-brand-600) 0%, var(--color-brand-600) ${pricePct}%, var(--color-brand-100) ${pricePct}%, var(--color-brand-100) 100%)`,
+            }}
           />
+          <div className="mt-1 flex justify-between text-xs text-muted">
+            <span>{formatPKR(minPrice)}</span>
+            <span>{formatPKR(maxPrice)}</span>
+          </div>
         </div>
       )}
 

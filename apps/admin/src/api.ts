@@ -178,6 +178,7 @@ type TripJson = {
   bookedSeats?: string[]; reservedUnits?: number; blockedDates?: string[];
   serviceScope?: "intracity" | "intercity" | "both" | null; approved?: boolean;
   amenities?: string[]; vehicle?: string; durationDays?: number; checkIn?: string; checkOut?: string;
+  stops?: number; rating?: number; badge?: string;
 };
 
 function toSchedule(t: TripJson): Schedule | null {
@@ -195,8 +196,10 @@ function toSchedule(t: TripJson): Schedule | null {
     id: t.id, category, operator: t.operator?.name ?? "—", title: t.title,
     from: t.originId, to: t.destinationId,
     departTime: hhmm(t.departAt), arriveTime: hhmm(t.arriveAt), days: [],
-    location: t.location, vehicle2: t.vehicle, durationDays: t.durationDays,
+    location: t.location, vehicle2: t.vehicle, vehicleName: t.vehicle,
+    durationDays: t.durationDays,
     checkIn: t.checkIn, checkOut: t.checkOut,
+    stops: t.stops, rating: t.rating, badge: t.badge,
     price: t.price, unit,
     capacity: t.seatsAvailable != null ? t.seatsAvailable + booked + reserved : undefined,
     status: t.status === "hidden" ? "paused" : "active",
@@ -278,16 +281,19 @@ export async function createTrip(s: Schedule): Promise<SaveResult> {
     departAt, arriveAt, durationMin,
     price: s.price, priceUnit, seatsAvailable: s.capacity, location: s.location,
     amenities: s.amenities ?? [],
-    vehicle: s.vehicle2,
+    vehicle: s.vehicleName || s.vehicle2,
     durationDays: s.durationDays,
     checkIn: s.checkIn,
     checkOut: s.checkOut,
+    stops: s.stops,
+    rating: s.rating,
+    badge: s.badge,
   });
 }
 
 export async function updateTrip(
   id: string,
-  patch: { price?: number; status?: "active" | "hidden"; departAt?: string; arriveAt?: string; seatsAvailable?: number; title?: string; durationDays?: number; checkIn?: string; checkOut?: string },
+  patch: { price?: number; status?: "active" | "hidden"; departAt?: string; arriveAt?: string; seatsAvailable?: number; title?: string; durationDays?: number; checkIn?: string; checkOut?: string; vehicle?: string; stops?: number; rating?: number; badge?: string },
 ): Promise<SaveResult> {
   return send(`/operator/trips/${id}`, "PATCH", patch);
 }

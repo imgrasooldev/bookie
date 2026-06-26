@@ -182,9 +182,13 @@ export interface Schedule {
   vehicle?: string; // vehicle id (transport)
   location?: string; // stays / tour destination / pickup area
   vehicle2?: string; // charter coach descriptor (free text)
+  vehicleName?: string; // display vehicle/aircraft/train (customer card)
   durationDays?: number; // tour package length
   checkIn?: string; // stay check-in time
   checkOut?: string; // stay check-out time
+  stops?: number; // flight stops (0 = direct)
+  rating?: number; // hotel star rating
+  badge?: string; // marketing label e.g. "Direct", "Bestseller"
   price: number;
   unit: "seat" | "night" | "trip" | "ticket" | "person";
   capacity?: number; // total seats / units / daily tickets / group size

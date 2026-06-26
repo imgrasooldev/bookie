@@ -159,6 +159,10 @@ const createSchema = z.object({
   durationDays: z.coerce.number().optional(),
   checkIn: z.string().optional(),
   checkOut: z.string().optional(),
+  stops: z.coerce.number().int().min(0).optional(),
+  rating: z.coerce.number().min(0).max(5).optional(),
+  nights: z.coerce.number().int().min(1).optional(),
+  badge: z.string().optional(),
 });
 
 operatorRouter.post(
@@ -196,6 +200,11 @@ const patchSchema = z.object({
   durationDays: z.coerce.number().optional(),
   checkIn: z.string().optional(),
   checkOut: z.string().optional(),
+  vehicle: z.string().optional(),
+  location: z.string().optional(),
+  stops: z.coerce.number().int().min(0).optional(),
+  rating: z.coerce.number().min(0).max(5).optional(),
+  badge: z.string().optional(),
 });
 
 operatorRouter.patch(

@@ -14,6 +14,7 @@ import {
 import { createTrip, listSchedules, updateTrip, deleteTrip, setAvailability } from "../api";
 import { getOperator } from "../auth";
 import { PageHeader } from "../components/ui";
+import { useEscToClose } from "../components/useEscToClose";
 import { PlusIcon, ClockIcon, CalendarIcon, TrashIcon, PowerIcon } from "../icons";
 
 const isoAt = (time?: string) => {
@@ -278,6 +279,7 @@ function AvailabilityModal({
   onClose: () => void;
   onSave: (id: string, patch: AvailPatch) => void;
 }) {
+  useEscToClose(onClose);
   const kind = categoryOf(schedule.category).kind;
   const isSeated = kind === "transport";
   const isStay = kind === "stay";
@@ -457,6 +459,7 @@ function EditSchedule({
   onClose: () => void;
   onSave: (id: string, fields: { price: number; capacity?: number; departTime?: string; arriveTime?: string; checkIn?: string; checkOut?: string; durationDays?: number }) => void;
 }) {
+  useEscToClose(onClose);
   const kind = categoryOf(schedule.category).kind;
   const isStay = kind === "stay";
   const isPackage = kind === "package";
@@ -519,6 +522,7 @@ function AddSchedule({
   onClose: () => void;
   onAdd: (s: Schedule) => void;
 }) {
+  useEscToClose(onClose);
   const c = categoryOf(category);
   const kind = c.kind;
   const isStay = kind === "stay";

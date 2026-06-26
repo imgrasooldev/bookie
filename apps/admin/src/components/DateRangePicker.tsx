@@ -29,8 +29,10 @@ export function DateRangePicker({ value, onChange }: { value: Range; onChange: (
   useEffect(() => { setFrom(value.from); setTo(value.to); }, [value.from, value.to]);
   useEffect(() => {
     const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); };
   }, []);
 
   const applyPreset = (p: Preset) => { const r = p.range(); onChange({ ...r, label: p.label }); setOpen(false); };

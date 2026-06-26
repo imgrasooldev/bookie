@@ -4,6 +4,7 @@ import {
   type RoleItem, type PermissionItem,
 } from "../../api";
 import { PageHeader } from "../../components/ui";
+import { useEscToClose } from "../../components/useEscToClose";
 import { PlusIcon, TrashIcon } from "../../icons";
 
 export function AdminRoles() {
@@ -106,6 +107,7 @@ function RoleCard({ role, groups, onSaved, onDeleted, onError }: {
 function CreateRole({ groups, onClose, onDone, onError }: {
   groups: Record<string, PermissionItem[]>; onClose: () => void; onDone: () => void; onError: (e: string) => void;
 }) {
+  useEscToClose(onClose);
   const [name, setName] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const toggle = (k: string) => setSelected((s) => (s.includes(k) ? s.filter((x) => x !== k) : [...s, k]));

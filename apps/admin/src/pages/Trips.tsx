@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { trips as seedTrips, operators, formatPKR, type Trip, type ServiceType } from "../data";
 import { PageHeader, StatusBadge, TypeBadge } from "../components/ui";
+import { useEscToClose } from "../components/useEscToClose";
 import { PlusIcon } from "../icons";
 
 const TYPES: ServiceType[] = ["BUS", "CAR", "PICNIC", "CORPORATE"];
@@ -64,6 +65,7 @@ export function Trips() {
 }
 
 function AddTripForm({ onClose, onAdd }: { onClose: () => void; onAdd: (t: Trip) => void }) {
+  useEscToClose(onClose);
   const [serviceType, setServiceType] = useState<ServiceType>("BUS");
   const [title, setTitle] = useState("");
   const [operator, setOperator] = useState(operators[0].name);

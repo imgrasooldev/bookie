@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { listTeam, listRoles, addTeam, assignRole, type TeamMember, type RoleItem } from "../../api";
 import { PageHeader } from "../../components/ui";
+import { useEscToClose } from "../../components/useEscToClose";
 import { PlusIcon } from "../../icons";
 
 export function AdminTeam() {
@@ -70,6 +71,7 @@ export function AdminTeam() {
 const inp = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm";
 
 function AddMember({ roles, onClose, onDone, onError }: { roles: RoleItem[]; onClose: () => void; onDone: () => void; onError: (e: string) => void }) {
+  useEscToClose(onClose);
   const [f, setF] = useState({ name: "", email: "", phone: "", password: "", roleId: roles[0]?.id ?? "" });
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
   const valid = f.name.length > 1 && f.phone.length > 6 && f.password.length >= 6 && f.roleId;

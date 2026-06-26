@@ -4,6 +4,7 @@ import {
   type AdminOperator, type OperatorDetail, type OperatorsPage, type OperatorsQuery, type SortDir,
 } from "../../api";
 import { PageHeader, StatusBadge, SortableTh } from "../../components/ui";
+import { useEscToClose } from "../../components/useEscToClose";
 
 type OperatorSort = NonNullable<OperatorsQuery["sort"]>;
 import { formatPKR } from "../../data";
@@ -161,6 +162,7 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function OperatorDrawer({ id, onClose, onEdit }: { id: string; onClose: () => void; onEdit: (o: AdminOperator) => void }) {
+  useEscToClose(onClose);
   const [d, setD] = useState<OperatorDetail | null>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -257,6 +259,7 @@ function OperatorDrawer({ id, onClose, onEdit }: { id: string; onClose: () => vo
 }
 
 function EditOperator({ operator, onClose, onSaved }: { operator: AdminOperator; onClose: () => void; onSaved: () => void }) {
+  useEscToClose(onClose);
   const [name, setName] = useState(operator.name);
   const [category, setCategory] = useState(operator.category);
   const [rating, setRating] = useState(String(operator.rating ?? ""));
@@ -335,6 +338,7 @@ function EditOperator({ operator, onClose, onSaved }: { operator: AdminOperator;
 const inp = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm";
 
 function Onboard({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  useEscToClose(onClose);
   const [f, setF] = useState({ businessName: "", category: "BUS", name: "", email: "", phone: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

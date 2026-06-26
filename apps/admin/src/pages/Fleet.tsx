@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { vehicles as seed, capacityOf, type Vehicle, type SeatLayout } from "../data";
 import { PageHeader } from "../components/ui";
+import { useEscToClose } from "../components/useEscToClose";
 import { SeatMapBuilder } from "../components/SeatMapBuilder";
 import { PlusIcon, BusIcon, TrashIcon } from "../icons";
 
@@ -73,6 +74,7 @@ export function Fleet() {
 }
 
 function AddVehicle({ onClose, onAdd }: { onClose: () => void; onAdd: (v: Vehicle) => void }) {
+  useEscToClose(onClose);
   const [name, setName] = useState("");
   const [type, setType] = useState("Bus");
   const [amenities, setAmenities] = useState<string[]>(["ac"]);

@@ -108,17 +108,16 @@ function MiniDonut({ title, data, loading }: { title: string; data: { label: str
       ) : (
         <div className="flex items-center gap-4">
           <svg viewBox="0 0 160 160" className="h-36 w-36 shrink-0" role="img" aria-label={title}>
-            {segments.map((s, i) => (
-              s.end > s.start ? (
-                <path
-                  key={s.label}
-                  d={arcPath(cx, cy, r, s.start, Math.max(s.start + 0.01, s.end))}
-                  fill="none" stroke={s.color} strokeWidth={active === i ? 24 : 16}
-                  className="cursor-pointer transition-all"
-                  onMouseEnter={() => setActive(i)} onMouseLeave={() => setActive(null)}
-                />
-              ) : null
-            ))}
+            {segments.map((s, i) => {
+              if (s.end <= s.start) return null;
+              const sw = active === i ? 24 : 16;
+              const handlers = { onMouseEnter: () => setActive(i), onMouseLeave: () => setActive(null), className: "cursor-pointer transition-all" };
+              return s.end - s.start >= 359.99 ? (
+                <circle key={s.label} cx={cx} cy={cy} r={r} fill="none" stroke={s.color} strokeWidth={sw} {...handlers} />
+              ) : (
+                <path key={s.label} d={arcPath(cx, cy, r, s.start, s.end)} fill="none" stroke={s.color} strokeWidth={sw} {...handlers} />
+              );
+            })}
             <text x={cx} y={cy - 3} textAnchor="middle" className="fill-ink text-[20px] font-extrabold">
               {active != null ? segments[active].count : total}
             </text>
@@ -307,21 +306,16 @@ function CategoryDonut({ data, loading }: { data: Overview["byCategory"]; loadin
       ) : (
         <div className="flex items-center gap-4">
           <svg viewBox="0 0 180 180" className="h-44 w-44 shrink-0" role="img" aria-label="Listings by category">
-            {segments.map((s, i) => (
-              s.end > s.start ? (
-                <path
-                  key={s.category}
-                  d={arcPath(cx, cy, r, s.start, Math.max(s.start + 0.01, s.end))}
-                  fill="none"
-                  stroke={s.color}
-                  strokeWidth={active === i ? 26 : 18}
-                  strokeLinecap="butt"
-                  className="cursor-pointer transition-all"
-                  onMouseEnter={() => setActive(i)}
-                  onMouseLeave={() => setActive(null)}
-                />
-              ) : null
-            ))}
+            {segments.map((s, i) => {
+              if (s.end <= s.start) return null;
+              const sw = active === i ? 26 : 18;
+              const handlers = { onMouseEnter: () => setActive(i), onMouseLeave: () => setActive(null), className: "cursor-pointer transition-all" };
+              return s.end - s.start >= 359.99 ? (
+                <circle key={s.category} cx={cx} cy={cy} r={r} fill="none" stroke={s.color} strokeWidth={sw} {...handlers} />
+              ) : (
+                <path key={s.category} d={arcPath(cx, cy, r, s.start, s.end)} fill="none" stroke={s.color} strokeWidth={sw} strokeLinecap="butt" {...handlers} />
+              );
+            })}
             <text x={cx} y={cy - 4} textAnchor="middle" className="fill-ink text-[22px] font-extrabold">
               {active != null ? segments[active].count : total}
             </text>

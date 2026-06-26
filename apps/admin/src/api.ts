@@ -77,6 +77,7 @@ export interface Overview {
   bookings: number; revenue: number;
   byCategory: { category: string; count: number }[];
   byStatus: { status: string; count: number }[];
+  topOperators: { name: string; category: string; count: number }[];
   daily: { date: string; bookings: number; revenue: number }[];
 }
 

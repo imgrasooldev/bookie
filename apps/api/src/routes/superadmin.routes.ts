@@ -199,7 +199,7 @@ superAdminRouter.get(
     since.setHours(0, 0, 0, 0);
     since.setDate(since.getDate() - 13); // 14-day window incl. today
 
-    const [operators, pendingOps, listings, pendingListings, bookings, rev, byCat, byStatus, dailyAgg] = await Promise.all([
+    const [operators, pendingOps, listings, pendingListings, bookings, rev, byCat, byStatus, dailyAgg, topOps] = await Promise.all([
       Operator.countDocuments({}),
       Operator.countDocuments({ status: "pending" }),
       Trip.countDocuments({}),
@@ -211,6 +211,14 @@ superAdminRouter.get(
       Booking.aggregate([
         { $match: { createdAt: { $gte: since } } },
         { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, bookings: { $sum: 1 }, revenue: { $sum: "$fare.total" } } },
+      ]),
+      Trip.aggregate([
+        { $group: { _id: "$operator", n: { $sum: 1 } } },
+        { $sort: { n: -1 } },
+        { $limit: 6 },
+        { $lookup: { from: "operators", localField: "_id", foreignField: "_id", as: "op" } },
+        { $unwind: "$op" },
+        { $project: { _id: 0, name: "$op.name", category: "$op.category", count: "$n" } },
       ]),
     ]);
 
@@ -233,6 +241,7 @@ superAdminRouter.get(
       revenue: rev[0]?.total ?? 0,
       byCategory: byCat.map((c) => ({ category: c._id, count: c.n })),
       byStatus: byStatus.map((s) => ({ status: s._id, count: s.n })),
+      topOperators: topOps.map((t) => ({ name: t.name, category: t.category ?? "—", count: t.count })),
       daily,
     });
   }),

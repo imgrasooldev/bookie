@@ -45,9 +45,135 @@ export function AdminOverview() {
         </div>
       </div>
 
+      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+        <div className="card p-5">
+          <MiniDonut
+            title="Operators by status"
+            loading={!o}
+            data={(o?.byStatus ?? []).map((s) => ({
+              label: s.status,
+              count: s.count,
+              color: STATUS_COLORS[s.status] ?? "#94a3b8",
+            }))}
+          />
+        </div>
+        <div className="card p-5">
+          <MiniDonut
+            title="Listings approval"
+            loading={!o}
+            data={o ? [
+              { label: "approved", count: Math.max(0, o.listings - o.pendingListings), color: "#16a34a" },
+              { label: "pending", count: o.pendingListings, color: "#d97706" },
+            ] : []}
+          />
+        </div>
+        <div className="card p-5">
+          <RankBars title="Top operators by listings" data={o?.topOperators ?? []} loading={!o} />
+        </div>
+      </div>
+
       <div className="card mt-6 p-5">
         <CategoryBars data={o?.byCategory ?? []} loading={!o} />
       </div>
+    </div>
+  );
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  active: "#16a34a", pending: "#d97706", suspended: "#dc2626",
+};
+
+/* ---------------- generic mini donut (interactive) ---------------- */
+
+function MiniDonut({ title, data, loading }: { title: string; data: { label: string; count: number; color: string }[]; loading: boolean }) {
+  const [active, setActive] = useState<number | null>(null);
+  const total = data.reduce((s, d) => s + d.count, 0);
+
+  let acc = 0;
+  const segments = data.map((d) => {
+    const start = total ? (acc / total) * 360 : 0;
+    acc += d.count;
+    const end = total ? (acc / total) * 360 : 0;
+    return { ...d, start, end };
+  });
+  const cx = 80, cy = 80, r = 58;
+
+  return (
+    <div>
+      <h2 className="mb-2 font-bold text-ink">{title}</h2>
+      {loading ? (
+        <div className="grid h-[160px] place-items-center text-sm text-muted">Loading…</div>
+      ) : total === 0 ? (
+        <div className="grid h-[160px] place-items-center text-sm text-muted">No data yet.</div>
+      ) : (
+        <div className="flex items-center gap-4">
+          <svg viewBox="0 0 160 160" className="h-36 w-36 shrink-0" role="img" aria-label={title}>
+            {segments.map((s, i) => (
+              s.end > s.start ? (
+                <path
+                  key={s.label}
+                  d={arcPath(cx, cy, r, s.start, Math.max(s.start + 0.01, s.end))}
+                  fill="none" stroke={s.color} strokeWidth={active === i ? 24 : 16}
+                  className="cursor-pointer transition-all"
+                  onMouseEnter={() => setActive(i)} onMouseLeave={() => setActive(null)}
+                />
+              ) : null
+            ))}
+            <text x={cx} y={cy - 3} textAnchor="middle" className="fill-ink text-[20px] font-extrabold">
+              {active != null ? segments[active].count : total}
+            </text>
+            <text x={cx} y={cy + 14} textAnchor="middle" className="fill-slate-400 text-[9px] uppercase tracking-wide">
+              {active != null ? segments[active].label : "total"}
+            </text>
+          </svg>
+          <div className="flex-1 space-y-1.5 text-sm">
+            {segments.map((s, i) => (
+              <button
+                key={s.label}
+                onMouseEnter={() => setActive(i)} onMouseLeave={() => setActive(null)}
+                className={`flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left capitalize transition ${active === i ? "bg-slate-100" : ""}`}
+              >
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                <span className="text-ink">{s.label}</span>
+                <span className="ml-auto text-muted">{s.count}{total ? ` · ${Math.round((s.count / total) * 100)}%` : ""}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- top operators (interactive ranked bars) ---------------- */
+
+function RankBars({ title, data, loading }: { title: string; data: Overview["topOperators"]; loading: boolean }) {
+  const [active, setActive] = useState<string | null>(null);
+  const max = Math.max(1, ...data.map((d) => d.count));
+
+  return (
+    <div>
+      <h2 className="mb-4 font-bold text-ink">{title}</h2>
+      {loading ? (
+        <div className="text-sm text-muted">Loading…</div>
+      ) : data.length === 0 ? (
+        <div className="grid h-[120px] place-items-center text-sm text-muted">No listings yet.</div>
+      ) : (
+        <div className="space-y-3">
+          {data.map((d, i) => (
+            <div key={d.name} onMouseEnter={() => setActive(d.name)} onMouseLeave={() => setActive(null)}>
+              <div className="mb-1 flex justify-between text-sm">
+                <span className={`truncate font-medium ${active === d.name ? "text-brand-700" : "text-ink"}`}>{d.name}</span>
+                <span className="shrink-0 text-muted">{d.count} · {d.category}</span>
+              </div>
+              <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full rounded-full transition-all"
+                  style={{ width: `${(d.count / max) * 100}%`, backgroundColor: PALETTE[i % PALETTE.length], opacity: active && active !== d.name ? 0.4 : 1 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

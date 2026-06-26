@@ -106,6 +106,9 @@ export function updateOperator(
 export function setOperatorStatus(id: string, status: "active" | "pending" | "suspended"): Promise<SaveResult> {
   return send(`/sa/operators/${id}`, "PATCH", { status });
 }
+export function setOperatorPassword(id: string, password: string): Promise<SaveResult> {
+  return send(`/sa/operators/${id}/password`, "POST", { password });
+}
 export function approveListing(id: string, approved: boolean): Promise<SaveResult> {
   return send(`/sa/listings/${id}`, "PATCH", { approved });
 }

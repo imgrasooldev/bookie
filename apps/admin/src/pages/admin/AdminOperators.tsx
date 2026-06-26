@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  listOperators, onboardOperator, setOperatorStatus, getOperatorDetail, updateOperator,
+  listOperators, onboardOperator, setOperatorStatus, getOperatorDetail, updateOperator, setOperatorPassword,
   type AdminOperator, type OperatorDetail,
 } from "../../api";
 import { PageHeader, StatusBadge } from "../../components/ui";
@@ -201,10 +201,12 @@ function EditOperator({ operator, onClose, onSaved }: { operator: AdminOperator;
   const [category, setCategory] = useState(operator.category);
   const [rating, setRating] = useState(String(operator.rating ?? ""));
   const [status, setStatus] = useState<"active" | "pending" | "suspended">(operator.status as "active" | "pending" | "suspended");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function save() {
+    if (password && password.length < 6) { setError("Password must be at least 6 characters."); return; }
     setBusy(true); setError(null);
     const r = await updateOperator(operator.id, {
       name: name.trim(),
@@ -212,8 +214,12 @@ function EditOperator({ operator, onClose, onSaved }: { operator: AdminOperator;
       rating: rating === "" ? undefined : Number(rating),
       status,
     });
-    if (r.ok) onSaved();
-    else { setError(r.error ?? "Failed"); setBusy(false); }
+    if (!r.ok) { setError(r.error ?? "Failed"); setBusy(false); return; }
+    if (password) {
+      const pr = await setOperatorPassword(operator.id, password);
+      if (!pr.ok) { setError(pr.error ?? "Couldn’t reset password."); setBusy(false); return; }
+    }
+    onSaved();
   }
 
   return (
@@ -248,6 +254,13 @@ function EditOperator({ operator, onClose, onSaved }: { operator: AdminOperator;
               <option value="suspended">suspended</option>
             </select>
           </label>
+          <div className="border-t border-slate-100 pt-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Reset login password</span>
+              <input className={inp} type="password" autoComplete="new-password" placeholder="New password (leave blank to keep)" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </label>
+            <p className="mt-1 text-xs text-muted">Sets the operator’s sign-in password. Share it with them securely.</p>
+          </div>
           {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
         </div>
         <div className="flex gap-3 border-t border-slate-100 px-6 py-4">

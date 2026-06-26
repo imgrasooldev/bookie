@@ -140,6 +140,22 @@ superAdminRouter.patch(
   }),
 );
 
+// POST /sa/operators/:id/password — reset the operator's login password
+superAdminRouter.post(
+  "/operators/:id/password",
+  requirePermission("operators.manage"),
+  ah(async (req, res) => {
+    const { password } = z.object({ password: z.string().min(6) }).parse(req.body);
+    const op = await Operator.findById(req.params.id).lean();
+    if (!op) throw new HttpError(404, "Operator not found");
+    const user = await User.findOne({ operatorId: op._id, roles: "operator_admin" });
+    if (!user) throw new HttpError(404, "This operator has no login account.");
+    user.passwordHash = await bcrypt.hash(password, 10);
+    await user.save();
+    res.json({ ok: true, id: String(user._id) });
+  }),
+);
+
 // GET /sa/listings?pending=1 — listings (optionally only unapproved)
 superAdminRouter.get(
   "/listings",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { TripCard } from "@/components/TripCard";
 import { AMENITY_LABELS } from "@/lib/mock";
 import { formatPKR } from "@/lib/format";
@@ -26,12 +26,13 @@ function bucketOf(iso?: string): string | null {
   return BUCKETS.find((b) => h >= b.lo && h < b.hi)?.key ?? null;
 }
 
-export function SearchResults({ trips }: { trips: Trip[] }) {
+export function SearchResults({ trips, cacheKey = "" }: { trips: Trip[]; cacheKey?: string }) {
   const priced = trips.filter((t) => t.price > 0).map((t) => t.price);
   const maxPrice = priced.length ? Math.max(...priced) : 0;
-  // floor of the slider — drop to 0 when every result shares one price so the
-  // slider still has a draggable range.
-  const minPrice = priced.length && Math.min(...priced) < maxPrice ? Math.min(...priced) : 0;
+  // slider spans cheapest → priciest available fare; floor to 0 when every
+  // result shares one price so the control still renders and stays draggable
+  const lo = priced.length ? Math.min(...priced) : 0;
+  const minPrice = lo < maxPrice ? lo : 0;
 
   const operators = useMemo(
     () => Array.from(new Set(trips.map((t) => t.operator.name))),
@@ -49,6 +50,30 @@ export function SearchResults({ trips }: { trips: Trip[] }) {
   const [times, setTimes] = useState<Set<string>>(new Set());
   const [ams, setAms] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
+
+  // remember each route's filters in the browser, restore on revisit
+  const storeKey = `bookie_filters:${cacheKey}`;
+  const firstSave = useRef(true);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storeKey);
+      if (!raw) return;
+      const f = JSON.parse(raw) as { priceMax?: number; ops?: string[]; times?: string[]; ams?: string[]; sort?: Sort };
+      if (typeof f.priceMax === "number") setPriceMax(Math.max(minPrice, Math.min(maxPrice || f.priceMax, f.priceMax)));
+      if (Array.isArray(f.ops)) setOps(new Set(f.ops.filter((o) => operators.includes(o))));
+      if (Array.isArray(f.times)) setTimes(new Set(f.times));
+      if (Array.isArray(f.ams)) setAms(new Set(f.ams.filter((a) => amenities.includes(a))));
+      if (f.sort === "time" || f.sort === "price" || f.sort === "rating") setSort(f.sort);
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeKey]);
+  useEffect(() => {
+    if (firstSave.current) { firstSave.current = false; return; }
+    try {
+      localStorage.setItem(storeKey, JSON.stringify({ priceMax, ops: [...ops], times: [...times], ams: [...ams], sort }));
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [priceMax, ops, times, ams, sort]);
 
   const toggle = (set: Set<string>, v: string) => {
     const n = new Set(set);
@@ -83,17 +108,21 @@ export function SearchResults({ trips }: { trips: Trip[] }) {
     setTimes(new Set());
     setAms(new Set());
     setPriceMax(maxPrice);
+    setSort("time");
+    try { localStorage.removeItem(storeKey); } catch { /* ignore */ }
   }
 
   const Filters = (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-ink">Filters</h3>
-        {activeFilters > 0 && (
-          <button onClick={clearAll} className="text-xs font-semibold text-brand-700 hover:underline">
-            Clear all
-          </button>
-        )}
+        <button
+          onClick={clearAll}
+          disabled={activeFilters === 0}
+          className="text-xs font-semibold text-brand-700 hover:underline disabled:cursor-default disabled:text-slate-300 disabled:no-underline"
+        >
+          Reset filters
+        </button>
       </div>
 
       {maxPrice > 0 && (

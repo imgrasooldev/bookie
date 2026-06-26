@@ -44,10 +44,10 @@ export function Login() {
           </div>
 
           <h1 className="text-2xl font-extrabold text-ink">
-            {mode === "login" ? "Operator sign in" : "Register your business"}
+            {mode === "login" ? "Sign in to the console" : "Register your business"}
           </h1>
           <p className="mt-1 text-sm text-muted">
-            {mode === "login" ? "Manage your buses, schedules and bookings." : "List your buses, hotels, tours & more on Bookie."}
+            {mode === "login" ? "Operators and administrators sign in here." : "List your buses, hotels, tours & more on Bookie."}
           </p>
 
           <div className="mt-6 space-y-3">

@@ -77,15 +77,66 @@ superAdminRouter.post(
   }),
 );
 
-// PATCH /sa/operators/:id — approve / suspend
+// GET /sa/operators/:id — full operator detail (contact, stats, listings)
+superAdminRouter.get(
+  "/operators/:id",
+  requirePermission("operators.view"),
+  ah(async (req, res) => {
+    const op = await Operator.findById(req.params.id).lean();
+    if (!op) throw new HttpError(404, "Operator not found");
+    const [user, trips, bookings, rev] = await Promise.all([
+      User.findOne({ operatorId: op._id, roles: "operator_admin" }).lean(),
+      Trip.find({ operator: op._id }).sort({ createdAt: -1 }).lean(),
+      Booking.countDocuments({ operator: op._id }),
+      Booking.aggregate([{ $match: { operator: op._id } }, { $group: { _id: null, total: { $sum: "$fare.total" } } }]),
+    ]);
+    res.json({
+      id: String(op._id),
+      name: op.name,
+      category: op.category ?? "BUS",
+      type: op.type,
+      rating: op.rating,
+      status: op.status,
+      logoColor: op.logoColor,
+      createdAt: op.createdAt,
+      contact: user ? { name: user.name, email: user.email ?? null, phone: user.phone } : null,
+      stats: {
+        listings: trips.length,
+        activeListings: trips.filter((t) => t.status === "active").length,
+        pendingListings: trips.filter((t) => !t.approved).length,
+        bookings,
+        revenue: rev[0]?.total ?? 0,
+      },
+      listings: trips.map((t) => ({
+        id: String(t._id),
+        title: t.title,
+        serviceType: t.serviceType,
+        price: t.price,
+        approved: t.approved ?? false,
+        status: t.status,
+      })),
+    });
+  }),
+);
+
+const operatorPatchSchema = z.object({
+  status: z.enum(["active", "pending", "suspended"]).optional(),
+  name: z.string().min(2).optional(),
+  category: z.string().min(2).optional(),
+  rating: z.coerce.number().min(0).max(5).optional(),
+});
+
+// PATCH /sa/operators/:id — approve / suspend / edit details
 superAdminRouter.patch(
   "/operators/:id",
   requirePermission("operators.manage"),
   ah(async (req, res) => {
-    const status = z.enum(["active", "pending", "suspended"]).parse(req.body.status);
-    const op = await Operator.findByIdAndUpdate(req.params.id, { status }, { new: true }).lean();
+    const b = operatorPatchSchema.parse(req.body);
+    const update: Record<string, unknown> = { ...b };
+    if (b.category) update.category = b.category.toUpperCase();
+    const op = await Operator.findByIdAndUpdate(req.params.id, update, { new: true }).lean();
     if (!op) throw new HttpError(404, "Operator not found");
-    res.json({ id: String(op._id), status: op.status });
+    res.json({ id: String(op._id), name: op.name, category: op.category, status: op.status, rating: op.rating });
   }),
 );
 

@@ -82,10 +82,26 @@ export const listOperators = () => getJson<AdminOperator[]>("/sa/operators").cat
 export const listListings = (pending = false) =>
   getJson<AdminListing[]>(`/sa/listings${pending ? "?pending=1" : ""}`).catch(() => [] as AdminListing[]);
 
+export interface OperatorListing { id: string; title: string; serviceType: string; price: number; approved: boolean; status: string }
+export interface OperatorDetail {
+  id: string; name: string; category: string; type: string; rating: number; status: string;
+  logoColor: string; createdAt: string;
+  contact: { name: string; email: string | null; phone: string } | null;
+  stats: { listings: number; activeListings: number; pendingListings: number; bookings: number; revenue: number };
+  listings: OperatorListing[];
+}
+
 export function onboardOperator(b: {
   businessName: string; category: string; name: string; phone: string; email?: string; password: string;
 }): Promise<SaveResult> {
   return send("/sa/operators", "POST", b);
+}
+export const getOperatorDetail = (id: string) => getJson<OperatorDetail>(`/sa/operators/${id}`).catch(() => null);
+export function updateOperator(
+  id: string,
+  fields: { name?: string; category?: string; rating?: number; status?: "active" | "pending" | "suspended" },
+): Promise<SaveResult> {
+  return send(`/sa/operators/${id}`, "PATCH", fields);
 }
 export function setOperatorStatus(id: string, status: "active" | "pending" | "suspended"): Promise<SaveResult> {
   return send(`/sa/operators/${id}`, "PATCH", { status });

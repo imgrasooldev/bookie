@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  vehicles,
   categoryOf,
   capacityOf,
   facilitiesFor,
@@ -9,8 +8,9 @@ import {
   formatPKR,
   type Schedule,
   type CategoryKey,
+  type Vehicle,
 } from "../data";
-import { createTrip, listSchedules, updateTrip, deleteTrip, setAvailability } from "../api";
+import { createTrip, listSchedules, updateTrip, deleteTrip, setAvailability, listVehicles } from "../api";
 import { getOperator } from "../auth";
 import { PageHeader } from "../components/ui";
 import { useEscToClose } from "../components/useEscToClose";
@@ -35,6 +35,7 @@ export function Schedules() {
   const [editing, setEditing] = useState<Schedule | null>(null);
   const [managing, setManaging] = useState<Schedule | null>(null);
   const [pendingDel, setPendingDel] = useState<Schedule | null>(null);
+  const [fleet, setFleet] = useState<Vehicle[]>([]);
   const [toast, setToast] = useState<string | null>(null);
 
   const flash = (m: string) => {
@@ -44,6 +45,7 @@ export function Schedules() {
 
   async function load() {
     setLoading(true);
+    listVehicles().then((v) => { if (v.ok) setFleet(v.data); });
     const r = await listSchedules();
     if (r.ok) {
       setList(r.data);
@@ -210,6 +212,7 @@ export function Schedules() {
       {open && (
         <AddSchedule
           category={cat}
+          fleet={fleet}
           onClose={() => setOpen(false)}
           onAdd={async (s) => {
             setOpen(false);
@@ -572,10 +575,12 @@ function EditSchedule({
 
 function AddSchedule({
   category,
+  fleet,
   onClose,
   onAdd,
 }: {
   category: CategoryKey;
+  fleet: Vehicle[];
   onClose: () => void;
   onAdd: (s: Schedule) => void;
 }) {
@@ -599,7 +604,7 @@ function AddSchedule({
   const [departTime, setDepartTime] = useState("07:00");
   const [arriveTime, setArriveTime] = useState("11:00");
   const [days, setDays] = useState<string[]>([...DAYS]);
-  const [vehicle, setVehicle] = useState(vehicles[0]?.id ?? "");
+  const [vehicle, setVehicle] = useState(fleet[0]?.id ?? "");
   const [price, setPrice] = useState("");
   const [capacity, setCapacity] = useState(category === "CAR" ? "4" : "");
   const [amenities, setAmenities] = useState<string[]>([]);
@@ -616,7 +621,7 @@ function AddSchedule({
   const isFlight = category === "FLIGHT";
   const isHotel = category === "HOTEL";
 
-  const busVehicle = vehicles.find((v) => v.id === vehicle);
+  const busVehicle = fleet.find((v) => v.id === vehicle);
   const seats = isBus && busVehicle ? capacityOf(busVehicle) : Number(capacity) || 0;
 
   const valid =
@@ -712,13 +717,20 @@ function AddSchedule({
                 <L label="Arrival"><input type="time" value={arriveTime} onChange={(e) => setArriveTime(e.target.value)} className={inp} /></L>
               </div>
               {isBus && (
-                <L label="Bus / seat map">
-                  <select value={vehicle} onChange={(e) => setVehicle(e.target.value)} className={inp}>
-                    {vehicles.map((v) => (
-                      <option key={v.id} value={v.id}>{v.name} — {capacityOf(v)} seats</option>
-                    ))}
-                  </select>
-                </L>
+                fleet.length > 0 ? (
+                  <L label="Bus / seat map">
+                    <select value={vehicle} onChange={(e) => setVehicle(e.target.value)} className={inp}>
+                      <option value="">— Select a bus —</option>
+                      {fleet.map((v) => (
+                        <option key={v.id} value={v.id}>{v.name} — {capacityOf(v)} seats</option>
+                      ))}
+                    </select>
+                  </L>
+                ) : (
+                  <div className="rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
+                    No buses in your fleet yet. Add one under <b>Fleet &amp; Seat Maps</b> to pick its seat layout — or just enter the seat count below.
+                  </div>
+                )
               )}
               <L label={isFlight ? "Aircraft" : category === "TRAIN" ? "Train / class" : "Bus name (shown to customers)"}>
                 <input
@@ -795,7 +807,7 @@ function AddSchedule({
             <L label={`Price (per ${unitWord})`}>
               <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0" className={inp} />
             </L>
-            {isBus ? (
+            {isBus && busVehicle ? (
               <L label="Seats">
                 <input value={seats} readOnly className={`${inp} bg-slate-50`} />
               </L>

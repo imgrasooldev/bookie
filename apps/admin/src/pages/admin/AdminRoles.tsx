@@ -5,6 +5,7 @@ import {
 } from "../../api";
 import { PageHeader } from "../../components/ui";
 import { useEscToClose } from "../../components/useEscToClose";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { PlusIcon, TrashIcon } from "../../icons";
 
 export function AdminRoles() {
@@ -79,6 +80,7 @@ function RoleCard({ role, groups, onSaved, onDeleted, onError }: {
   onSaved: () => void; onDeleted: () => void; onError: (e: string) => void;
 }) {
   const [selected, setSelected] = useState<string[]>(role.permissions);
+  const [confirming, setConfirming] = useState(false);
   const dirty = JSON.stringify([...selected].sort()) !== JSON.stringify([...role.permissions].sort());
   const toggle = (k: string) => setSelected((s) => (s.includes(k) ? s.filter((x) => x !== k) : [...s, k]));
 
@@ -95,11 +97,21 @@ function RoleCard({ role, groups, onSaved, onDeleted, onError }: {
             <button onClick={async () => { const r = await updateRole(role.id, selected); r.ok ? onSaved() : onError(r.error ?? "Failed"); }} className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700">Save</button>
           )}
           {!role.system && (
-            <button onClick={async () => { const r = await deleteRole(role.id); r.ok ? onDeleted() : onError(r.error ?? "Failed"); }} className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-red-50 hover:text-red-600"><TrashIcon className="h-4 w-4" /></button>
+            <button onClick={() => setConfirming(true)} className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-red-50 hover:text-red-600"><TrashIcon className="h-4 w-4" /></button>
           )}
         </div>
       </div>
       <Perms groups={groups} selected={role.super ? Object.values(groups).flat().map((p) => p.key) : selected} toggle={toggle} disabled={role.super} />
+
+      {confirming && (
+        <ConfirmDialog
+          title={`Delete the “${role.name}” role?`}
+          message="Team members will need to be reassigned. This can’t be undone."
+          confirmLabel="Delete role"
+          onClose={() => setConfirming(false)}
+          onConfirm={async () => { setConfirming(false); const r = await deleteRole(role.id); r.ok ? onDeleted() : onError(r.error ?? "Failed"); }}
+        />
+      )}
     </div>
   );
 }

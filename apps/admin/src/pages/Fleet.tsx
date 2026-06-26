@@ -3,6 +3,7 @@ import { capacityOf, type Vehicle, type SeatLayout } from "../data";
 import { listVehicles, createVehicle, deleteVehicle } from "../api";
 import { PageHeader } from "../components/ui";
 import { useEscToClose } from "../components/useEscToClose";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { SeatMapBuilder } from "../components/SeatMapBuilder";
 import { PlusIcon, BusIcon, TrashIcon } from "../icons";
 
@@ -16,6 +17,7 @@ export function Fleet() {
   const [loading, setLoading] = useState(true);
   const [live, setLive] = useState(true);
   const [open, setOpen] = useState(false);
+  const [pendingDel, setPendingDel] = useState<Vehicle | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(null), 3000); };
@@ -83,7 +85,7 @@ export function Fleet() {
                   <BusIcon className="h-6 w-6" />
                 </span>
                 <button
-                  onClick={() => remove(v.id)}
+                  onClick={() => setPendingDel(v)}
                   className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-red-50 hover:text-red-600"
                   title="Remove"
                 >
@@ -117,6 +119,16 @@ export function Fleet() {
             if (r.ok) { await load(); flash("✓ Vehicle saved"); }
             else flash("⚠ " + r.error);
           }}
+        />
+      )}
+
+      {pendingDel && (
+        <ConfirmDialog
+          title={`Remove “${pendingDel.name}”?`}
+          message="This vehicle and its seat map will be permanently deleted."
+          confirmLabel="Remove vehicle"
+          onClose={() => setPendingDel(null)}
+          onConfirm={() => { const id = pendingDel.id; setPendingDel(null); remove(id); }}
         />
       )}
 

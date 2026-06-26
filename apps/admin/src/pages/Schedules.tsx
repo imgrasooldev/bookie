@@ -14,6 +14,7 @@ import { createTrip, listSchedules, updateTrip, deleteTrip, setAvailability } fr
 import { getOperator } from "../auth";
 import { PageHeader } from "../components/ui";
 import { useEscToClose } from "../components/useEscToClose";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { PlusIcon, ClockIcon, CalendarIcon, TrashIcon, PowerIcon } from "../icons";
 
 const isoAt = (time?: string) => {
@@ -33,6 +34,7 @@ export function Schedules() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Schedule | null>(null);
   const [managing, setManaging] = useState<Schedule | null>(null);
+  const [pendingDel, setPendingDel] = useState<Schedule | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const flash = (m: string) => {
@@ -187,7 +189,7 @@ export function Schedules() {
                   <button onClick={() => toggle(s)} title={s.status === "active" ? "Pause" : "Activate"} className="grid h-9 w-9 place-items-center rounded-lg text-muted hover:bg-slate-100 hover:text-ink">
                     <PowerIcon className="h-5 w-5" />
                   </button>
-                  <button onClick={() => remove(s.id)} title="Delete" className="grid h-9 w-9 place-items-center rounded-lg text-muted hover:bg-red-50 hover:text-red-600">
+                  <button onClick={() => setPendingDel(s)} title="Delete" className="grid h-9 w-9 place-items-center rounded-lg text-muted hover:bg-red-50 hover:text-red-600">
                     <TrashIcon className="h-5 w-5" />
                   </button>
                 </div>
@@ -262,6 +264,16 @@ export function Schedules() {
             }
             flash("✓ Availability updated");
           }}
+        />
+      )}
+
+      {pendingDel && (
+        <ConfirmDialog
+          title={`Delete “${pendingDel.title}”?`}
+          message="This listing will be removed and will no longer be bookable on the customer site."
+          confirmLabel="Delete listing"
+          onClose={() => setPendingDel(null)}
+          onConfirm={() => { const id = pendingDel.id; setPendingDel(null); remove(id); }}
         />
       )}
 

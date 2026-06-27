@@ -4,8 +4,8 @@ import { QRCodeSVG } from "qrcode.react";
 import Link from "next/link";
 import { useState } from "react";
 import type { Ticket } from "@/lib/bookings";
-import { cancelBooking } from "@/lib/bookings";
 import { formatPKR, formatDate, formatTime } from "@/lib/format";
+import { CancelDialog } from "@/components/checkout/CancelDialog";
 
 const STATUS_STYLE: Record<string, string> = {
   CONFIRMED: "bg-green-50 text-green-700",
@@ -26,21 +26,10 @@ const STATUS_LABEL: Record<string, string> = {
 /** A real, printable e-ticket with a scannable QR (encodes the booking ref). */
 export function ETicket({ ticket: initial, allowCancel = true }: { ticket: Ticket; allowCancel?: boolean }) {
   const [ticket, setTicket] = useState<Ticket>(initial);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [showCancel, setShowCancel] = useState(false);
 
   const cancelled = ticket.status === "CANCELLED";
   const canCancel = allowCancel && ["AWAITING_PAYMENT", "CONFIRMED", "PENDING"].includes(ticket.status);
-
-  async function onCancel() {
-    if (!confirm("Cancel this booking? Your seats will be released.")) return;
-    setBusy(true);
-    setError(null);
-    const res = await cancelBooking(ticket.id);
-    setBusy(false);
-    if (res.ok) setTicket(res.ticket);
-    else setError(res.error);
-  }
 
   return (
     <div className="mx-auto max-w-md">
@@ -105,8 +94,6 @@ export function ETicket({ ticket: initial, allowCancel = true }: { ticket: Ticke
             </div>
           </div>
 
-          {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-
           {/* actions */}
           <div className="mt-5 flex flex-col gap-2 print:hidden">
             <button
@@ -117,11 +104,10 @@ export function ETicket({ ticket: initial, allowCancel = true }: { ticket: Ticke
             </button>
             {canCancel && (
               <button
-                onClick={onCancel}
-                disabled={busy}
-                className="w-full rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                onClick={() => setShowCancel(true)}
+                className="w-full rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
               >
-                {busy ? "Cancelling…" : "Cancel booking"}
+                Cancel booking
               </button>
             )}
           </div>
@@ -133,6 +119,10 @@ export function ETicket({ ticket: initial, allowCancel = true }: { ticket: Ticke
           ← My bookings
         </Link>
       </div>
+
+      {showCancel && (
+        <CancelDialog booking={ticket} onClose={() => setShowCancel(false)} onCancelled={(u) => setTicket(u)} />
+      )}
     </div>
   );
 }

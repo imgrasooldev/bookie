@@ -15,6 +15,7 @@ const NAV = [
   { to: "/fleet", label: "Fleet & Seats", icon: BusIcon },
   { to: "/schedules", label: "Schedules", icon: CalendarIcon },
   { to: "/bookings", label: "Bookings", icon: TicketIcon },
+  { to: "/manifest", label: "Manifest", icon: BusIcon },
 ];
 
 export function Layout() {

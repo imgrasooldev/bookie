@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { capacityOf, type Vehicle, type SeatLayout } from "../data";
-import { listVehicles, createVehicle, deleteVehicle } from "../api";
+import { listVehicles, createVehicle, deleteVehicle, uploadVehicleMedia, deleteVehicleMedia, MEDIA_BASE } from "../api";
 import { PageHeader } from "../components/ui";
 import { useEscToClose } from "../components/useEscToClose";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { SeatMapBuilder } from "../components/SeatMapBuilder";
 import { PlusIcon, BusIcon, TrashIcon } from "../icons";
+
+// uploaded media is a relative /uploads path; seeded/sample media may be a full URL
+const mediaSrc = (url: string) => (url.startsWith("http") ? url : `${MEDIA_BASE}${url}`);
 
 const AMENITIES = ["ac", "wifi", "usb", "meal", "water", "sleeper"];
 const AMENITY_LABEL: Record<string, string> = {
@@ -104,6 +107,12 @@ export function Fleet() {
                   </span>
                 ))}
               </div>
+
+              <MediaStrip
+                vehicle={v}
+                onUpdate={(nv) => setList((l) => l.map((x) => (x.id === nv.id ? nv : x)))}
+                flash={flash}
+              />
             </div>
           ))}
         </div>
@@ -137,6 +146,65 @@ export function Fleet() {
           {toast}
         </div>
       )}
+    </div>
+  );
+}
+
+function MediaStrip({ vehicle, onUpdate, flash }: { vehicle: Vehicle; onUpdate: (v: Vehicle) => void; flash: (m: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const media = vehicle.media ?? [];
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (inputRef.current) inputRef.current.value = "";
+    if (!file) return;
+    setBusy(true);
+    const r = await uploadVehicleMedia(vehicle.id, file);
+    setBusy(false);
+    if (r.ok && r.data) { onUpdate(r.data); flash("✓ Media uploaded"); }
+    else flash("⚠ " + (r.error ?? "Upload failed"));
+  }
+
+  async function remove(url: string) {
+    const prev = media;
+    onUpdate({ ...vehicle, media: media.filter((m) => m.url !== url) }); // optimistic
+    const r = await deleteVehicleMedia(vehicle.id, url);
+    if (!r.ok) { onUpdate({ ...vehicle, media: prev }); flash("⚠ " + r.error); }
+  }
+
+  return (
+    <div className="mt-4 border-t border-slate-100 pt-3">
+      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Photos & videos</div>
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        {media.map((m) => (
+          <div key={m.url} className="group relative h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-200">
+            {m.kind === "video" ? (
+              <>
+                <video src={mediaSrc(m.url)} className="h-full w-full object-cover" muted preload="metadata" />
+                <span className="pointer-events-none absolute inset-0 grid place-items-center text-white drop-shadow">▶</span>
+              </>
+            ) : (
+              <img src={mediaSrc(m.url)} alt={m.name} className="h-full w-full object-cover" />
+            )}
+            <button
+              onClick={() => remove(m.url)}
+              title="Remove"
+              className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-xs text-white opacity-0 transition group-hover:opacity-100"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+        <button
+          onClick={() => inputRef.current?.click()}
+          disabled={busy}
+          className="grid h-16 w-20 shrink-0 place-items-center rounded-lg border-2 border-dashed border-slate-300 text-center text-[11px] font-semibold leading-tight text-muted transition hover:border-brand-400 hover:text-brand-600 disabled:opacity-50"
+        >
+          {busy ? "Uploading…" : <span>＋<br />Photo / Video</span>}
+        </button>
+        <input ref={inputRef} type="file" accept="image/*,video/*" className="hidden" onChange={onFile} />
+      </div>
     </div>
   );
 }

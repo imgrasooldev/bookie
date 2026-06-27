@@ -284,6 +284,14 @@ export async function listBookings(): Promise<{ ok: boolean; data: AdminBooking[
   }
 }
 
+export interface ManifestRow { seat: string; name: string; gender: string | null; cnic: string; phone: string; ref: string; status: string }
+export interface Manifest {
+  trip: { id: string; title: string; vehicle: string | null; operator: string; departAt: string | null };
+  date: string; capacity: number | null; booked: number; passengers: ManifestRow[];
+}
+export const getManifest = (tripId: string, date: string) =>
+  getJson<Manifest>(`/operator/manifest?tripId=${encodeURIComponent(tripId)}&date=${encodeURIComponent(date)}`).catch(() => null);
+
 export interface Stats { trips: number; activeTrips: number; bookings: number; operators: number; revenue: number }
 export async function getStats(): Promise<Stats | null> {
   try {
@@ -357,6 +365,29 @@ export async function createVehicle(v: Omit<Vehicle, "id">): Promise<SaveResult>
 
 export async function deleteVehicle(id: string): Promise<SaveResult> {
   return send(`/operator/vehicles/${id}`, "DELETE");
+}
+
+/* ---- vehicle media (photos / videos) ---- */
+
+// Prepend to a media url (the API returns relative /uploads/... paths).
+export const MEDIA_BASE = API_URL;
+
+export async function uploadVehicleMedia(id: string, file: File): Promise<{ ok: boolean; data?: Vehicle; error?: string }> {
+  try {
+    const fd = new FormData();
+    fd.append("file", file);
+    // NOTE: no content-type header — the browser sets the multipart boundary.
+    const res = await fetch(`${API_URL}/operator/vehicles/${id}/media`, { method: "POST", headers: authHeaders(), body: fd });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: data.error ?? `HTTP ${res.status}` };
+    return { ok: true, data: data as Vehicle };
+  } catch {
+    return { ok: false, error: "Upload failed — check the file is an image/video under 30 MB." };
+  }
+}
+
+export async function deleteVehicleMedia(id: string, url: string): Promise<SaveResult> {
+  return send(`/operator/vehicles/${id}/media?url=${encodeURIComponent(url)}`, "DELETE");
 }
 
 export async function setAvailability(

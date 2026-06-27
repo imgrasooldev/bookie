@@ -8,6 +8,7 @@ import { Vehicle } from "../models/Vehicle.js";
 import { Booking } from "../models/Booking.js";
 import { Role } from "../models/Role.js";
 import { signToken, requireOperator } from "../middleware/auth.js";
+import { uploadMedia } from "../middleware/upload.js";
 import { serializeTrip } from "../lib/serialize.js";
 import { SERVICE_TYPES } from "../lib/verticals.js";
 import { PERMISSION_KEYS } from "../lib/permissions.js";
@@ -245,7 +246,10 @@ operatorRouter.delete(
 
 /* ---------------- fleet / vehicles (scoped to operator) ---------------- */
 
-const serializeVehicle = (v: { _id: unknown; name: string; type?: string; layout?: string; rows?: number; disabled?: string[]; amenities?: string[] }) => ({
+const serializeVehicle = (v: {
+  _id: unknown; name: string; type?: string | null; layout?: string | null; rows?: number | null; disabled?: string[]; amenities?: string[];
+  media?: { kind?: string | null; url?: string | null; name?: string | null }[];
+}) => ({
   id: String(v._id),
   name: v.name,
   type: v.type ?? "Bus",
@@ -253,6 +257,7 @@ const serializeVehicle = (v: { _id: unknown; name: string; type?: string; layout
   rows: v.rows ?? 0,
   disabled: v.disabled ?? [],
   amenities: v.amenities ?? [],
+  media: (v.media ?? []).map((m) => ({ kind: m.kind ?? "image", url: m.url ?? "", name: m.name ?? "" })),
 });
 
 operatorRouter.get(
@@ -290,6 +295,40 @@ operatorRouter.delete(
     const r = await Vehicle.findOneAndDelete({ _id: req.params.id, ...owned(req) });
     if (!r) throw new HttpError(404, "Vehicle not found");
     res.json({ ok: true });
+  }),
+);
+
+// POST /operator/vehicles/:id/media — upload a photo or video of the vehicle.
+operatorRouter.post(
+  "/vehicles/:id/media",
+  requireOperator,
+  uploadMedia.single("file"),
+  ah(async (req, res) => {
+    if (!req.file) throw new HttpError(400, "No file uploaded.");
+    const kind = req.file.mimetype.startsWith("video/") ? "video" : "image";
+    const v = await Vehicle.findOneAndUpdate(
+      { _id: req.params.id, ...owned(req) },
+      { $push: { media: { kind, url: `/uploads/${req.file.filename}`, name: req.file.originalname } } },
+      { new: true },
+    ).lean();
+    if (!v) throw new HttpError(404, "Vehicle not found");
+    res.status(201).json(serializeVehicle(v));
+  }),
+);
+
+// DELETE /operator/vehicles/:id/media?url=... — remove a media item.
+operatorRouter.delete(
+  "/vehicles/:id/media",
+  requireOperator,
+  ah(async (req, res) => {
+    const url = String(req.query.url ?? "");
+    const v = await Vehicle.findOneAndUpdate(
+      { _id: req.params.id, ...owned(req) },
+      { $pull: { media: { url } } },
+      { new: true },
+    ).lean();
+    if (!v) throw new HttpError(404, "Vehicle not found");
+    res.json(serializeVehicle(v));
   }),
 );
 
@@ -331,5 +370,68 @@ operatorRouter.get(
       Booking.aggregate([{ $match: f }, { $group: { _id: null, total: { $sum: "$fare.total" } } }]),
     ]);
     res.json({ trips, activeTrips, bookings, operators: 1, revenue: rev[0]?.total ?? 0 });
+  }),
+);
+
+// GET /operator/manifest?tripId=&date= — boarding list (passenger manifest) for
+// a specific departure. The operator MUST have this to run/check the bus.
+operatorRouter.get(
+  "/manifest",
+  requireOperator,
+  ah(async (req, res) => {
+    const tripId = String(req.query.tripId ?? "");
+    const dq = String(req.query.date ?? "");
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(dq) ? dq : new Date().toISOString().slice(0, 10);
+    if (!tripId) throw new HttpError(400, "tripId is required");
+
+    const trip = await Trip.findOne({ _id: tripId, ...owned(req) }).populate("operator").lean();
+    if (!trip) throw new HttpError(404, "Trip not found");
+
+    const bookings = await Booking.find({
+      ...owned(req),
+      trip: tripId,
+      date,
+      serviceType: "BUS",
+      status: { $ne: "CANCELLED" },
+    }).lean();
+
+    const seatNum = (s: string) => parseInt(s, 10) || 0;
+    const rows: {
+      seat: string; name: string; gender: string | null; cnic: string; phone: string; ref: string; status: string;
+    }[] = [];
+    for (const b of bookings) {
+      const c = (b.contact ?? {}) as { name?: string; cnic?: string; phone?: string };
+      const ps = b.passengers ?? [];
+      if (ps.length) {
+        for (const p of ps) {
+          rows.push({
+            seat: p.seatLabel ?? "",
+            name: p.name ?? "—",
+            gender: p.gender ?? null,
+            cnic: p.cnic || c.cnic || "—",
+            phone: c.phone ?? "—",
+            ref: b.bookingNo,
+            status: b.status ?? "",
+          });
+        }
+      } else {
+        rows.push({ seat: "", name: c.name ?? "Guest", gender: null, cnic: c.cnic ?? "—", phone: c.phone ?? "—", ref: b.bookingNo, status: b.status ?? "" });
+      }
+    }
+    rows.sort((a, b) => seatNum(a.seat) - seatNum(b.seat) || a.seat.localeCompare(b.seat));
+
+    res.json({
+      trip: {
+        id: String(trip._id),
+        title: trip.title,
+        vehicle: trip.vehicle ?? null,
+        operator: (trip.operator as { name?: string } | null)?.name ?? "",
+        departAt: trip.departAt ? new Date(trip.departAt).toISOString() : null,
+      },
+      date,
+      capacity: trip.seatsAvailable ?? null,
+      booked: rows.length,
+      passengers: rows,
+    });
   }),
 );

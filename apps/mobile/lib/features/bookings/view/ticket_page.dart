@@ -63,11 +63,33 @@ class _TicketPageState extends State<TicketPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Cancel booking?'),
-        content: const Text('Your seats will be released and any paid fare is refunded to your wallet.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Cancel this booking?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(_t.title, style: const TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(12)),
+              child: Text(
+                _t.seats.isNotEmpty
+                    ? '♻️ Seat ${_t.seats.join(', ')} will be released${_t.total > 0 ? ', and ${pkr(_t.total)} refunded to your wallet' : ''}.'
+                    : '${pkr(_t.total)} will be refunded to your wallet.',
+                style: const TextStyle(fontSize: 13, color: Color(0xFF92400E)),
+              ),
+            ),
+          ],
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Keep')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Cancel booking')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Keep booking')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Yes, cancel'),
+          ),
         ],
       ),
     );
@@ -78,6 +100,16 @@ class _TicketPageState extends State<TicketPage> {
       if (!mounted) return;
       setState(() => _t = updated);
       context.read<BookingBloc>().add(const MyBookingsRequested());
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: const Color(0xFF0A1222),
+        content: Row(children: [
+          const Icon(Icons.check_circle, color: Colors.greenAccent, size: 20),
+          const SizedBox(width: 8),
+          Expanded(child: Text(updated.total > 0 ? 'Cancelled · ${pkr(updated.total)} refunded to wallet' : 'Booking cancelled — seats released')),
+        ]),
+      ));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not cancel. Please try again.')));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

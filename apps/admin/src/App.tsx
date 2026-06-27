@@ -7,6 +7,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Fleet } from "./pages/Fleet";
 import { Schedules } from "./pages/Schedules";
 import { Bookings } from "./pages/Bookings";
+import { Manifest } from "./pages/Manifest";
 import { AdminOverview } from "./pages/admin/AdminOverview";
 import { AdminOperators } from "./pages/admin/AdminOperators";
 import { AdminApprovals } from "./pages/admin/AdminApprovals";
@@ -23,6 +24,7 @@ function OperatorApp() {
           <Route path="fleet" element={<Fleet />} />
           <Route path="schedules" element={<Schedules />} />
           <Route path="bookings" element={<Bookings />} />
+          <Route path="manifest" element={<Manifest />} />
         </Route>
       </Routes>
     </HashRouter>

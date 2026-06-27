@@ -4,6 +4,7 @@ import { City } from "../models/City.js";
 import { Trip } from "../models/Trip.js";
 import { Operator } from "../models/Operator.js";
 import { Booking } from "../models/Booking.js";
+import { Vehicle } from "../models/Vehicle.js";
 import { VERTICALS, SERVICE_TYPES } from "../lib/verticals.js";
 import { serializeTrip } from "../lib/serialize.js";
 import { subSegment } from "../lib/segment.js";
@@ -78,6 +79,40 @@ catalogRouter.get(
   ah(async (_req, res) => {
     const cities = await City.find().sort({ name: 1 }).lean();
     res.json(cities.map((c) => ({ id: c.code, name: c.name })));
+  }),
+);
+
+// GET /routes/popular?serviceType=BUS — top routes by number of available buses.
+catalogRouter.get(
+  "/routes/popular",
+  ah(async (req, res) => {
+    const serviceType = String(req.query.serviceType ?? "BUS");
+    const limit = Math.min(Number(req.query.limit) || 6, 12);
+    const rows = await Trip.aggregate([
+      {
+        $match: {
+          serviceType,
+          status: "active",
+          approved: true,
+          originCode: { $type: "string" },
+          destinationCode: { $type: "string" },
+        },
+      },
+      { $group: { _id: { o: "$originCode", d: "$destinationCode" }, count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: limit },
+    ]);
+    const cities = await City.find().lean();
+    const nameOf = (code: string) => cities.find((c) => c.code === code)?.name ?? code.toUpperCase();
+    res.json(
+      rows.map((r) => ({
+        originId: r._id.o,
+        destinationId: r._id.d,
+        originName: nameOf(r._id.o),
+        destinationName: nameOf(r._id.d),
+        count: r.count,
+      })),
+    );
   }),
 );
 
@@ -180,12 +215,27 @@ catalogRouter.get(
     const taken = await takenSeats(trip._id, date); // confirmed + active holds for THIS date
     const rawCapacity = trip.seatsAvailable ?? undefined;
     const ser = serializeTrip(trip);
+
+    // attach photos/videos from the operator's matching fleet vehicle (the trip's
+    // `vehicle` is a free-text name, so match exact then partial).
+    let media: { kind: string; url: string }[] = [];
+    if (trip.vehicle && trip.operator) {
+      const opId = (trip.operator as { _id?: unknown })._id ?? trip.operator;
+      const vehicles = await Vehicle.find({ operator: opId }).lean();
+      const vn = trip.vehicle.toLowerCase();
+      const hit =
+        vehicles.find((v) => v.name?.toLowerCase() === vn) ||
+        vehicles.find((v) => v.name && (vn.includes(v.name.toLowerCase()) || v.name.toLowerCase().includes(vn)));
+      if (hit) media = (hit.media ?? []).map((m) => ({ kind: m.kind ?? "image", url: m.url ?? "" })).filter((m) => m.url);
+    }
+
     res.json({
       ...ser,
       ...shiftToDate(ser.departAt, ser.arriveAt, date), // show the searched date
       date,
       bookedSeats: [...taken],
       seatsAvailable: rawCapacity != null ? Math.max(0, rawCapacity - taken.size) : undefined,
+      media,
     });
   }),
 );

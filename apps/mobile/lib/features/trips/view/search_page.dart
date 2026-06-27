@@ -15,8 +15,6 @@ const _categories = [
   ('City Ride', 'CAR', Icons.local_taxi_rounded),
 ];
 
-const _popular = [('lhe', 'isb', 'Lahore → Islamabad'), ('khi', 'lhe', 'Karachi → Lahore'), ('isb', 'pesh', 'Islamabad → Peshawar')];
-
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
   @override
@@ -54,12 +52,12 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: BlocBuilder<TripBloc, TripState>(
-        buildWhen: (a, b) => a.cities != b.cities,
+        buildWhen: (a, b) => a.cities != b.cities || a.popularRoutes != b.popularRoutes,
         builder: (context, state) {
           return CustomScrollView(
             slivers: [
               SliverToBoxAdapter(child: _header(context, state.cities)),
-              SliverToBoxAdapter(child: _popularRoutes(context, state.cities)),
+              SliverToBoxAdapter(child: _popularRoutes(context, state.cities, state.popularRoutes)),
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
             ],
           );
@@ -202,7 +200,8 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _popularRoutes(BuildContext context, List<City> cities) {
+  Widget _popularRoutes(BuildContext context, List<City> cities, List<PopularRoute> routes) {
+    if (routes.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
       child: Column(
@@ -210,13 +209,22 @@ class _SearchPageState extends State<SearchPage> {
         children: [
           const Text('Popular routes', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.ink)),
           const SizedBox(height: 12),
-          ..._popular.map((r) => Card(
+          ...routes.map((r) => Card(
                 child: ListTile(
                   leading: const CircleAvatar(backgroundColor: AppColors.brand50, child: Icon(Icons.directions_bus_rounded, color: AppColors.brand)),
-                  title: Text(r.$3, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  trailing: const Icon(Icons.arrow_forward_rounded, size: 18, color: AppColors.muted),
+                  title: Text('${r.originName} → ${r.destinationName}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text('${r.count} ${r.count == 1 ? 'bus' : 'buses'} available', style: const TextStyle(fontSize: 12.5, color: AppColors.muted)),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(color: AppColors.brand50, borderRadius: BorderRadius.circular(20)),
+                    child: Text('${r.count}', style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.bold, fontSize: 13)),
+                  ),
                   onTap: () {
-                    setState(() { _service = 'BUS'; _origin = r.$1; _dest = r.$2; });
+                    setState(() {
+                      _service = 'BUS';
+                      _origin = r.originId;
+                      _dest = r.destinationId;
+                    });
                     _openResults(context, cities);
                   },
                 ),

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BookingForm } from "@/components/BookingForm";
+import { VehicleGallery } from "@/components/checkout/VehicleGallery";
 import { getTrip } from "@/lib/api";
 import { applySegment } from "@/lib/segment";
 import { AMENITY_LABELS } from "@/lib/mock";
@@ -109,6 +110,12 @@ export default async function BookingPage({
               </div>
             )}
           </div>
+
+          {trip.media && trip.media.length > 0 && (
+            <div className="mt-6">
+              <VehicleGallery media={trip.media} />
+            </div>
+          )}
 
           <div className="mt-6">
             <BookingForm trip={trip} date={date} />

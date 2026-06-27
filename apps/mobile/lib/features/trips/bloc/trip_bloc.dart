@@ -37,11 +37,13 @@ enum TripStatus { initial, loading, success, failure }
 class TripState extends Equatable {
   final TripStatus status;
   final List<City> cities;
+  final List<PopularRoute> popularRoutes;
   final List<Trip> trips;
   final String? error;
   const TripState({
     this.status = TripStatus.initial,
     this.cities = const [],
+    this.popularRoutes = const [],
     this.trips = const [],
     this.error,
   });
@@ -49,17 +51,19 @@ class TripState extends Equatable {
   TripState copyWith({
     TripStatus? status,
     List<City>? cities,
+    List<PopularRoute>? popularRoutes,
     List<Trip>? trips,
     String? error,
   }) => TripState(
     status: status ?? this.status,
     cities: cities ?? this.cities,
+    popularRoutes: popularRoutes ?? this.popularRoutes,
     trips: trips ?? this.trips,
     error: error,
   );
 
   @override
-  List<Object?> get props => [status, cities, trips, error];
+  List<Object?> get props => [status, cities, popularRoutes, trips, error];
 }
 
 /* bloc */
@@ -69,7 +73,14 @@ class TripBloc extends Bloc<TripEvent, TripState> {
   TripBloc(this._repo) : super(const TripState()) {
     on<TripCitiesLoaded>((event, emit) async {
       try {
-        emit(state.copyWith(cities: await _repo.cities()));
+        final cities = await _repo.cities();
+        emit(state.copyWith(cities: cities));
+      } catch (_) {
+        /* non-fatal */
+      }
+      try {
+        final routes = await _repo.popularRoutes();
+        emit(state.copyWith(popularRoutes: routes));
       } catch (_) {
         /* non-fatal */
       }

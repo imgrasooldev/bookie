@@ -16,6 +16,7 @@ import '../../auth/view/login_page.dart';
 import '../bloc/booking_bloc.dart';
 import 'seat_picker.dart';
 import 'ticket_page.dart';
+import 'vehicle_gallery.dart';
 
 class BookingPage extends StatefulWidget {
   final Trip trip;
@@ -84,6 +85,15 @@ class _BookingPageState extends State<BookingPage> {
             padding: const EdgeInsets.all(16),
             children: [
               _tripCard(widget.trip),
+              FutureBuilder<Trip>(
+                future: _detail,
+                builder: (context, snap) {
+                  final m = snap.data?.media ?? const <TripMedia>[];
+                  return m.isEmpty
+                      ? const SizedBox.shrink()
+                      : Padding(padding: const EdgeInsets.only(top: 16), child: VehicleGallery(media: m));
+                },
+              ),
               const SizedBox(height: 16),
               if (!loggedIn)
                 _guest()

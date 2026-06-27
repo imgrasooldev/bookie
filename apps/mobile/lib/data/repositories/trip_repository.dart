@@ -10,6 +10,11 @@ class TripRepository {
     return (res.data as List).map((e) => City.fromJson(e)).toList();
   }
 
+  Future<List<PopularRoute>> popularRoutes() async {
+    final res = await _api.dio.get('/routes/popular', queryParameters: {'serviceType': 'BUS', 'limit': 5});
+    return (res.data as List).map((e) => PopularRoute.fromJson(e)).toList();
+  }
+
   Future<List<Trip>> search({
     required String serviceType,
     String? originId,

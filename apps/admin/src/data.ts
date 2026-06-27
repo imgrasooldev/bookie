@@ -139,6 +139,12 @@ export const LAYOUT_COLUMNS: Record<SeatLayout, string[]> = {
   sleeper: ["A", "", "B"],
 };
 
+export interface VehicleMedia {
+  kind: "image" | "video";
+  url: string;
+  name: string;
+}
+
 export interface Vehicle {
   id: string;
   name: string;
@@ -147,6 +153,7 @@ export interface Vehicle {
   rows: number;
   disabled: string[]; // seat labels removed (door/stairs)
   amenities: string[];
+  media?: VehicleMedia[];
 }
 
 export function seatLabels(v: Pick<Vehicle, "layout" | "rows">): string[] {

@@ -67,6 +67,7 @@ class Trip {
   final String? vehicle;
   final List<String> amenities;
   final List<String> bookedSeats; // populated by GET /trips/:id
+  final List<TripMedia> media; // operator's vehicle photos/videos
 
   const Trip({
     required this.id,
@@ -82,6 +83,7 @@ class Trip {
     this.vehicle,
     required this.amenities,
     this.bookedSeats = const [],
+    this.media = const [],
   });
 
   bool get isQuote => price == 0;
@@ -100,5 +102,40 @@ class Trip {
         vehicle: j['vehicle'],
         amenities: (j['amenities'] as List?)?.cast<String>() ?? const [],
         bookedSeats: (j['bookedSeats'] as List?)?.cast<String>() ?? const [],
+        media: (j['media'] as List?)?.map((e) => TripMedia.fromJson(e as Map<String, dynamic>)).toList() ?? const [],
+      );
+}
+
+class TripMedia {
+  final String kind; // image | video
+  final String url; // relative, e.g. /uploads/xxx.png
+  const TripMedia({required this.kind, required this.url});
+
+  bool get isVideo => kind == 'video';
+
+  factory TripMedia.fromJson(Map<String, dynamic> j) =>
+      TripMedia(kind: j['kind'] ?? 'image', url: j['url'] ?? '');
+}
+
+class PopularRoute {
+  final String originId;
+  final String destinationId;
+  final String originName;
+  final String destinationName;
+  final int count;
+  const PopularRoute({
+    required this.originId,
+    required this.destinationId,
+    required this.originName,
+    required this.destinationName,
+    required this.count,
+  });
+
+  factory PopularRoute.fromJson(Map<String, dynamic> j) => PopularRoute(
+        originId: j['originId'] ?? '',
+        destinationId: j['destinationId'] ?? '',
+        originName: j['originName'] ?? '',
+        destinationName: j['destinationName'] ?? '',
+        count: j['count'] ?? 0,
       );
 }

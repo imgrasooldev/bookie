@@ -10,6 +10,11 @@ const vehicleSchema = new Schema(
     rows: { type: Number, default: 11 },
     disabled: { type: [String], default: [] }, // seat labels removed (door/stairs)
     amenities: { type: [String], default: [] },
+    // operator-uploaded photos/videos of the vehicle
+    media: {
+      type: [{ kind: { type: String, enum: ["image", "video"] }, url: String, name: String }],
+      default: [],
+    },
   },
   { timestamps: true },
 );

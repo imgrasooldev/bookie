@@ -25,3 +25,6 @@ apps/mobile/.flutter-plugins*
 .vscode/
 .idea/
 coverage/
+
+# uploaded media (vehicle photos/videos)
+apps/api/uploads/

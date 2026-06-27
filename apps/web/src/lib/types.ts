@@ -62,6 +62,7 @@ export interface Trip {
   // ordered multi-stop route; fare = cumulative fare from route origin to that stop
   routeStops?: { code: string; name: string; fare: number; time?: string }[];
   bookedSeats?: string[]; // seat labels already taken (transport)
+  media?: { kind: "image" | "video"; url: string }[]; // operator's vehicle photos/videos
   seatsAvailable?: number;
   vehicle?: string;
   amenities: string[];

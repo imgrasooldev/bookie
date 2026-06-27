@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { cancelBooking, getMyBookings, type Ticket } from "@/lib/bookings";
+import { getMyBookings, type Ticket } from "@/lib/bookings";
 import { formatPKR, formatDate, formatTime } from "@/lib/format";
 import { PageHeader } from "@/components/account/ui";
+import { CancelDialog } from "@/components/checkout/CancelDialog";
 import { TicketIcon } from "@/components/icons";
 
 const TABS = ["Upcoming", "Completed", "Cancelled"] as const;
@@ -26,7 +27,7 @@ export default function BookingsPage() {
   const [tab, setTab] = useState<Tab>("Upcoming");
   const [list, setList] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<Ticket | null>(null);
 
   useEffect(() => {
     getMyBookings().then((b) => {
@@ -50,15 +51,6 @@ export default function BookingsPage() {
   }, [list]);
 
   const rows = list.filter((b) => tabOf(b) === tab);
-
-  async function onCancel(id: string) {
-    if (!confirm("Cancel this booking? Your seats will be released.")) return;
-    setBusyId(id);
-    const res = await cancelBooking(id);
-    setBusyId(null);
-    if (res.ok) setList((l) => l.map((b) => (b.id === id ? res.ticket : b)));
-    else alert(res.error);
-  }
 
   return (
     <div>
@@ -134,11 +126,10 @@ export default function BookingsPage() {
                 )}
                 {tabOf(b) === "Upcoming" && b.status !== "CANCELLED" && (
                   <button
-                    onClick={() => onCancel(b.id)}
-                    disabled={busyId === b.id}
-                    className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    onClick={() => setCancelTarget(b)}
+                    className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
                   >
-                    {busyId === b.id ? "Cancelling…" : "Cancel booking"}
+                    Cancel booking
                   </button>
                 )}
                 {tabOf(b) === "Completed" && (
@@ -153,6 +144,14 @@ export default function BookingsPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {cancelTarget && (
+        <CancelDialog
+          booking={cancelTarget}
+          onClose={() => setCancelTarget(null)}
+          onCancelled={(u) => setList((l) => l.map((x) => (x.id === u.id ? u : x)))}
+        />
       )}
     </div>
   );

@@ -76,6 +76,23 @@ export const getWallet = () => api<{ balance: number; transactions: WalletTx[] }
 export const updateNotifPrefs = (prefs: Partial<Profile["notifPrefs"]>) =>
   api<Profile["notifPrefs"]>("/notif-prefs", { method: "PATCH", body: JSON.stringify(prefs) });
 
+export interface NotifChannel { channel: "inapp" | "push" | "sms" | "whatsapp" | "email"; status: "SENT" | "STUB" | "SKIPPED" | "FAILED" }
+export interface LiveNotif {
+  id: string;
+  type: "DELAY" | "GENERAL" | "BOOKING" | "WALLET";
+  title: string;
+  body: string;
+  time: string;
+  unread: boolean;
+  channels: NotifChannel[];
+}
+
+export const getNotifications = () =>
+  api<{ items: LiveNotif[]; unread: number }>("/notifications");
+
+export const markNotificationsRead = (id?: string) =>
+  api<{ ok: true }>(`/notifications/read${id ? `?id=${encodeURIComponent(id)}` : ""}`, { method: "POST" });
+
 export const listTravellers = () => api<Traveller[]>("/travellers");
 export const addTraveller = (t: Omit<Traveller, "id">) =>
   api<Traveller[]>("/travellers", { method: "POST", body: JSON.stringify(t) });

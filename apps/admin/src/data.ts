@@ -207,6 +207,8 @@ export interface Schedule {
   price: number;
   unit: "seat" | "night" | "trip" | "ticket" | "person";
   capacity?: number; // total seats / units / daily tickets / group size
+  businessSeats?: string[]; // seat labels in business/executive class
+  businessSurcharge?: number; // extra PKR per business seat
   status: "active" | "paused";
   amenities?: string[];
   // availability

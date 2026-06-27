@@ -46,8 +46,9 @@ function fmtCnic(s: string): string {
 }
 
 /** Build the seat grid from real availability (2+2 layout, sized to capacity). */
-function buildSeats(trip: Trip): { labels: string[]; rows: number; booked: Set<string> } {
+function buildSeats(trip: Trip): { labels: string[]; rows: number; booked: Set<string>; business: Set<string> } {
   const booked = new Set(trip.bookedSeats ?? []);
+  const business = new Set(trip.businessSeats ?? []);
   const total = (trip.seatsAvailable ?? 36) + booked.size;
   const cols = SEAT_COLS.filter(Boolean) as string[];
   const labels: string[] = [];
@@ -59,7 +60,7 @@ function buildSeats(trip: Trip): { labels: string[]; rows: number; booked: Set<s
     }
     r++;
   }
-  return { labels, rows: r - 1, booked };
+  return { labels, rows: r - 1, booked, business };
 }
 
 export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
@@ -139,7 +140,14 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
   }, [holdLeft, selected.length]);
 
   const qty = isBus ? selected.length : pax;
-  const subtotal = useMemo(() => trip.price * qty, [trip.price, qty]);
+  const businessSurcharge = trip.businessSurcharge ?? 0;
+  const subtotal = useMemo(() => {
+    // per-seat pricing so business/executive seats add their surcharge
+    if (isBus && selected.length) {
+      return selected.reduce((sum, s) => sum + trip.price + (seatMap.business.has(s) ? businessSurcharge : 0), 0);
+    }
+    return trip.price * qty;
+  }, [trip.price, qty, isBus, selected, seatMap, businessSurcharge]);
 
   const discount = useMemo(() => {
     if (!promo) return 0;
@@ -323,7 +331,7 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
             <div className="card-soft p-5">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="font-bold text-ink">Select your seats</h3>
-                <Legend />
+                <Legend business={seatMap.business.size > 0} />
               </div>
 
               {expired && (
@@ -348,19 +356,22 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
                       if (!validSeats.has(seat)) return <div key={seat} className="h-9 w-9" />;
                       const booked = seatMap.booked.has(seat);
                       const sel = selected.includes(seat);
+                      const biz = seatMap.business.has(seat);
                       const g = seatGender[seat];
                       return (
                         <button
                           key={seat}
                           onClick={() => toggleSeat(seat)}
                           disabled={booked}
-                          title={booked ? `${seat} — reserved` : seat}
+                          title={booked ? `${seat} — reserved` : biz ? `${seat} — Business (+${formatPKR(businessSurcharge)})` : seat}
                           className={`flex h-9 w-9 items-center justify-center rounded-lg rounded-t-md text-[11px] font-semibold transition ${
                             booked
                               ? "cursor-not-allowed bg-slate-200 text-slate-400"
                               : sel
-                                ? `scale-105 text-white shadow-md ${g === "F" ? "bg-pink-500" : "bg-brand-600"}`
-                                : "bg-surface text-brand-700 ring-1 ring-brand-100 hover:bg-brand-50"
+                                ? `scale-105 text-white shadow-md ${g === "F" ? "bg-pink-500" : biz ? "bg-amber-500" : "bg-brand-600"}`
+                                : biz
+                                  ? "bg-amber-50 text-amber-700 ring-1 ring-amber-300 hover:bg-amber-100"
+                                  : "bg-surface text-brand-700 ring-1 ring-brand-100 hover:bg-brand-50"
                           }`}
                         >
                           {seat}
@@ -892,12 +903,17 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
   );
 }
 
-function Legend() {
+function Legend({ business }: { business?: boolean }) {
   return (
-    <div className="flex gap-3 text-xs text-muted">
+    <div className="flex flex-wrap gap-3 text-xs text-muted">
       <span className="flex items-center gap-1">
         <span className="h-3 w-3 rounded bg-surface ring-1 ring-brand-200" /> Free
       </span>
+      {business && (
+        <span className="flex items-center gap-1">
+          <span className="h-3 w-3 rounded bg-amber-50 ring-1 ring-amber-300" /> Business
+        </span>
+      )}
       <span className="flex items-center gap-1">
         <span className="h-3 w-3 rounded bg-brand-600" /> ♂
       </span>

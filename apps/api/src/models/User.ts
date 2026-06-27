@@ -48,6 +48,7 @@ const userSchema = new Schema(
     rewardPoints: { type: Number, default: 0 },
     // --- saved travellers & prefs ---
     travellers: { type: [travellerSchema], default: [] },
+    deviceTokens: { type: [String], default: [] }, // FCM/HMS push tokens (per device)
     notifPrefs: {
       trips: { type: Boolean, default: true },
       promos: { type: Boolean, default: true },

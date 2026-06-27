@@ -156,11 +156,20 @@ export function approveListing(id: string, approved: boolean): Promise<SaveResul
 
 /* ---- cities ---- */
 
-export interface AdminCity { id: string; code: string; name: string; listings: number }
+export interface Terminal { code: string; name: string; area?: string }
+export interface AdminCity { id: string; code: string; name: string; listings: number; terminals: Terminal[] }
 export const listCities = () => getJson<AdminCity[]>("/sa/cities").catch(() => [] as AdminCity[]);
 export const createCity = (b: { name: string; code?: string }) => send("/sa/cities", "POST", b);
 export const updateCity = (id: string, name: string) => send(`/sa/cities/${id}`, "PATCH", { name });
 export const deleteCity = (id: string) => send(`/sa/cities/${id}`, "DELETE");
+
+// terminals (boarding/drop points within a city)
+export const addTerminal = (cityId: string, b: { name: string; code?: string; area?: string }) =>
+  send(`/sa/cities/${cityId}/terminals`, "POST", b);
+export const updateTerminal = (cityId: string, code: string, b: { name?: string; area?: string }) =>
+  send(`/sa/cities/${cityId}/terminals/${code}`, "PATCH", b);
+export const deleteTerminal = (cityId: string, code: string) =>
+  send(`/sa/cities/${cityId}/terminals/${code}`, "DELETE");
 
 /* ---- RBAC ---- */
 
@@ -184,6 +193,7 @@ type TripJson = {
   originId?: string; destinationId?: string; departAt?: string; arriveAt?: string;
   price: number; priceUnit: string; seatsAvailable?: number; location?: string; status?: string;
   bookedSeats?: string[]; reservedUnits?: number; blockedDates?: string[];
+  businessSeats?: string[]; businessSurcharge?: number;
   serviceScope?: "intracity" | "intercity" | "both" | null; approved?: boolean;
   amenities?: string[]; vehicle?: string; durationDays?: number; checkIn?: string; checkOut?: string;
   stops?: number; rating?: number; badge?: string; days?: string[];
@@ -231,6 +241,7 @@ function toSchedule(t: TripJson): Schedule | null {
     capacity: t.seatsAvailable != null ? t.seatsAvailable + booked + reserved : undefined,
     status: t.status === "hidden" ? "paused" : "active",
     bookedSeats: t.bookedSeats ?? [], reservedUnits: reserved,
+    businessSeats: t.businessSeats ?? [], businessSurcharge: t.businessSurcharge ?? 0,
     blockedDates: t.blockedDates ?? [], serviceScope: t.serviceScope ?? null,
     approved: t.approved ?? false, amenities: t.amenities ?? [],
   };
@@ -329,6 +340,8 @@ export async function createTrip(s: Schedule): Promise<SaveResult> {
     rating: s.rating,
     badge: s.badge,
     bookedSeats: s.bookedSeats,
+    businessSeats: s.businessSeats,
+    businessSurcharge: s.businessSurcharge,
     days: s.days,
     routeStops: s.routeStops && s.routeStops.length ? routeStopsToIso(s.routeStops) : undefined,
   });
@@ -336,7 +349,7 @@ export async function createTrip(s: Schedule): Promise<SaveResult> {
 
 export async function updateTrip(
   id: string,
-  patch: { price?: number; status?: "active" | "hidden"; departAt?: string; arriveAt?: string; seatsAvailable?: number; title?: string; durationDays?: number; checkIn?: string; checkOut?: string; vehicle?: string; stops?: number; rating?: number; badge?: string; originCode?: string; destinationCode?: string; amenities?: string[]; days?: string[]; routeStops?: RouteStop[] },
+  patch: { price?: number; status?: "active" | "hidden"; departAt?: string; arriveAt?: string; seatsAvailable?: number; title?: string; durationDays?: number; checkIn?: string; checkOut?: string; vehicle?: string; stops?: number; rating?: number; badge?: string; originCode?: string; destinationCode?: string; amenities?: string[]; days?: string[]; routeStops?: RouteStop[]; businessSeats?: string[]; businessSurcharge?: number },
 ): Promise<SaveResult> {
   const body = { ...patch, routeStops: patch.routeStops ? routeStopsToIso(patch.routeStops) : undefined };
   return send(`/operator/trips/${id}`, "PATCH", body);
@@ -344,6 +357,25 @@ export async function updateTrip(
 
 export async function deleteTrip(id: string): Promise<SaveResult> {
   return send(`/operator/trips/${id}`, "DELETE");
+}
+
+// Announce a delay for a dated departure; returns how many passengers were notified.
+export async function notifyDelay(
+  tripId: string,
+  body: { date: string; minutes: number; reason?: string },
+): Promise<{ ok: true; notified: number } | { ok: false; error: string }> {
+  try {
+    const res = await fetch(`${API_URL}/operator/trips/${tripId}/delay`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...authHeaders() },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: data.error ?? `HTTP ${res.status}` };
+    return { ok: true, notified: data.notified ?? 0 };
+  } catch {
+    return { ok: false, error: "Couldn't reach the API." };
+  }
 }
 
 /* ---------------- fleet / vehicles ---------------- */

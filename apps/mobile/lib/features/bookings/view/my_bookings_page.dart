@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/util/money.dart';
 import '../../../core/widgets/bookie_app_bar.dart';
+import '../../../core/widgets/shimmer.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/view/sign_in_prompt.dart';
 import '../bloc/booking_bloc.dart';
@@ -42,23 +43,30 @@ class _BookingsListState extends State<_BookingsList> {
     context.read<BookingBloc>().add(const MyBookingsRequested());
   }
 
+  Future<void> _refresh() async {
+    context.read<BookingBloc>().add(const MyBookingsRequested());
+    await context.read<BookingBloc>().stream.firstWhere((s) => s.status != BookingStatus.loading);
+  }
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: () async => context.read<BookingBloc>().add(const MyBookingsRequested()),
+      onRefresh: _refresh,
+      color: AppColors.brand,
       child: BlocBuilder<BookingBloc, BookingState>(
         builder: (context, state) {
           if (state.status == BookingStatus.loading && state.tickets.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+            return SkeletonList(count: 5, itemBuilder: (_, __) => const BookingCardSkeleton());
           }
           if (state.tickets.isEmpty) {
-            return ListView(children: [
+            return ListView(physics: const AlwaysScrollableScrollPhysics(), children: [
               const SizedBox(height: 160),
               Center(child: Text(state.error ?? 'No bookings yet.', style: const TextStyle(color: AppColors.muted))),
             ]);
           }
           return ListView.separated(
             padding: const EdgeInsets.all(16),
+            physics: const AlwaysScrollableScrollPhysics(),
             itemCount: state.tickets.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, i) {

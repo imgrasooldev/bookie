@@ -54,6 +54,8 @@ export interface Ticket {
   title: string;
   originCode: string | null;
   destinationCode: string | null;
+  originTerminal: string | null;
+  destinationTerminal: string | null;
   departAt: string | null;
   arriveAt: string | null;
   operator: string;
@@ -126,6 +128,63 @@ export async function getMyBookings(): Promise<Ticket[]> {
     });
     if (!res.ok) return [];
     return (await res.json()) as Ticket[];
+  } catch {
+    return [];
+  }
+}
+
+export interface Review {
+  id: string;
+  booking: string;
+  rating: number;
+  comment: string;
+  authorName: string;
+  createdAt: string | null;
+}
+
+/** The signed-in user's review for a booking (null if not reviewed yet). */
+export async function getMyReview(bookingId: string): Promise<Review | null> {
+  if (USE_MOCK) return null;
+  try {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/bookings/${bookingId}/review`, {
+      cache: "no-store",
+      headers: token ? { authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as Review | null;
+  } catch {
+    return null;
+  }
+}
+
+/** Add or update the single review for a booking. */
+export async function submitReview(
+  bookingId: string,
+  input: { rating: number; comment: string },
+): Promise<{ ok: true; review: Review } | { ok: false; error: string }> {
+  try {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/bookings/${bookingId}/review`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify(input),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: data.error ?? "Couldn't save your review." };
+    return { ok: true, review: data as Review };
+  } catch {
+    return { ok: false, error: "Couldn't reach the server. Please try again." };
+  }
+}
+
+/** Public reviews for a trip (newest first). */
+export async function getTripReviews(tripId: string): Promise<Review[]> {
+  if (USE_MOCK) return [];
+  try {
+    const res = await fetch(`${API_URL}/trips/${tripId}/reviews`, { cache: "no-store" });
+    if (!res.ok) return [];
+    return (await res.json()) as Review[];
   } catch {
     return [];
   }

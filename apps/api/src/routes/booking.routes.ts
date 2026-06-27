@@ -2,10 +2,12 @@ import { Router } from "express";
 import { z } from "zod";
 import { Trip } from "../models/Trip.js";
 import { Booking } from "../models/Booking.js";
+import { Review } from "../models/Review.js";
 import { optionalAuth, requireAuth } from "../middleware/auth.js";
 import { ah, HttpError } from "../middleware/error.js";
-import { fareForSegment } from "../lib/segment.js";
-import { serializeBooking } from "../lib/serialize.js";
+import { fareForSegment, terminalsForSegment } from "../lib/segment.js";
+import { recomputeRatings } from "../lib/ratings.js";
+import { serializeBooking, serializeReview } from "../lib/serialize.js";
 import { User } from "../models/User.js";
 import { confirmSeats, holdSeats, releaseSeats, takenSeats, today } from "../lib/inventory.js";
 
@@ -83,34 +85,53 @@ bookingRouter.post(
     const date = isDate(body.date) ? body.date! : today();
     // bill the searched segment fare (not the full-route price) for multi-stop trips
     const unitFare = fareForSegment(trip, body.originId, body.destinationId);
-    const subtotal = unitFare * qty;
+    // business/executive seats add a per-seat surcharge on top of the fare
+    const businessSet = new Set(trip.businessSeats ?? []);
+    const surcharge = trip.businessSurcharge ?? 0;
+    const subtotal = body.seats?.length
+      ? body.seats.reduce((sum, s) => sum + unitFare + (businessSet.has(s) ? surcharge : 0), 0)
+      : unitFare * qty;
+    // snapshot the boarding/drop terminals onto the booking (ID-stable e-ticket)
+    const { originTerminal, destinationTerminal } = terminalsForSegment(trip, body.originId, body.destinationId);
 
     // Atomically claim the seats for THIS departure date. If any seat was just
     // taken by a concurrent booking, this fails — no double-booking.
     if (trip.serviceType === "BUS" && body.seats?.length) {
-      const ok = await confirmSeats(trip._id, date, body.seats);
+      const ok = await confirmSeats(trip._id, date, body.seats, body.holdId);
       if (!ok) throw new HttpError(409, "One or more of those seats were just booked. Please pick again.");
     }
 
-    const booking = await Booking.create({
-      bookingNo: bookingNo(),
-      customer: req.user?.sub,
-      trip: trip._id,
-      operator: trip.operator,
-      serviceType: trip.serviceType,
-      originCode: body.originId ?? trip.originCode,
-      destinationCode: body.destinationId ?? trip.destinationCode,
-      date,
-      contact: body.contact,
-      status: isQuote ? "QUOTE_REQUESTED" : "AWAITING_PAYMENT",
-      passengers: body.passengers ?? [],
-      seats: body.seats ?? [],
-      quantity: qty,
-      fare: { subtotal, fees: 0, discount: 0, total: subtotal, currency: "PKR" },
-      payment: body.paymentMethod
-        ? { method: body.paymentMethod, status: "INITIATED" }
-        : undefined,
-    });
+    let booking;
+    try {
+      booking = await Booking.create({
+        bookingNo: bookingNo(),
+        customer: req.user?.sub,
+        trip: trip._id,
+        operator: trip.operator,
+        serviceType: trip.serviceType,
+        originCode: body.originId ?? trip.originCode,
+        destinationCode: body.destinationId ?? trip.destinationCode,
+        originTerminal,
+        destinationTerminal,
+        date,
+        contact: body.contact,
+        status: isQuote ? "QUOTE_REQUESTED" : "AWAITING_PAYMENT",
+        passengers: body.passengers ?? [],
+        seats: body.seats ?? [],
+        quantity: qty,
+        fare: { subtotal, fees: 0, discount: 0, total: subtotal, currency: "PKR" },
+        payment: body.paymentMethod
+          ? { method: body.paymentMethod, status: "INITIATED" }
+          : undefined,
+      });
+    } catch (err) {
+      // compensation: release the seats we just claimed so a failed insert can
+      // never leak a sold seat that has no booking behind it.
+      if (trip.serviceType === "BUS" && body.seats?.length) {
+        await releaseSeats(trip._id, date, body.seats).catch(() => {});
+      }
+      throw err;
+    }
 
     // remember everyone on this booking as a saved traveller (the booker as
     // "Self" + any named co-passengers) so the account portal stays populated.
@@ -212,10 +233,11 @@ bookingRouter.post(
     if (booking.serviceType === "BUS" && booking.seats?.length && booking.date) {
       await releaseSeats(booking.trip, booking.date, booking.seats);
     }
-    // refund the fare to the customer's Bookie wallet (refunds are credited as
-    // wallet balance — the PK norm, since gateway reversals are slow)
+    // refund the fare to the customer's Bookie wallet — ONLY if money was
+    // actually collected. Unpaid bookings (AWAITING_PAYMENT) carry no funds, so
+    // cancelling one must not mint wallet balance from nothing.
     const refund = booking.fare?.total ?? 0;
-    if (booking.customer && refund > 0) {
+    if (wasPaid && booking.customer && refund > 0) {
       await User.updateOne(
         { _id: booking.customer },
         {
@@ -226,5 +248,62 @@ bookingRouter.post(
     }
     const populated = await Booking.findById(booking._id).populate("trip operator").lean();
     res.json(serializeBooking(populated));
+  }),
+);
+
+// A booking belongs to the signed-in user if it's linked to their account OR
+// was made as a guest on their mobile number (the PK guest-then-login case).
+async function ownedBooking(bookingId: string, userId: string) {
+  const booking = await Booking.findById(bookingId);
+  if (!booking) throw new HttpError(404, "Booking not found");
+  const user = await User.findById(userId).lean();
+  const mine =
+    String(booking.customer ?? "") === userId ||
+    (!!user?.phone && onlyDigits(booking.contact?.phone ?? "") === onlyDigits(user.phone));
+  if (!mine) throw new HttpError(403, "You can only review your own bookings.");
+  return { booking, user };
+}
+
+const reviewSchema = z.object({
+  rating: z.coerce.number().int().min(1).max(5),
+  comment: z.string().max(1000).optional(),
+});
+
+// POST /bookings/:id/review — add or update the single review for this booking.
+bookingRouter.post(
+  "/:id/review",
+  requireAuth,
+  ah(async (req, res) => {
+    const body = reviewSchema.parse(req.body);
+    const { booking, user } = await ownedBooking(req.params.id, req.user!.sub);
+    const review = await Review.findOneAndUpdate(
+      { booking: booking._id },
+      {
+        $set: {
+          customer: req.user!.sub,
+          trip: booking.trip,
+          operator: booking.operator,
+          serviceType: booking.serviceType,
+          rating: body.rating,
+          comment: body.comment?.trim() ?? "",
+          authorName: booking.contact?.name ?? user?.name ?? "Traveller",
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+    // roll the new rating up into the trip + operator aggregate
+    await recomputeRatings(booking.trip, booking.operator);
+    res.status(201).json(serializeReview(review));
+  }),
+);
+
+// GET /bookings/:id/review — the current user's review for this booking (if any).
+bookingRouter.get(
+  "/:id/review",
+  requireAuth,
+  ah(async (req, res) => {
+    await ownedBooking(req.params.id, req.user!.sub);
+    const review = await Review.findOne({ booking: req.params.id }).lean();
+    res.json(review ? serializeReview(review) : null);
   }),
 );

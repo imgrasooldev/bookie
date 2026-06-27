@@ -141,6 +141,8 @@ class _TicketPageState extends State<TicketPage> {
                   Text(t.operator, style: const TextStyle(color: Colors.black54)),
                   const SizedBox(height: 16),
                   _row('Date', hm(t.departAt) ?? '—'),
+                  if (t.originTerminal != null) _row('Boarding', t.originTerminal!),
+                  if (t.destinationTerminal != null) _row('Drop-off', t.destinationTerminal!),
                   _row('Seats', t.seats.isEmpty ? '—' : t.seats.join(', ')),
                   _row('Amount', pkr(t.total)),
                   _row('Status', t.status),
@@ -197,6 +199,10 @@ class _TicketPageState extends State<TicketPage> {
               child: _busy ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Cancel booking'),
             ),
           ],
+          if (!t.isCancelled) ...[
+            const SizedBox(height: 16),
+            _ReviewCard(bookingId: t.id),
+          ],
         ],
       ),
     );
@@ -206,4 +212,129 @@ class _TicketPageState extends State<TicketPage> {
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(k, style: const TextStyle(color: Colors.black54)), Text(v, style: const TextStyle(fontWeight: FontWeight.w600))]),
       );
+}
+
+// "Rate your trip" card: loads the user's existing review (if any) and lets
+// them add or edit their single review for this booking.
+class _ReviewCard extends StatefulWidget {
+  final String bookingId;
+  const _ReviewCard({required this.bookingId});
+  @override
+  State<_ReviewCard> createState() => _ReviewCardState();
+}
+
+class _ReviewCardState extends State<_ReviewCard> {
+  Review? _review;
+  bool _loading = true;
+  bool _editing = false;
+  bool _busy = false;
+  int _rating = 0;
+  final _comment = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final r = await sl<BookingRepository>().myReview(widget.bookingId);
+      if (!mounted) return;
+      setState(() {
+        _review = r;
+        if (r != null) { _rating = r.rating; _comment.text = r.comment; }
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _comment.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_rating < 1) return;
+    setState(() => _busy = true);
+    try {
+      final r = await sl<BookingRepository>().submitReview(widget.bookingId, _rating, _comment.text.trim());
+      if (!mounted) return;
+      setState(() { _review = r; _editing = false; _busy = false; });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Thanks for your review!')));
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save your review. Please try again.')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const SizedBox.shrink();
+    final shown = _review != null && !_editing;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text(shown ? 'Your review' : (_review != null ? 'Edit your review' : 'Rate your trip'),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              if (shown)
+                TextButton(onPressed: () => setState(() => _editing = true), child: const Text('Edit')),
+            ]),
+            const SizedBox(height: 4),
+            Row(
+              children: List.generate(5, (i) {
+                final n = i + 1;
+                final active = (shown ? _review!.rating : _rating) >= n;
+                return IconButton(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+                  onPressed: shown ? null : () => setState(() => _rating = n),
+                  icon: Icon(active ? Icons.star_rounded : Icons.star_outline_rounded,
+                      color: active ? Colors.amber : Colors.black26, size: 30),
+                );
+              }),
+            ),
+            if (shown) ...[
+              if (_review!.comment.isNotEmpty)
+                Padding(padding: const EdgeInsets.only(top: 6), child: Text('“${_review!.comment}”', style: const TextStyle(color: AppColors.muted))),
+            ] else ...[
+              const SizedBox(height: 8),
+              TextField(
+                controller: _comment,
+                maxLines: 3,
+                maxLength: 1000,
+                decoration: InputDecoration(
+                  hintText: 'How was the trip? (optional)',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(children: [
+                if (_review != null)
+                  TextButton(
+                    onPressed: () => setState(() { _editing = false; _rating = _review!.rating; _comment.text = _review!.comment; }),
+                    child: const Text('Cancel'),
+                  ),
+                const Spacer(),
+                FilledButton(
+                  onPressed: (_busy || _rating < 1) ? null : _submit,
+                  child: _busy
+                      ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Text(_review != null ? 'Update review' : 'Submit review'),
+                ),
+              ]),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }

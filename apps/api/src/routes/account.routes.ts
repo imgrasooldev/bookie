@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { User } from "../models/User.js";
 import { Booking } from "../models/Booking.js";
+import { Notification } from "../models/Notification.js";
 import { requireAuth } from "../middleware/auth.js";
 import { ah, HttpError } from "../middleware/error.js";
 
@@ -198,5 +199,59 @@ accountRouter.delete(
     t.deleteOne();
     await user.save();
     res.json(mapTravellers(user));
+  }),
+);
+
+/* ---------------- notifications (in-app feed) ---------------- */
+
+function relativeTime(d: Date): string {
+  const s = Math.max(0, (Date.now() - d.getTime()) / 1000);
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const days = Math.floor(h / 24);
+  return days === 1 ? "1d ago" : `${days}d ago`;
+}
+
+const serializeNotif = (n: any) => ({
+  id: String(n._id),
+  type: n.type,
+  title: n.title,
+  body: n.body,
+  time: relativeTime(new Date(n.createdAt)),
+  unread: !n.read,
+  channels: (n.channels ?? []).map((c: any) => ({ channel: c.channel, status: c.status })),
+});
+
+// GET /account/notifications — the user's in-app feed (newest first).
+accountRouter.get(
+  "/notifications",
+  ah(async (req, res) => {
+    const items = await Notification.find({ user: req.user!.sub }).sort({ createdAt: -1 }).limit(100).lean();
+    res.json({ items: items.map(serializeNotif), unread: items.filter((n) => !n.read).length });
+  }),
+);
+
+// POST /account/notifications/read — mark all (or one via ?id=) as read.
+accountRouter.post(
+  "/notifications/read",
+  ah(async (req, res) => {
+    const id = typeof req.query.id === "string" ? req.query.id : undefined;
+    const filter: Record<string, unknown> = { user: req.user!.sub, read: false };
+    if (id) filter._id = id;
+    await Notification.updateMany(filter, { $set: { read: true } });
+    res.json({ ok: true });
+  }),
+);
+
+// POST /account/device-token — register a push token for this user's device.
+accountRouter.post(
+  "/device-token",
+  ah(async (req, res) => {
+    const { token } = z.object({ token: z.string().min(8) }).parse(req.body);
+    await User.updateOne({ _id: req.user!.sub }, { $addToSet: { deviceTokens: token } });
+    res.json({ ok: true });
   }),
 );

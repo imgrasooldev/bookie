@@ -46,12 +46,28 @@ export async function holdSeats(trip: Types.ObjectId | string, date: string, sea
 
 /**
  * Atomically confirm seats into the booked set (and drop any matching holds).
- * Returns true on success; false if a seat was already booked by someone else.
+ * Returns true on success; false if a seat is already booked OR is actively held
+ * by someone else. Pass the caller's own `holdId` so their checkout hold doesn't
+ * block them — only *other* people's live holds do.
  */
-export async function confirmSeats(trip: Types.ObjectId | string, date: string, seats: string[]): Promise<boolean> {
+export async function confirmSeats(
+  trip: Types.ObjectId | string,
+  date: string,
+  seats: string[],
+  holdId?: string,
+): Promise<boolean> {
+  const now = new Date();
   await SeatInventory.updateOne({ trip, date }, { $setOnInsert: { trip, date } }, { upsert: true });
+  // an active hold held by a DIFFERENT holdId blocks confirmation (a direct
+  // booking can't steal a seat another customer is holding mid-checkout)
+  const blockingHold = { seat: { $in: seats }, expiresAt: { $gt: now }, ...(holdId ? { holdId: { $ne: holdId } } : {}) };
   const res = await SeatInventory.updateOne(
-    { trip, date, bookedSeats: { $nin: seats } },
+    {
+      trip,
+      date,
+      bookedSeats: { $nin: seats },
+      heldSeats: { $not: { $elemMatch: blockingHold } },
+    },
     { $addToSet: { bookedSeats: { $each: seats } }, $pull: { heldSeats: { seat: { $in: seats } } } },
   );
   return res.modifiedCount === 1;

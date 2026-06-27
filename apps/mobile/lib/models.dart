@@ -58,6 +58,8 @@ class Trip {
   final String serviceType;
   final Operator operator;
   final String title;
+  final String? originTerminal; // boarding point name
+  final String? destinationTerminal; // drop-off point name
   final String? departAt;
   final String? arriveAt;
   final int? durationMin;
@@ -68,12 +70,18 @@ class Trip {
   final List<String> amenities;
   final List<String> bookedSeats; // populated by GET /trips/:id
   final List<TripMedia> media; // operator's vehicle photos/videos
+  final num? rating; // display rating (review average once reviewed)
+  final int ratingCount; // number of customer reviews
+  final List<String> businessSeats; // seat labels in business/executive class
+  final num businessSurcharge; // extra PKR per business seat
 
   const Trip({
     required this.id,
     required this.serviceType,
     required this.operator,
     required this.title,
+    this.originTerminal,
+    this.destinationTerminal,
     this.departAt,
     this.arriveAt,
     this.durationMin,
@@ -84,6 +92,10 @@ class Trip {
     required this.amenities,
     this.bookedSeats = const [],
     this.media = const [],
+    this.rating,
+    this.ratingCount = 0,
+    this.businessSeats = const [],
+    this.businessSurcharge = 0,
   });
 
   bool get isQuote => price == 0;
@@ -93,6 +105,8 @@ class Trip {
         serviceType: j['serviceType'],
         operator: Operator.fromJson(j['operator']),
         title: j['title'],
+        originTerminal: j['originTerminal'],
+        destinationTerminal: j['destinationTerminal'],
         departAt: j['departAt'],
         arriveAt: j['arriveAt'],
         durationMin: j['durationMin'],
@@ -103,6 +117,10 @@ class Trip {
         amenities: (j['amenities'] as List?)?.cast<String>() ?? const [],
         bookedSeats: (j['bookedSeats'] as List?)?.cast<String>() ?? const [],
         media: (j['media'] as List?)?.map((e) => TripMedia.fromJson(e as Map<String, dynamic>)).toList() ?? const [],
+        rating: j['rating'] as num?,
+        ratingCount: (j['ratingCount'] ?? 0) as int,
+        businessSeats: (j['businessSeats'] as List?)?.cast<String>() ?? const [],
+        businessSurcharge: (j['businessSurcharge'] ?? 0) as num,
       );
 }
 

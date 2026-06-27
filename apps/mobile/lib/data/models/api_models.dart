@@ -67,6 +67,8 @@ class Ticket {
   final String status;
   final String serviceType;
   final String title;
+  final String? originTerminal;
+  final String? destinationTerminal;
   final String? departAt;
   final String operator;
   final String operatorColor;
@@ -81,6 +83,8 @@ class Ticket {
     required this.status,
     required this.serviceType,
     required this.title,
+    this.originTerminal,
+    this.destinationTerminal,
     this.departAt,
     required this.operator,
     required this.operatorColor,
@@ -98,6 +102,8 @@ class Ticket {
         status: j['status'] ?? '',
         serviceType: j['serviceType'] ?? '',
         title: j['title'] ?? '',
+        originTerminal: j['originTerminal'],
+        destinationTerminal: j['destinationTerminal'],
         departAt: j['departAt'],
         operator: j['operator'] ?? '',
         operatorColor: j['operatorColor'] ?? '#1d4ed8',
@@ -105,5 +111,19 @@ class Ticket {
         seats: (j['seats'] as List?)?.cast<String>() ?? const [],
         passengers: (j['passengers'] as List?)?.map((e) => Passenger.fromJson(e)).toList() ?? const [],
         total: (j['fare']?['total']) ?? 0,
+      );
+}
+
+class Review {
+  final int rating;
+  final String comment;
+  final String authorName;
+
+  const Review({required this.rating, required this.comment, required this.authorName});
+
+  factory Review.fromJson(Map<String, dynamic> j) => Review(
+        rating: (j['rating'] ?? 0) as int,
+        comment: j['comment'] ?? '',
+        authorName: j['authorName'] ?? 'Traveller',
       );
 }

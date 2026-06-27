@@ -4,8 +4,12 @@ import { z } from "zod";
 import { User } from "../models/User.js";
 import { signToken, requireAuth } from "../middleware/auth.js";
 import { ah, HttpError } from "../middleware/error.js";
+import { rateLimit } from "../middleware/ratelimit.js";
 
 export const authRouter = Router();
+
+// brute-force guard: cap login/register attempts per IP per 15-min window
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: "Too many attempts. Please wait a few minutes and try again." });
 
 // GET /auth/me — current user from a bearer token.
 authRouter.get(
@@ -34,6 +38,7 @@ const registerSchema = z.object({
 // POST /auth/register
 authRouter.post(
   "/register",
+  authLimiter,
   ah(async (req, res) => {
     const body = registerSchema.parse(req.body);
     if (await User.findOne({ phone: body.phone })) {
@@ -67,6 +72,7 @@ const loginSchema = z.object({
 // POST /auth/login
 authRouter.post(
   "/login",
+  authLimiter,
   ah(async (req, res) => {
     const body = loginSchema.parse(req.body);
     const id = body.identifier.trim();

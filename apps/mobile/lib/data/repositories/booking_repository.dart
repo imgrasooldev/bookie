@@ -45,4 +45,17 @@ class BookingRepository {
     final res = await _api.dio.post('/bookings/$id/cancel');
     return Ticket.fromJson(res.data as Map<String, dynamic>);
   }
+
+  /// The current user's review for a booking (null if not reviewed).
+  Future<Review?> myReview(String bookingId) async {
+    final res = await _api.dio.get('/bookings/$bookingId/review');
+    if (res.data == null) return null;
+    return Review.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  /// Add or update the single review for a booking.
+  Future<Review> submitReview(String bookingId, int rating, String comment) async {
+    final res = await _api.dio.post('/bookings/$bookingId/review', data: {'rating': rating, 'comment': comment});
+    return Review.fromJson(res.data as Map<String, dynamic>);
+  }
 }

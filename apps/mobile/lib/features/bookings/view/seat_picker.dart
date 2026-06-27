@@ -6,10 +6,11 @@ import '../../../core/theme/app_theme.dart';
 class SeatPicker extends StatefulWidget {
   final int capacity;
   final Set<String> booked;
+  final Set<String> business;
   final int maxSeats;
   final ValueChanged<Map<String, String>> onChanged;
 
-  const SeatPicker({super.key, required this.capacity, required this.booked, this.maxSeats = 6, required this.onChanged});
+  const SeatPicker({super.key, required this.capacity, required this.booked, this.business = const {}, this.maxSeats = 6, required this.onChanged});
 
   @override
   State<SeatPicker> createState() => _SeatPickerState();
@@ -58,11 +59,12 @@ class _SeatPickerState extends State<SeatPicker> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // legend
-        Wrap(spacing: 14, runSpacing: 6, children: const [
-          _Legend(color: Colors.white, border: true, label: 'Available'),
-          _Legend(color: AppColors.brand, label: 'Male ♂'),
-          _Legend(color: Color(0xFFEC4899), label: 'Female ♀'),
-          _Legend(color: Color(0xFFE2E8F0), label: 'Booked'),
+        Wrap(spacing: 14, runSpacing: 6, children: [
+          const _Legend(color: Colors.white, border: true, label: 'Available'),
+          if (widget.business.isNotEmpty) const _Legend(color: Color(0xFFFFFBEB), border: true, label: 'Business'),
+          const _Legend(color: AppColors.brand, label: 'Male ♂'),
+          const _Legend(color: Color(0xFFEC4899), label: 'Female ♀'),
+          const _Legend(color: Color(0xFFE2E8F0), label: 'Booked'),
         ]),
         const SizedBox(height: 14),
         // bus body
@@ -114,13 +116,16 @@ class _SeatPickerState extends State<SeatPicker> {
   Widget _seat(String label, Set<String> valid) {
     if (!valid.contains(label)) return const SizedBox(width: 36, height: 36);
     final booked = widget.booked.contains(label);
+    final biz = widget.business.contains(label);
+    const amber = Color(0xFFF59E0B);
     final g = _selected[label];
     final sel = g != null;
     final bg = booked
         ? const Color(0xFFE2E8F0)
         : sel
-            ? (g == 'F' ? const Color(0xFFEC4899) : AppColors.brand)
-            : Colors.white;
+            ? (g == 'F' ? const Color(0xFFEC4899) : (biz ? amber : AppColors.brand))
+            : (biz ? const Color(0xFFFFFBEB) : Colors.white);
+    final accent = biz ? amber : AppColors.brand;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 3),
       child: GestureDetector(
@@ -133,9 +138,9 @@ class _SeatPickerState extends State<SeatPicker> {
           decoration: BoxDecoration(
             color: bg,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(10), bottom: Radius.circular(6)),
-            border: Border.all(color: sel || booked ? Colors.transparent : AppColors.brand.withValues(alpha: 0.3)),
+            border: Border.all(color: sel || booked ? Colors.transparent : accent.withValues(alpha: biz ? 0.6 : 0.3)),
           ),
-          child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: booked ? AppColors.muted : (sel ? Colors.white : AppColors.brand))),
+          child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: booked ? AppColors.muted : (sel ? Colors.white : accent))),
         ),
       ),
     );

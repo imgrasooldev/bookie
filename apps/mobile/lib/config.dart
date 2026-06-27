@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 /// Set this to your computer's LAN IP when running on a PHYSICAL device
 /// (phone and PC must be on the same Wi-Fi). Find it with `ipconfig`
 /// (Windows) / `ifconfig` (mac/Linux). Set to null to use emulator defaults.
-const String? lanHost = '10.80.39.10';
+const String? lanHost = '192.168.1.4';
 
 const int apiPort = 4000;
 

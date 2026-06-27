@@ -12,7 +12,7 @@ import {
   type Vehicle,
   type RouteStop,
 } from "../data";
-import { createTrip, listSchedules, updateTrip, deleteTrip, setAvailability, listVehicles, listCatalogCities, type CatalogCity } from "../api";
+import { createTrip, listSchedules, updateTrip, deleteTrip, setAvailability, listVehicles, listCatalogCities, notifyDelay, type CatalogCity } from "../api";
 import { getOperator } from "../auth";
 import { PageHeader } from "../components/ui";
 import { useEscToClose } from "../components/useEscToClose";
@@ -36,6 +36,7 @@ export function Schedules() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Schedule | null>(null);
   const [managing, setManaging] = useState<Schedule | null>(null);
+  const [delaying, setDelaying] = useState<Schedule | null>(null);
   const [pendingDel, setPendingDel] = useState<Schedule | null>(null);
   const [fleet, setFleet] = useState<Vehicle[]>([]);
   const [cities, setCities] = useState<CatalogCity[]>([]);
@@ -209,6 +210,7 @@ export function Schedules() {
                     <div className="text-xs text-muted">per {s.unit}</div>
                   </div>
                   <button onClick={() => setManaging(s)} className="rounded-lg bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700 hover:bg-brand-100">Availability</button>
+                  <button onClick={() => setDelaying(s)} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-700 hover:bg-amber-100">Delay</button>
                   <button onClick={() => setEditing(s)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-ink hover:bg-slate-50">Edit</button>
                   <button onClick={() => toggle(s)} title={s.status === "active" ? "Pause" : "Activate"} className="grid h-9 w-9 place-items-center rounded-lg text-muted hover:bg-slate-100 hover:text-ink">
                     <PowerIcon className="h-5 w-5" />
@@ -275,6 +277,8 @@ export function Schedules() {
                 amenities: fields.amenities,
                 days: fields.days,
                 routeStops: fields.routeStops,
+                businessSeats: fields.businessSeats,
+                businessSurcharge: fields.businessSurcharge,
               });
               if (!r.ok) return flash("⚠ " + r.error);
               await load();
@@ -314,11 +318,78 @@ export function Schedules() {
         />
       )}
 
+      {delaying && (
+        <DelayDialog
+          schedule={delaying}
+          onClose={() => setDelaying(null)}
+          onDone={(n) => { setDelaying(null); flash(n > 0 ? `✓ Notified ${n} passenger${n === 1 ? "" : "s"}` : "No passengers on that departure"); }}
+          onError={flash}
+        />
+      )}
+
       {toast && (
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white shadow-lg">
           {toast}
         </div>
       )}
+    </div>
+  );
+}
+
+// Announce a delay for a dated departure → notifies every passenger on it.
+function DelayDialog({ schedule, onClose, onDone, onError }: { schedule: Schedule; onClose: () => void; onDone: (notified: number) => void; onError: (m: string) => void }) {
+  useEscToClose(onClose);
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [minutes, setMinutes] = useState("30");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function send() {
+    const mins = Number(minutes);
+    if (!date || !(mins > 0)) { onError("⚠ Pick a date and a positive delay in minutes."); return; }
+    setBusy(true);
+    const r = await notifyDelay(schedule.id, { date, minutes: mins, reason: reason.trim() || undefined });
+    setBusy(false);
+    if (r.ok) onDone(r.notified);
+    else onError("⚠ " + r.error);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <div>
+            <h2 className="text-lg font-bold text-ink">Announce a delay</h2>
+            <p className="text-xs text-muted">{schedule.title} — notifies everyone booked on the chosen date.</p>
+          </div>
+          <button onClick={onClose} className="text-2xl leading-none text-muted">×</button>
+        </div>
+        <div className="space-y-3 p-6">
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Departure date</span>
+              <input type="date" className={inp} value={date} onChange={(e) => setDate(e.target.value)} />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Delay (minutes)</span>
+              <input type="number" min={1} className={inp} value={minutes} onChange={(e) => setMinutes(e.target.value)} />
+            </label>
+          </div>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Reason (optional)</span>
+            <textarea rows={2} className={inp} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Heavy fog on the motorway" />
+          </label>
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            Passengers are notified in-app and via push, SMS, WhatsApp & email (where configured).
+          </p>
+        </div>
+        <div className="flex gap-3 border-t border-slate-100 px-6 py-4">
+          <button onClick={onClose} className="flex-1 rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-ink hover:bg-slate-50">Cancel</button>
+          <button onClick={send} disabled={busy} className="flex-1 rounded-lg bg-amber-600 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50">
+            {busy ? "Notifying…" : "Notify passengers"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -653,7 +724,7 @@ function EditSchedule({
   schedule: Schedule;
   cities: CatalogCity[];
   onClose: () => void;
-  onSave: (id: string, fields: { price: number; capacity?: number; departTime?: string; arriveTime?: string; checkIn?: string; checkOut?: string; durationDays?: number; vehicleName?: string; stops?: number; rating?: number; badge?: string; from?: string; to?: string; amenities?: string[]; title?: string; days?: string[]; routeStops?: RouteStop[] }) => void;
+  onSave: (id: string, fields: { price: number; capacity?: number; departTime?: string; arriveTime?: string; checkIn?: string; checkOut?: string; durationDays?: number; vehicleName?: string; stops?: number; rating?: number; badge?: string; from?: string; to?: string; amenities?: string[]; title?: string; days?: string[]; routeStops?: RouteStop[]; businessSeats?: string[]; businessSurcharge?: number }) => void;
 }) {
   useEscToClose(onClose);
   const kind = categoryOf(schedule.category).kind;
@@ -679,6 +750,8 @@ function EditSchedule({
   const [to, setTo] = useState(schedule.to ?? "");
   const [amenities, setAmenities] = useState<string[]>(schedule.amenities ?? []);
   const [days, setDays] = useState<string[]>(schedule.days ?? []);
+  const [businessSeats, setBusinessSeats] = useState((schedule.businessSeats ?? []).join(", "));
+  const [businessSurcharge, setBusinessSurcharge] = useState(schedule.businessSurcharge ? String(schedule.businessSurcharge) : "");
   const [interStops, setInterStops] = useState<{ code: string; time: string; fare: string }[]>(
     routeStopsToPerLeg(schedule.routeStops),
   );
@@ -717,6 +790,20 @@ function EditSchedule({
             <div className="grid grid-cols-2 gap-3">
               <L label="Departure"><input type="time" value={departTime} onChange={(e) => setDepartTime(e.target.value)} className={inp} /></L>
               <L label="Arrival"><input type="time" value={arriveTime} onChange={(e) => setArriveTime(e.target.value)} className={inp} /></L>
+            </div>
+          )}
+          {isTransport && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-700">Business / executive seats</div>
+              <div className="grid grid-cols-[1fr_auto] gap-3">
+                <L label="Seat labels (comma-separated)">
+                  <input value={businessSeats} onChange={(e) => setBusinessSeats(e.target.value)} placeholder="e.g. 1A, 1B, 2A, 2B" className={inp} />
+                </L>
+                <L label="Premium (Rs)">
+                  <input type="number" min="0" value={businessSurcharge} onChange={(e) => setBusinessSurcharge(e.target.value)} placeholder="0" className={`${inp} w-28`} />
+                </L>
+              </div>
+              <p className="mt-1.5 text-[11px] text-muted">Those seats show as business in the seat map and cost the premium extra per seat.</p>
             </div>
           )}
           {!isStay && (
@@ -847,6 +934,10 @@ function EditSchedule({
               routeStops: isTransport
                 ? (interStops.some((s) => s.code) ? buildRouteStops(from, to, Number(price) || 0, interStops, departTime, arriveTime, cityName) : [])
                 : undefined,
+              businessSeats: isTransport
+                ? businessSeats.split(",").map((x) => x.trim().toUpperCase()).filter(Boolean)
+                : undefined,
+              businessSurcharge: isTransport ? (Number(businessSurcharge) || 0) : undefined,
             })}
             className="flex-1 rounded-lg bg-brand-600 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
           >

@@ -8,6 +8,7 @@ import { Vehicle } from "../models/Vehicle.js";
 import { Booking } from "../models/Booking.js";
 import { Role } from "../models/Role.js";
 import { signToken, requireOperator } from "../middleware/auth.js";
+import { rateLimit } from "../middleware/ratelimit.js";
 import { uploadMedia } from "../middleware/upload.js";
 import { serializeTrip } from "../lib/serialize.js";
 import { SERVICE_TYPES } from "../lib/verticals.js";
@@ -77,6 +78,7 @@ const loginSchema = z.object({ identifier: z.string().min(3), password: z.string
 
 operatorRouter.post(
   "/login",
+  rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: "Too many attempts. Please wait a few minutes and try again." }),
   ah(async (req, res) => {
     const b = loginSchema.parse(req.body);
     const id = b.identifier.trim();
@@ -148,6 +150,8 @@ const createSchema = z.object({
   title: z.string().min(2),
   originCode: z.string().optional(),
   destinationCode: z.string().optional(),
+  originTerminal: z.string().optional(),
+  destinationTerminal: z.string().optional(),
   departAt: z.string().optional(),
   arriveAt: z.string().optional(),
   durationMin: z.coerce.number().optional(),
@@ -165,8 +169,10 @@ const createSchema = z.object({
   nights: z.coerce.number().int().min(1).optional(),
   badge: z.string().optional(),
   bookedSeats: z.array(z.string()).optional(),
+  businessSeats: z.array(z.string()).optional(),
+  businessSurcharge: z.coerce.number().nonnegative().optional(),
   days: z.array(z.string()).optional(),
-  routeStops: z.array(z.object({ code: z.string(), name: z.string().optional(), fare: z.coerce.number().nonnegative(), time: z.string().optional() })).optional(),
+  routeStops: z.array(z.object({ code: z.string(), name: z.string().optional(), fare: z.coerce.number().nonnegative(), time: z.string().optional(), terminal: z.string().optional() })).optional(),
 });
 
 operatorRouter.post(
@@ -198,10 +204,14 @@ const patchSchema = z.object({
   seatsAvailable: z.coerce.number().optional(),
   originCode: z.string().optional(),
   destinationCode: z.string().optional(),
+  originTerminal: z.string().optional(),
+  destinationTerminal: z.string().optional(),
   amenities: z.array(z.string()).optional(),
   days: z.array(z.string()).optional(),
   status: z.enum(["active", "hidden"]).optional(),
   bookedSeats: z.array(z.string()).optional(),
+  businessSeats: z.array(z.string()).optional(),
+  businessSurcharge: z.coerce.number().nonnegative().optional(),
   reservedUnits: z.coerce.number().optional(),
   blockedDates: z.array(z.string()).optional(),
   serviceScope: z.enum(["intracity", "intercity", "both"]).optional(),
@@ -213,7 +223,7 @@ const patchSchema = z.object({
   stops: z.coerce.number().int().min(0).optional(),
   rating: z.coerce.number().min(0).max(5).optional(),
   badge: z.string().optional(),
-  routeStops: z.array(z.object({ code: z.string(), name: z.string().optional(), fare: z.coerce.number().nonnegative(), time: z.string().optional() })).optional(),
+  routeStops: z.array(z.object({ code: z.string(), name: z.string().optional(), fare: z.coerce.number().nonnegative(), time: z.string().optional(), terminal: z.string().optional() })).optional(),
 });
 
 operatorRouter.patch(
@@ -241,6 +251,26 @@ operatorRouter.delete(
     const r = await Trip.findOneAndDelete({ _id: req.params.id, ...owned(req) });
     if (!r) throw new HttpError(404, "Listing not found");
     res.json({ ok: true });
+  }),
+);
+
+// POST /operator/trips/:id/delay — announce a delay for a dated departure and
+// notify every passenger on that departure (in-app + push/SMS/WhatsApp/email).
+const delaySchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  minutes: z.coerce.number().int().positive().max(1440),
+  reason: z.string().max(300).optional(),
+});
+operatorRouter.post(
+  "/trips/:id/delay",
+  requireOperator,
+  ah(async (req, res) => {
+    const trip = await Trip.findOne({ _id: req.params.id, ...owned(req) });
+    if (!trip) throw new HttpError(404, "Listing not found");
+    const b = delaySchema.parse(req.body);
+    const { notifyDelay } = await import("../lib/delays.js");
+    const result = await notifyDelay(trip._id, b.date, b.minutes, b.reason);
+    res.json(result);
   }),
 );
 

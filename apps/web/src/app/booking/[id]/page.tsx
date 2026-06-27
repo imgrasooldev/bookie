@@ -29,6 +29,8 @@ export default async function BookingPage({
   if (!base) notFound();
   // re-price the searched segment (multi-stop routes) so the page bills correctly
   const trip = applySegment(base, from, to);
+  // customer reviews for this trip (public, server-fetched)
+  const reviews = await getReviews(id);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -111,6 +113,30 @@ export default async function BookingPage({
             )}
           </div>
 
+          {reviews.length > 0 && (
+            <div className="card-soft mt-6 p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="font-display text-lg font-bold text-ink">Traveller reviews</h2>
+                <span className="inline-flex items-center gap-1 text-sm font-semibold text-ink">
+                  <StarIcon className="h-4 w-4 text-amber-400" />
+                  {(trip.rating ?? trip.operator.rating).toFixed(1)}
+                  <span className="font-normal text-muted">· {reviews.length} review{reviews.length > 1 ? "s" : ""}</span>
+                </span>
+              </div>
+              <ul className="space-y-4">
+                {reviews.slice(0, 8).map((r) => (
+                  <li key={r.id} className="border-b border-[var(--hairline,#e2e8f0)] pb-4 last:border-0 last:pb-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-ink">{r.authorName}</span>
+                      <Stars value={r.rating} />
+                    </div>
+                    {r.comment && <p className="mt-1.5 text-sm text-muted">{r.comment}</p>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {trip.media && trip.media.length > 0 && (
             <div className="mt-6">
               <VehicleGallery media={trip.media} />
@@ -145,6 +171,31 @@ export default async function BookingPage({
         </aside>
       </div>
     </div>
+  );
+}
+
+interface ReviewItem { id: string; rating: number; comment: string; authorName: string }
+
+// Server-side fetch of public trip reviews (no auth needed).
+async function getReviews(tripId: string): Promise<ReviewItem[]> {
+  if (process.env.NEXT_PUBLIC_USE_MOCK !== "false") return [];
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+  try {
+    const res = await fetch(`${API_URL}/trips/${tripId}/reviews`, { cache: "no-store" });
+    if (!res.ok) return [];
+    return (await res.json()) as ReviewItem[];
+  } catch {
+    return [];
+  }
+}
+
+function Stars({ value }: { value: number }) {
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <StarIcon key={n} className={`h-4 w-4 ${n <= value ? "text-amber-400" : "text-slate-200"}`} />
+      ))}
+    </span>
   );
 }
 

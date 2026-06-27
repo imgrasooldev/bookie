@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/util/money.dart';
 import '../../../core/widgets/bookie_app_bar.dart';
+import '../../../core/widgets/shimmer.dart';
 import '../../../models.dart';
 import '../bloc/trip_bloc.dart';
 import '../../bookings/view/booking_page.dart';
@@ -34,7 +35,17 @@ class _ResultsPageState extends State<ResultsPage> {
   @override
   void initState() {
     super.initState();
+    _search();
+  }
+
+  void _search() {
     context.read<TripBloc>().add(TripSearchRequested(serviceType: widget.serviceType, originId: widget.originId, destinationId: widget.destinationId, date: widget.date));
+  }
+
+  // Pull-to-refresh: re-run the search and resolve once the bloc settles.
+  Future<void> _refresh() async {
+    _search();
+    await context.read<TripBloc>().stream.firstWhere((s) => s.status != TripStatus.loading);
   }
 
   @override
@@ -50,35 +61,69 @@ class _ResultsPageState extends State<ResultsPage> {
         buildWhen: (a, b) => a.status != b.status || a.trips != b.trips,
         builder: (context, state) {
           if (state.status == TripStatus.loading) {
-            return const Center(child: CircularProgressIndicator());
+            return SkeletonList(count: 4, itemBuilder: (_, __) => const TripCardSkeleton());
           }
-          if (state.status == TripStatus.failure) {
-            return Center(child: Text(state.error ?? 'Search failed', style: const TextStyle(color: AppColors.muted)));
-          }
-          if (state.trips.isEmpty) {
-            return const Center(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.search_off_rounded, size: 48, color: AppColors.muted),
-                SizedBox(height: 12),
-                Text('No trips found for this route.', style: TextStyle(color: AppColors.muted)),
-              ]),
-            );
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: state.trips.length + 1,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (_, i) {
-              if (i == 0) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text('${state.trips.length} ${state.trips.length == 1 ? 'option' : 'options'} found', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink)),
-                );
-              }
-              return _TripCard(trip: state.trips[i - 1], date: widget.date);
-            },
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            color: AppColors.brand,
+            child: _body(state),
           );
         },
+      ),
+    );
+  }
+
+  Widget _body(TripState state) {
+    if (state.status == TripStatus.failure) {
+      return _scrollableCenter(
+        const Icon(Icons.cloud_off_rounded, size: 48, color: AppColors.muted),
+        state.error ?? 'Search failed',
+        hint: 'Pull down to retry',
+      );
+    }
+    if (state.trips.isEmpty) {
+      return _scrollableCenter(
+        const Icon(Icons.search_off_rounded, size: 48, color: AppColors.muted),
+        'No trips found for this route.',
+        hint: 'Pull down to refresh',
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: state.trips.length + 1,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (_, i) {
+        if (i == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text('${state.trips.length} ${state.trips.length == 1 ? 'option' : 'options'} found', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink)),
+          );
+        }
+        return _TripCard(trip: state.trips[i - 1], date: widget.date);
+      },
+    );
+  }
+
+  // A centered empty/error state that still scrolls, so RefreshIndicator works.
+  Widget _scrollableCenter(Widget icon, String text, {String? hint}) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              icon,
+              const SizedBox(height: 12),
+              Text(text, style: const TextStyle(color: AppColors.muted)),
+              if (hint != null) ...[
+                const SizedBox(height: 6),
+                Text(hint, style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+              ],
+            ]),
+          ),
+        ),
       ),
     );
   }
@@ -123,11 +168,33 @@ class _TripCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Row(children: [const Icon(Icons.star_rounded, size: 15, color: Colors.amber), Text(trip.operator.rating.toStringAsFixed(1), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600))]),
+                Row(children: [
+                  const Icon(Icons.star_rounded, size: 15, color: Colors.amber),
+                  Text((trip.rating ?? trip.operator.rating).toStringAsFixed(1), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  if (trip.ratingCount > 0) Text(' (${trip.ratingCount})', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+                ]),
               ]),
               if (hm(trip.departAt) != null) ...[
                 const SizedBox(height: 10),
                 Row(children: [const Icon(Icons.schedule, size: 14, color: AppColors.muted), const SizedBox(width: 4), Text(hm(trip.departAt)!, style: const TextStyle(fontSize: 13, color: AppColors.ink))]),
+              ],
+              if (trip.originTerminal != null || trip.destinationTerminal != null) ...[
+                const SizedBox(height: 8),
+                Row(children: [
+                  const Icon(Icons.location_on_outlined, size: 14, color: AppColors.brand),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      [
+                        if (trip.originTerminal != null) 'Board: ${trip.originTerminal}',
+                        if (trip.destinationTerminal != null) 'Drop: ${trip.destinationTerminal}',
+                      ].join('  ·  '),
+                      style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ]),
               ],
               if (trip.amenities.isNotEmpty) ...[
                 const SizedBox(height: 10),

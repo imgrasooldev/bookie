@@ -5,6 +5,7 @@ import '../../../core/di/injector.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/util/money.dart';
 import '../../../core/widgets/bookie_app_bar.dart';
+import '../../../core/widgets/shimmer.dart';
 import '../../../data/models/api_models.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../auth/bloc/auth_bloc.dart';
@@ -39,15 +40,26 @@ class _ProfileView extends StatefulWidget {
 class _ProfileViewState extends State<_ProfileView> {
   late Future<Profile> _future = sl<AuthRepository>().profile();
 
+  Future<void> _refresh() async {
+    final f = sl<AuthRepository>().profile();
+    setState(() => _future = f);
+    try {
+      await f;
+    } catch (_) {/* keep the indicator from hanging on error */}
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Profile>(
       future: _future,
       builder: (context, snap) {
-        if (snap.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
+        if (snap.connectionState != ConnectionState.done && !snap.hasData) {
+          return const _ProfileSkeleton();
+        }
         final p = snap.data;
         return RefreshIndicator(
-          onRefresh: () async => setState(() => _future = sl<AuthRepository>().profile()),
+          onRefresh: _refresh,
+          color: AppColors.brand,
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -100,4 +112,46 @@ class _ProfileViewState extends State<_ProfileView> {
       );
 
   Widget _tile(IconData icon, String text) => Card(child: ListTile(leading: Icon(icon, color: AppColors.brand), title: Text(text)));
+}
+
+// Shimmer placeholder shown while the profile loads (mirrors the real layout).
+class _ProfileSkeleton extends StatelessWidget {
+  const _ProfileSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer(
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        physics: const NeverScrollableScrollPhysics(),
+        children: [
+          Row(children: const [
+            SkeletonBox(width: 56, height: 56, radius: 28),
+            SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonBox(width: 140, height: 16),
+                  SizedBox(height: 8),
+                  SkeletonBox(width: 100, height: 12),
+                ],
+              ),
+            ),
+          ]),
+          const SizedBox(height: 20),
+          Row(children: const [
+            Expanded(child: SkeletonBox(height: 78, radius: 16)),
+            SizedBox(width: 12),
+            Expanded(child: SkeletonBox(height: 78, radius: 16)),
+          ]),
+          const SizedBox(height: 20),
+          for (var i = 0; i < 4; i++) ...const [
+            SkeletonBox(height: 56, radius: 12),
+            SizedBox(height: 12),
+          ],
+        ],
+      ),
+    );
+  }
 }

@@ -338,7 +338,7 @@ superAdminRouter.get(
     ]);
     const used: string[] = [...(counts[0]?.codes ?? []), ...(counts[0]?.dests ?? [])].filter(Boolean);
     const countOf = (code: string) => used.filter((c) => c === code).length;
-    res.json(cities.map((c) => ({ id: String(c._id), code: c.code, name: c.name, listings: countOf(c.code) })));
+    res.json(cities.map((c) => ({ id: String(c._id), code: c.code, name: c.name, listings: countOf(c.code), terminals: c.terminals ?? [] })));
   }),
 );
 
@@ -378,6 +378,59 @@ superAdminRouter.delete(
     if (inUse) throw new HttpError(400, `This city is used by ${inUse} listing(s).`);
     await City.deleteOne({ _id: city._id });
     res.json({ ok: true });
+  }),
+);
+
+/* ---------------- terminals (boarding/drop points within a city) ---------- */
+
+const terminalBody = z.object({ name: z.string().min(2), code: z.string().optional(), area: z.string().optional() });
+
+// POST /sa/cities/:id/terminals — add a terminal to a city
+superAdminRouter.post(
+  "/cities/:id/terminals",
+  requirePermission("cities.manage"),
+  ah(async (req, res) => {
+    const b = terminalBody.parse(req.body);
+    const code = (b.code?.trim() || slug(b.name)).toLowerCase();
+    if (!code) throw new HttpError(400, "Invalid terminal name.");
+    const city = await City.findById(req.params.id);
+    if (!city) throw new HttpError(404, "City not found");
+    if (city.terminals.some((t) => t.code === code)) throw new HttpError(409, "A terminal with this code already exists in this city.");
+    city.terminals.push({ code, name: b.name.trim(), area: b.area?.trim() });
+    await city.save();
+    res.status(201).json({ id: String(city._id), code: city.code, name: city.name, terminals: city.terminals });
+  }),
+);
+
+// PATCH /sa/cities/:id/terminals/:code — rename / re-area a terminal
+superAdminRouter.patch(
+  "/cities/:id/terminals/:code",
+  requirePermission("cities.manage"),
+  ah(async (req, res) => {
+    const b = z.object({ name: z.string().min(2).optional(), area: z.string().optional() }).parse(req.body);
+    const city = await City.findById(req.params.id);
+    if (!city) throw new HttpError(404, "City not found");
+    const t = city.terminals.find((x) => x.code === req.params.code);
+    if (!t) throw new HttpError(404, "Terminal not found");
+    if (b.name !== undefined) t.name = b.name.trim();
+    if (b.area !== undefined) t.area = b.area.trim();
+    await city.save();
+    res.json({ id: String(city._id), code: city.code, name: city.name, terminals: city.terminals });
+  }),
+);
+
+// DELETE /sa/cities/:id/terminals/:code — remove a terminal
+superAdminRouter.delete(
+  "/cities/:id/terminals/:code",
+  requirePermission("cities.manage"),
+  ah(async (req, res) => {
+    const city = await City.findById(req.params.id);
+    if (!city) throw new HttpError(404, "City not found");
+    const before = city.terminals.length;
+    city.terminals = city.terminals.filter((x) => x.code !== req.params.code) as typeof city.terminals;
+    if (city.terminals.length === before) throw new HttpError(404, "Terminal not found");
+    await city.save();
+    res.json({ id: String(city._id), code: city.code, name: city.name, terminals: city.terminals });
   }),
 );
 

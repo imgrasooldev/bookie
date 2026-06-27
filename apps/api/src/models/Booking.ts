@@ -37,6 +37,10 @@ const bookingSchema = new Schema(
     // booked segment (for multi-stop routes); falls back to the trip's full route
     originCode: { type: String },
     destinationCode: { type: String },
+    // boarding / drop-off terminals captured at booking time (so the e-ticket
+    // shows "Boarding: Sohrab Goth Terminal" even if the trip is edited later)
+    originTerminal: { type: String },
+    destinationTerminal: { type: String },
     date: { type: String }, // yyyy-mm-dd departure date (date-aware inventory)
     contact: { type: contactSchema },
     status: {

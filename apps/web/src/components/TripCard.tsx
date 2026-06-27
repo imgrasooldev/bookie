@@ -106,6 +106,9 @@ export function TripCard({ trip, date }: { trip: Trip; date?: string }) {
               <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700">
                 <StarIcon className="h-3.5 w-3.5" />
                 {(trip.rating ?? trip.operator.rating).toFixed(1)}
+                {(trip.ratingCount ?? 0) > 0 && (
+                  <span className="font-normal text-green-600/80">({trip.ratingCount})</span>
+                )}
               </span>
             </div>
 
@@ -139,6 +142,28 @@ export function TripCard({ trip, date }: { trip: Trip; date?: string }) {
                   <span className="h-2 w-2 rounded-full bg-brand-500" />
                 </div>
                 <div className="font-bold text-ink">{formatTime(trip.arriveAt)}</div>
+              </div>
+            )}
+
+            {/* boarding / drop-off terminals */}
+            {isTransport && (trip.originTerminal || trip.destinationTerminal) && (
+              <div className="mt-2 flex items-start justify-between gap-3 text-xs">
+                {trip.originTerminal && (
+                  <span className="inline-flex min-w-0 items-center gap-1 text-muted">
+                    <TrackIcon className="h-3.5 w-3.5 shrink-0 text-brand-500" />
+                    <span className="truncate">
+                      <span className="text-slate-400">Board:</span> {trip.originTerminal}
+                    </span>
+                  </span>
+                )}
+                {trip.destinationTerminal && (
+                  <span className="inline-flex min-w-0 items-center gap-1 text-right text-muted">
+                    <span className="truncate">
+                      <span className="text-slate-400">Drop:</span> {trip.destinationTerminal}
+                    </span>
+                    <TrackIcon className="h-3.5 w-3.5 shrink-0 text-brand-500" />
+                  </span>
+                )}
               </div>
             )}
 

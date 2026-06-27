@@ -54,14 +54,18 @@ export interface Trip {
   title: string;
   originId?: string;
   destinationId?: string;
+  originTerminal?: string; // boarding point name, e.g. "Sohrab Goth Terminal"
+  destinationTerminal?: string; // drop-off point name
   departAt?: string;
   arriveAt?: string;
   durationMin?: number;
   price: number;
   priceUnit: "per_seat" | "per_night" | "per_person" | "fixed" | "from";
   // ordered multi-stop route; fare = cumulative fare from route origin to that stop
-  routeStops?: { code: string; name: string; fare: number; time?: string }[];
+  routeStops?: { code: string; name: string; fare: number; time?: string; terminal?: string }[];
   bookedSeats?: string[]; // seat labels already taken (transport)
+  businessSeats?: string[]; // seat labels in business/executive class
+  businessSurcharge?: number; // extra PKR per business seat
   media?: { kind: "image" | "video"; url: string }[]; // operator's vehicle photos/videos
   seatsAvailable?: number;
   vehicle?: string;
@@ -73,7 +77,8 @@ export interface Trip {
   durationDays?: number; // tour/umrah length
   checkIn?: string; // stay check-in time "14:00"
   checkOut?: string; // stay check-out time "12:00"
-  rating?: number; // hotel star rating
+  rating?: number; // display rating (review average once reviewed, else preset)
+  ratingCount?: number; // number of customer reviews
   badge?: string; // e.g. "Direct", "Bestseller", "5★"
   suspended?: boolean; // operator suspended this listing for the searched date
   suspendedFrom?: string; // first suspended day (the searched date)

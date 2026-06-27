@@ -3,13 +3,15 @@
 // fare) — keeping them in one place is what prevents the "card shows segment
 // fare but booking bills the full route" mismatch.
 
-type Stop = { code?: string | null; name?: string | null; fare?: number | null; time?: string | null };
+type Stop = { code?: string | null; name?: string | null; fare?: number | null; time?: string | null; terminal?: string | null };
 
 export interface SegmentTrip {
   routeStops?: Stop[] | null;
   price?: number;
   originCode?: string | null;
   destinationCode?: string | null;
+  originTerminal?: string | null;
+  destinationTerminal?: string | null;
 }
 
 /**
@@ -40,6 +42,10 @@ export function subSegment(t: SegmentTrip, origin: string, dest: string) {
     departAt,
     arriveAt,
     durationMin,
+    // the searched segment boards/drops at THESE stops' terminals, not the
+    // trip's full-route endpoints — overrides serializeTrip's values on the card
+    originTerminal: stops[oi].terminal ?? undefined,
+    destinationTerminal: stops[di].terminal ?? undefined,
   };
 }
 
@@ -54,4 +60,26 @@ export function fareForSegment(t: SegmentTrip, origin?: string | null, dest?: st
     if (seg) return seg.price;
   }
   return Number(t.price ?? 0);
+}
+
+/**
+ * Boarding / drop-off terminals for a searched origin→destination. Prefers the
+ * terminal set on the matching route stop; falls back to the trip's top-level
+ * origin/destination terminal when the city is the route's own endpoint. This
+ * is the single source the booking route uses so the e-ticket prints the right
+ * boarding point even on a multi-stop sub-segment.
+ */
+export function terminalsForSegment(
+  t: SegmentTrip,
+  origin?: string | null,
+  dest?: string | null,
+): { originTerminal?: string; destinationTerminal?: string } {
+  const stops = t.routeStops ?? [];
+  const stopTerminal = (code?: string | null) =>
+    code ? stops.find((s) => s.code === code)?.terminal ?? undefined : undefined;
+  const originTerminal =
+    stopTerminal(origin) ?? (!origin || origin === t.originCode ? t.originTerminal ?? undefined : undefined);
+  const destinationTerminal =
+    stopTerminal(dest) ?? (!dest || dest === t.destinationCode ? t.destinationTerminal ?? undefined : undefined);
+  return { originTerminal: originTerminal ?? undefined, destinationTerminal: destinationTerminal ?? undefined };
 }

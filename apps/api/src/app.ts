@@ -15,6 +15,7 @@ import { errorHandler, notFound } from "./middleware/error.js";
 /** Build the Express app (no DB connection / no listen). */
 export function createApp(): Express {
   const app = express();
+  app.set("trust proxy", 1); // behind fly.io/proxy — use X-Forwarded-For for req.ip (rate limiting)
   app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
   app.use(cors({ origin: env.corsOrigin }));
   app.use(express.json());

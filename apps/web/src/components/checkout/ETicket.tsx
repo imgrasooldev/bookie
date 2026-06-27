@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { Ticket } from "@/lib/bookings";
 import { formatPKR, formatDate, formatTime } from "@/lib/format";
 import { CancelDialog } from "@/components/checkout/CancelDialog";
+import { ReviewSection } from "@/components/checkout/ReviewSection";
 
 const STATUS_STYLE: Record<string, string> = {
   CONFIRMED: "bg-green-50 text-green-700",
@@ -52,6 +53,21 @@ export function ETicket({ ticket: initial, allowCancel = true }: { ticket: Ticke
             <div className="mt-1 font-display text-xl font-bold text-ink">{ticket.title}</div>
             {ticket.vehicle && <div className="mt-0.5 text-sm text-muted">{ticket.vehicle}</div>}
           </div>
+
+          {/* boarding / drop-off terminals */}
+          {(ticket.originTerminal || ticket.destinationTerminal) && (
+            <div className="mt-4 flex items-stretch gap-2 rounded-xl border border-[var(--hairline,#e2e8f0)] bg-slate-50/60 p-3">
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">Boarding</div>
+                <div className="truncate text-sm font-semibold text-ink">{ticket.originTerminal ?? "—"}</div>
+              </div>
+              <div className="self-center text-brand-500">→</div>
+              <div className="min-w-0 flex-1 text-right">
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">Drop-off</div>
+                <div className="truncate text-sm font-semibold text-ink">{ticket.destinationTerminal ?? "—"}</div>
+              </div>
+            </div>
+          )}
 
           {/* key facts */}
           <div className="my-5 grid grid-cols-2 gap-3 text-sm">
@@ -113,6 +129,8 @@ export function ETicket({ ticket: initial, allowCancel = true }: { ticket: Ticke
           </div>
         </div>
       </div>
+
+      {!cancelled && <ReviewSection bookingId={ticket.id} />}
 
       <div className="mt-4 text-center print:hidden">
         <Link href="/account/bookings" className="text-sm font-medium text-brand-700 hover:underline">

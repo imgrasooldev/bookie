@@ -131,14 +131,16 @@ class _BookingPageState extends State<BookingPage> {
         }
         final detail = snap.data ?? widget.trip;
         final booked = detail.bookedSeats.toSet();
+        final business = detail.businessSeats.toSet();
         final capacity = (detail.seatsAvailable ?? 36) + booked.length;
-        final total = widget.trip.price * _seats.length;
+        // per-seat pricing so business/executive seats add their surcharge
+        final total = _seats.keys.fold<num>(0, (sum, s) => sum + widget.trip.price + (business.contains(s) ? detail.businessSurcharge : 0));
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Select your seats', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 12),
-            SeatPicker(capacity: capacity, booked: booked, onChanged: (s) => setState(() => _seats = s)),
+            SeatPicker(capacity: capacity, booked: booked, business: business, onChanged: (s) => setState(() => _seats = s)),
             const SizedBox(height: 20),
             _cnicField(),
             const SizedBox(height: 20),

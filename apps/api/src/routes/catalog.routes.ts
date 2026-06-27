@@ -5,10 +5,12 @@ import { Trip } from "../models/Trip.js";
 import { Operator } from "../models/Operator.js";
 import { Booking } from "../models/Booking.js";
 import { Vehicle } from "../models/Vehicle.js";
+import { Review } from "../models/Review.js";
 import { VERTICALS, SERVICE_TYPES } from "../lib/verticals.js";
-import { serializeTrip } from "../lib/serialize.js";
+import { serializeTrip, serializeReview } from "../lib/serialize.js";
 import { subSegment } from "../lib/segment.js";
 import { takenSeats, today } from "../lib/inventory.js";
+import { requireAdmin } from "../middleware/auth.js";
 import { ah, HttpError } from "../middleware/error.js";
 
 export const catalogRouter = Router();
@@ -33,9 +35,11 @@ const createTripSchema = z.object({
   badge: z.string().optional(),
 });
 
-// POST /trips — operator creates a bookable listing (from the admin portal).
+// POST /trips — admin-only seeding endpoint (auto-creates the operator by name).
+// Operators create their own listings via the scoped POST /operator/trips.
 catalogRouter.post(
   "/trips",
+  requireAdmin,
   ah(async (req, res) => {
     const b = createTripSchema.parse(req.body);
     const operator = await Operator.findOneAndUpdate(
@@ -237,6 +241,15 @@ catalogRouter.get(
       seatsAvailable: rawCapacity != null ? Math.max(0, rawCapacity - taken.size) : undefined,
       media,
     });
+  }),
+);
+
+// GET /trips/:id/reviews — public list of customer reviews for a trip (newest first).
+catalogRouter.get(
+  "/trips/:id/reviews",
+  ah(async (req, res) => {
+    const reviews = await Review.find({ trip: req.params.id }).sort({ createdAt: -1 }).limit(100).lean();
+    res.json(reviews.map(serializeReview));
   }),
 );
 

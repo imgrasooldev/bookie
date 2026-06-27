@@ -1,4 +1,5 @@
 import type { OperatorDoc } from "../models/Operator.js";
+import { terminalsForSegment } from "./segment.js";
 
 // Map DB documents to the JSON shapes the web/mobile clients expect
 // (matches apps/web/src/lib/types.ts).
@@ -10,11 +11,13 @@ type PopulatedTrip = {
   title: string;
   originCode?: string | null;
   destinationCode?: string | null;
+  originTerminal?: string | null;
+  destinationTerminal?: string | null;
   departAt?: Date | null;
   arriveAt?: Date | null;
   durationMin?: number | null;
   days?: string[] | null;
-  routeStops?: { code?: string | null; name?: string | null; fare?: number | null; time?: string | null }[] | null;
+  routeStops?: { code?: string | null; name?: string | null; fare?: number | null; time?: string | null; terminal?: string | null }[] | null;
   price: number;
   priceUnit: string;
   seatsAvailable?: number | null;
@@ -27,8 +30,12 @@ type PopulatedTrip = {
   checkIn?: string | null;
   checkOut?: string | null;
   rating?: number | null;
+  ratingAvg?: number | null;
+  ratingCount?: number | null;
   badge?: string | null;
   bookedSeats?: string[] | null;
+  businessSeats?: string[] | null;
+  businessSurcharge?: number | null;
   reservedUnits?: number | null;
 };
 
@@ -57,14 +64,20 @@ function departOn(departAt: any, dateStr?: string | null): string | null {
 export function serializeBooking(b: any) {
   const trip = b.trip && typeof b.trip === "object" ? b.trip : null;
   const op = b.operator && typeof b.operator === "object" ? b.operator : null;
+  const originCode = b.originCode ?? trip?.originCode ?? null;
+  const destinationCode = b.destinationCode ?? trip?.destinationCode ?? null;
+  // prefer terminals captured on the booking; fall back to the trip's segment
+  const fallback = trip ? terminalsForSegment(trip, originCode, destinationCode) : {};
   return {
     id: String(b._id),
     ref: b.bookingNo,
     status: b.status,
     serviceType: b.serviceType,
     title: trip?.title ?? "—",
-    originCode: b.originCode ?? trip?.originCode ?? null,
-    destinationCode: b.destinationCode ?? trip?.destinationCode ?? null,
+    originCode,
+    destinationCode,
+    originTerminal: b.originTerminal ?? fallback.originTerminal ?? null,
+    destinationTerminal: b.destinationTerminal ?? fallback.destinationTerminal ?? null,
     date: b.date ?? null,
     departAt: departOn(trip?.departAt, b.date),
     arriveAt: trip?.arriveAt ? new Date(trip.arriveAt).toISOString() : null,
@@ -92,11 +105,13 @@ export function serializeTrip(t: PopulatedTrip) {
     title: t.title,
     originId: t.originCode ?? undefined,
     destinationId: t.destinationCode ?? undefined,
+    originTerminal: t.originTerminal ?? undefined,
+    destinationTerminal: t.destinationTerminal ?? undefined,
     departAt: t.departAt ? new Date(t.departAt).toISOString() : undefined,
     arriveAt: t.arriveAt ? new Date(t.arriveAt).toISOString() : undefined,
     durationMin: t.durationMin ?? undefined,
     days: t.days ?? [],
-    routeStops: (t.routeStops ?? []).map((s) => ({ code: s.code, name: s.name, fare: s.fare, time: s.time })),
+    routeStops: (t.routeStops ?? []).map((s) => ({ code: s.code, name: s.name, fare: s.fare, time: s.time, terminal: s.terminal ?? undefined })),
     price: t.price,
     priceUnit: t.priceUnit,
     seatsAvailable:
@@ -111,7 +126,22 @@ export function serializeTrip(t: PopulatedTrip) {
     durationDays: t.durationDays ?? undefined,
     checkIn: t.checkIn ?? undefined,
     checkOut: t.checkOut ?? undefined,
-    rating: t.rating ?? undefined,
+    // review-based rating wins once there are reviews; else the preset (hotel) rating
+    rating: (t.ratingCount ?? 0) > 0 ? t.ratingAvg ?? undefined : t.rating ?? undefined,
+    ratingCount: t.ratingCount ?? 0,
     badge: t.badge ?? undefined,
+    businessSeats: t.businessSeats ?? [],
+    businessSurcharge: t.businessSurcharge ?? 0,
+  };
+}
+
+export function serializeReview(r: any) {
+  return {
+    id: String(r._id),
+    booking: String(r.booking),
+    rating: r.rating,
+    comment: r.comment ?? "",
+    authorName: r.authorName ?? "Traveller",
+    createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : null,
   };
 }

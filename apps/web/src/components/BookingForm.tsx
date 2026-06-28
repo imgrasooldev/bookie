@@ -3,21 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatPKR } from "@/lib/format";
 import type { Trip } from "@/lib/types";
-import { PaymentDialog } from "@/components/checkout/PaymentDialog";
+import { RealPaymentDialog } from "@/components/checkout/RealPaymentDialog";
 import { DriverIcon as SteeringIcon } from "@/components/icons";
 import { PROMO_CODES } from "@/lib/content";
 import { createBooking, type Passenger } from "@/lib/bookings";
 import { isValidPkMobile } from "@/lib/payments";
 import { clearBooker, hasSavedBooker, loadBooker, saveBooker } from "@/lib/booker";
-
-const PAYMENT_METHODS = ["Easypaisa", "JazzCash", "Card", "Cash"] as const;
-
-const METHOD_COLORS: Record<(typeof PAYMENT_METHODS)[number], string> = {
-  Easypaisa: "#52a447",
-  JazzCash: "#c8102e",
-  Card: "#155cc9",
-  Cash: "#64748b",
-};
 
 const QTY_LABELS: Record<string, string> = {
   CAR: "Passengers",
@@ -113,9 +104,11 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
     setPrefilled(false);
   }
 
-  const [method, setMethod] = useState<(typeof PAYMENT_METHODS)[number]>("Easypaisa");
   const [showPay, setShowPay] = useState(false);
-  const [confirmation, setConfirmation] = useState<{ bookingRef: string; transactionId: string; bookingId?: string } | null>(null);
+  const [pending, setPending] = useState<{ id?: string; bookingNo?: string } | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState<{ bookingRef: string; paidVia: string; bookingId?: string } | null>(null);
   const [done, setDone] = useState(false);
   const submitting = useRef(false);
 
@@ -232,6 +225,8 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
   function reset() {
     setStep(1);
     setConfirmation(null);
+    setPending(null);
+    setBookingError(null);
     setDone(false);
     setSelected([]);
     setSeatGender({});
@@ -244,9 +239,18 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
     setTouched(false);
   }
 
-  async function onPaid(r: { bookingRef: string; transactionId: string }) {
+  // Create-then-pay: reserve the booking (AWAITING_PAYMENT), then open the real
+  // payment dialog. A redirect gateway leaves the page and returns via /pay/result;
+  // mock/cash settle in-dialog and call onConfirmed.
+  async function startPayment() {
     if (submitting.current) return;
+    if (!canPay) {
+      setTouched(true);
+      return;
+    }
     submitting.current = true;
+    setCreating(true);
+    setBookingError(null);
     const passengers: Passenger[] = isSeat
       ? selected.map((seat) => ({
           name: seatName[seat]?.trim() || bName.trim() || "Guest",
@@ -263,17 +267,21 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
       quantity: isSeat ? undefined : pax,
       passengers,
       contact: { name: bName.trim(), cnic: digits(bCnic), phone: bPhone, email: bEmail.trim() || undefined },
-      paymentMethod: method,
     });
-    // remember the booker on this device for next time (one-tap clearable)
     saveBooker({ name: bName.trim(), cnic: digits(bCnic), phone: bPhone, email: bEmail.trim() });
-    setConfirmation({
-      bookingRef: res.ok && res.bookingNo ? res.bookingNo : r.bookingRef,
-      transactionId: r.transactionId,
-      bookingId: res.ok ? res.id : undefined,
-    });
-    setShowPay(false);
+    setCreating(false);
     submitting.current = false;
+    if (!res.ok) {
+      setBookingError(res.error ?? "Couldn't create your booking. Please try again.");
+      return;
+    }
+    setPending({ id: res.id, bookingNo: res.bookingNo });
+    setShowPay(true);
+  }
+
+  function onConfirmed(methodLabel: string) {
+    setConfirmation({ bookingRef: pending?.bookingNo ?? "—", bookingId: pending?.id, paidVia: methodLabel });
+    setShowPay(false);
   }
 
   // ---------------- confirmation / quote-done screens ----------------
@@ -289,8 +297,7 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
         <dl className="mx-auto mt-4 max-w-xs space-y-1 text-sm">
           <Row label="Booking ref" value={confirmation.bookingRef} mono />
           <Row label="Booked by" value={bName || "—"} />
-          <Row label="Paid via" value={method} />
-          <Row label="Txn ID" value={confirmation.transactionId} mono />
+          <Row label="Paid via" value={confirmation.paidVia} />
           <Row label="Amount" value={formatPKR(total)} />
         </dl>
         <p className="mt-4 text-xs text-muted">
@@ -489,10 +496,8 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
               title="Booked by"
               prefilled={prefilled}
               onClear={clearSavedBooker}
-              onEnter={() => (canPay ? setShowPay(true) : setTouched(true))}
+              onEnter={startPayment}
             />
-
-            <PaymentPicker method={method} setMethod={setMethod} />
 
             <div className="card-soft p-5">
               <PromoBox
@@ -521,10 +526,11 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
                   ← Back
                 </button>
                 <button
-                  onClick={() => (canPay ? setShowPay(true) : setTouched(true))}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent-500 px-4 py-3 text-base font-bold text-white shadow-lg shadow-accent-500/25 transition hover:bg-accent-600"
+                  onClick={startPayment}
+                  disabled={creating}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent-500 px-4 py-3 text-base font-bold text-white shadow-lg shadow-accent-500/25 transition hover:bg-accent-600 disabled:opacity-60"
                 >
-                  Review &amp; pay {formatPKR(total)}
+                  {creating ? "Reserving…" : `Continue to payment · ${formatPKR(total)}`}
                 </button>
               </div>
               {touched && !bookerValid && (
@@ -532,18 +538,20 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
                   Enter the booker&apos;s name, a 13-digit CNIC and a valid mobile number.
                 </p>
               )}
+              {bookingError && <p className="mt-2 text-center text-xs text-red-600">{bookingError}</p>}
             </div>
           </>
         )}
 
         {showPay && (
-          <PaymentDialog
-            method={method}
+          <RealPaymentDialog
+            bookingId={pending?.id}
+            bookingNo={pending?.bookingNo}
             amount={total}
             tripTitle={trip.title}
             summary={`Seats: ${selected.join(", ")}`}
             onClose={() => setShowPay(false)}
-            onSuccess={onPaid}
+            onConfirmed={onConfirmed}
           />
         )}
       </div>
@@ -574,10 +582,8 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
         title="Booked by"
         prefilled={prefilled}
         onClear={clearSavedBooker}
-        onEnter={() => (canPay ? setShowPay(true) : setTouched(true))}
+        onEnter={startPayment}
       />
-
-      <PaymentPicker method={method} setMethod={setMethod} />
 
       <div className="card-soft p-5">
         <PromoBox
@@ -593,27 +599,29 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
         />
         <Summary label={`Fare (${qty} ×)`} subtotal={subtotal} discount={discount} promoCode={promo?.code} total={total} />
         <button
-          onClick={() => (canPay ? setShowPay(true) : setTouched(true))}
-          disabled={!canContinue}
+          onClick={startPayment}
+          disabled={!canContinue || creating}
           className="mt-4 w-full rounded-xl bg-accent-500 px-4 py-3 text-base font-bold text-white shadow-lg shadow-accent-500/25 transition enabled:hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Pay with {method}
+          {creating ? "Reserving…" : `Continue to payment · ${formatPKR(total)}`}
         </button>
         {touched && !bookerValid && (
           <p className="mt-2 text-center text-xs text-red-600">
             Enter your name, a 13-digit CNIC and a valid mobile number.
           </p>
         )}
+        {bookingError && <p className="mt-2 text-center text-xs text-red-600">{bookingError}</p>}
       </div>
 
       {showPay && (
-        <PaymentDialog
-          method={method}
+        <RealPaymentDialog
+          bookingId={pending?.id}
+          bookingNo={pending?.bookingNo}
           amount={total}
           tripTitle={trip.title}
           summary={`${pax} × ${trip.title}`}
           onClose={() => setShowPay(false)}
-          onSuccess={onPaid}
+          onConfirmed={onConfirmed}
         />
       )}
     </div>
@@ -800,34 +808,6 @@ function ContactCard({
             onKeyDown={onKeyDown}
           />
         </Field>
-      </div>
-    </div>
-  );
-}
-
-function PaymentPicker({
-  method,
-  setMethod,
-}: {
-  method: (typeof PAYMENT_METHODS)[number];
-  setMethod: (m: (typeof PAYMENT_METHODS)[number]) => void;
-}) {
-  return (
-    <div className="card-soft p-5">
-      <h3 className="mb-3 font-bold text-ink">Payment method</h3>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {PAYMENT_METHODS.map((m) => (
-          <button
-            key={m}
-            onClick={() => setMethod(m)}
-            className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold ring-1 transition ${
-              method === m ? "bg-brand-50 text-brand-700 ring-brand-300" : "bg-surface text-ink ring-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: METHOD_COLORS[m] }} />
-            {m}
-          </button>
-        ))}
       </div>
     </div>
   );

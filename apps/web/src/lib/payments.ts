@@ -112,3 +112,59 @@ export async function finalizePayment(input: {
   const res = await fetch(`${API_URL}/payments/${input.transactionId}`);
   return res.json();
 }
+
+/* ---------------- real backend lifecycle (create-then-pay) ----------------
+ * Used by RealPaymentDialog once a booking exists (AWAITING_PAYMENT). The
+ * customer picks from the live /payments/methods and we drive the gateway. */
+
+export interface PayMethodOption { name: string; label: string; kind: "online" | "cash" }
+
+/** Configured online gateways + cash-at-terminal. Falls back to a sandbox list. */
+export async function getPaymentMethods(): Promise<PayMethodOption[]> {
+  try {
+    const res = await fetch(`${API_URL}/payments/methods`);
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && Array.isArray(data.methods) && data.methods.length) return data.methods;
+  } catch {
+    /* fall through to sandbox default */
+  }
+  return [
+    { name: "mock", label: "Test card (sandbox)", kind: "online" },
+    { name: "cash", label: "Pay cash at terminal", kind: "cash" },
+  ];
+}
+
+/** Start an online payment; returns the hosted-checkout URL to send the customer to. */
+export async function initiateRealPayment(bookingId: string, gateway: string): Promise<{ transactionId: string; gateway: string; checkoutUrl: string }> {
+  const res = await fetch(`${API_URL}/payments/initiate`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ bookingId, gateway }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error ?? "Couldn't start the payment. Please try again.");
+  return data;
+}
+
+/** Sandbox: complete the mock checkout. Returns the booking status. */
+export async function mockComplete(transactionId: string): Promise<string> {
+  const res = await fetch(`${API_URL}/payments/mock/complete`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ transactionId, outcome: "success" }),
+  });
+  const data = await res.json().catch(() => ({}));
+  return data.bookingStatus ?? "";
+}
+
+/** Reserve now, pay cash at the terminal. Returns the booking status. */
+export async function payAtTerminal(bookingId: string): Promise<string> {
+  const res = await fetch(`${API_URL}/payments/cash`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ bookingId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error ?? "Couldn't reserve. Please try again.");
+  return data.status ?? "";
+}

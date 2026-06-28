@@ -27,7 +27,12 @@ class BookingPage extends StatefulWidget {
 }
 
 class _BookingPageState extends State<BookingPage> {
+  // booker contact — prefilled from the account when signed in, typed otherwise
+  final _name = TextEditingController();
+  final _phone = TextEditingController();
+  final _email = TextEditingController();
   final _cnic = TextEditingController();
+
   late Future<Trip> _detail = sl<TripRepository>().trip(widget.trip.id, date: widget.date);
   Map<String, String> _seats = {}; // seat -> gender
   bool _busy = false;
@@ -36,19 +41,38 @@ class _BookingPageState extends State<BookingPage> {
 
   @override
   void dispose() {
-    _cnic.dispose();
+    for (final c in [_name, _phone, _email, _cnic]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
-  Future<void> _confirm(AuthUser user) async {
+  Future<void> _confirm(AuthUser? user) async {
+    final guest = user == null;
+    final name = guest ? _name.text.trim() : user.name;
+    final phone = guest ? onlyDigits(_phone.text) : user.phone;
+    final email = guest
+        ? (_email.text.trim().isEmpty ? null : _email.text.trim())
+        : user.email;
+    final cnic = onlyDigits(_cnic.text);
+
+    String? err;
     if (_isBus && _seats.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least one seat.')));
+      err = 'Please select at least one seat.';
+    } else if (guest && name.length < 2) {
+      err = 'Enter the booker\'s name.';
+    } else if (guest && !isValidPkMobile(_phone.text)) {
+      err = 'Enter a valid mobile number (03XX-XXXXXXX).';
+    } else if (guest && _email.text.trim().isNotEmpty && !isValidEmail(_email.text)) {
+      err = 'Enter a valid email, or leave it blank.';
+    } else if (cnic.length != 13) {
+      err = 'Enter your 13-digit CNIC.';
+    }
+    if (err != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
       return;
     }
-    if (_cnic.text.replaceAll(RegExp(r'\D'), '').length != 13) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter your 13-digit CNIC.')));
-      return;
-    }
+
     setState(() => _busy = true);
     try {
       final seats = _seats.keys.toList();
@@ -58,9 +82,9 @@ class _BookingPageState extends State<BookingPage> {
         seats: _isBus ? seats : null,
         quantity: _isBus ? null : 1,
         passengers: _isBus
-            ? seats.map((s) => Passenger(name: user.name, gender: _seats[s], seatLabel: s)).toList()
-            : [Passenger(name: user.name)],
-        contact: {'name': user.name, 'cnic': _cnic.text.replaceAll(RegExp(r'\D'), ''), 'phone': user.phone, if (user.email != null) 'email': user.email},
+            ? seats.map((s) => Passenger(name: name, gender: _seats[s], seatLabel: s)).toList()
+            : [Passenger(name: name)],
+        contact: {'name': name, 'cnic': cnic, 'phone': phone, if (email != null) 'email': email},
         paymentMethod: 'Easypaisa',
       );
       if (!mounted) return;
@@ -79,8 +103,7 @@ class _BookingPageState extends State<BookingPage> {
       appBar: const BookieAppBar(title: 'Book your trip'),
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, auth) {
-          final user = auth.user;
-          final loggedIn = auth.status == AuthStatus.authenticated && user != null;
+          final user = auth.status == AuthStatus.authenticated ? auth.user : null;
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -95,12 +118,7 @@ class _BookingPageState extends State<BookingPage> {
                 },
               ),
               const SizedBox(height: 16),
-              if (!loggedIn)
-                _guest()
-              else if (_isBus)
-                _seatFlow(user)
-              else
-                _simpleFlow(user),
+              if (_isBus) _seatFlow(user) else _simpleFlow(user),
             ],
           );
         },
@@ -108,21 +126,7 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  Widget _guest() => Column(children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppColors.brand50, borderRadius: BorderRadius.circular(14)),
-          child: const Text('Sign in to pick your seats and get your e-ticket.', style: TextStyle(color: AppColors.brand)),
-        ),
-        const SizedBox(height: 12),
-        FilledButton(
-          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginPage())),
-          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-          child: const Text('Sign in to continue'),
-        ),
-      ]);
-
-  Widget _seatFlow(AuthUser user) {
+  Widget _seatFlow(AuthUser? user) {
     return FutureBuilder<Trip>(
       future: _detail,
       builder: (context, snap) {
@@ -133,7 +137,6 @@ class _BookingPageState extends State<BookingPage> {
         final booked = detail.bookedSeats.toSet();
         final business = detail.businessSeats.toSet();
         final capacity = (detail.seatsAvailable ?? 36) + booked.length;
-        // per-seat pricing so business/executive seats add their surcharge
         final total = _seats.keys.fold<num>(0, (sum, s) => sum + widget.trip.price + (business.contains(s) ? detail.businessSurcharge : 0));
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,7 +145,7 @@ class _BookingPageState extends State<BookingPage> {
             const SizedBox(height: 12),
             SeatPicker(capacity: capacity, booked: booked, business: business, onChanged: (s) => setState(() => _seats = s)),
             const SizedBox(height: 20),
-            _cnicField(),
+            _contactSection(user),
             const SizedBox(height: 20),
             _payBar(total, () => _confirm(user)),
           ],
@@ -151,12 +154,51 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  Widget _simpleFlow(AuthUser user) {
+  Widget _simpleFlow(AuthUser? user) {
     final total = widget.trip.price;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _cnicField(),
+      _contactSection(user),
       const SizedBox(height: 20),
       _payBar(total, () => _confirm(user)),
+    ]);
+  }
+
+  // Booker details — a compact "booking as <you>" card when signed in, or the
+  // full guest form (name, mobile, email, CNIC) when checking out as a guest.
+  Widget _contactSection(AuthUser? user) {
+    if (user != null) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: AppColors.brand50, borderRadius: BorderRadius.circular(12)),
+          child: Row(children: [
+            const Icon(Icons.person_rounded, color: AppColors.brand, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text('Booking as ${user.name} · ${user.phone}', style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w600))),
+          ]),
+        ),
+        const SizedBox(height: 12),
+        _cnicField(),
+      ]);
+    }
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Text('Your details', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        const Spacer(),
+        TextButton(
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginPage())),
+          child: const Text('Have an account? Sign in'),
+        ),
+      ]),
+      const Text('Book as a guest — your e-ticket goes to this number & email.', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+      const SizedBox(height: 12),
+      TextField(controller: _name, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Full name')),
+      const SizedBox(height: 12),
+      TextField(controller: _phone, keyboardType: TextInputType.phone, inputFormatters: [PhoneInputFormatter()], decoration: const InputDecoration(labelText: 'Mobile number', hintText: '0300-1234567')),
+      const SizedBox(height: 12),
+      TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email (optional)', hintText: 'you@example.com')),
+      const SizedBox(height: 12),
+      _cnicField(),
     ]);
   }
 
@@ -164,7 +206,7 @@ class _BookingPageState extends State<BookingPage> {
         controller: _cnic,
         keyboardType: TextInputType.number,
         inputFormatters: [CnicInputFormatter()],
-        decoration: const InputDecoration(labelText: 'Your CNIC (booker)', hintText: '42301-1211234-1', counterText: ''),
+        decoration: const InputDecoration(labelText: 'CNIC (booker)', hintText: '42301-1211234-1', counterText: ''),
         maxLength: 15,
       );
 

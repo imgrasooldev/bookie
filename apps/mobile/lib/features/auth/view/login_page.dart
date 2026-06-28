@@ -9,7 +9,11 @@ import '../bloc/auth_bloc.dart';
 /// Combined sign-in / sign-up screen with inline validation. Pops back to
 /// whatever opened it once authentication succeeds.
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  /// Optionally open straight into sign-up, with the mobile number prefilled
+  /// (used after a guest booking so the new account links to that booking).
+  final String? prefillPhone;
+  final bool startRegister;
+  const LoginPage({super.key, this.prefillPhone, this.startRegister = false});
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -23,6 +27,17 @@ class _LoginPageState extends State<LoginPage> {
   final _pw = TextEditingController();
 
   String? _nameErr, _phoneErr, _emailErr, _pwErr;
+
+  @override
+  void initState() {
+    super.initState();
+    _register = widget.startRegister;
+    final p = widget.prefillPhone;
+    if (p != null && p.isNotEmpty) {
+      _phone.text = p;
+      _id.text = p;
+    }
+  }
 
   @override
   void dispose() {

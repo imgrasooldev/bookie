@@ -10,6 +10,8 @@ import '../../../core/util/ticket_pdf.dart';
 import '../../../core/widgets/bookie_app_bar.dart';
 import '../../../data/models/api_models.dart';
 import '../../../data/repositories/booking_repository.dart';
+import '../../auth/bloc/auth_bloc.dart';
+import '../../auth/view/login_page.dart';
 import '../bloc/booking_bloc.dart';
 
 class TicketPage extends StatefulWidget {
@@ -130,6 +132,40 @@ class _TicketPageState extends State<TicketPage> {
               decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(12)),
               child: const Row(children: [Icon(Icons.check_circle, color: Colors.green), SizedBox(width: 8), Text('Booking confirmed')]),
             ),
+          // guest booked → nudge to create an account so the trip lands in My Trips
+          BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, auth) {
+              if (auth.status == AuthStatus.authenticated) return const SizedBox.shrink();
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(color: AppColors.brand50, borderRadius: BorderRadius.circular(14)),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: const [
+                    Icon(Icons.bookmark_added_rounded, color: AppColors.brand),
+                    SizedBox(width: 8),
+                    Expanded(child: Text('Save this booking', style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.ink))),
+                  ]),
+                  const SizedBox(height: 4),
+                  const Text('Create an account with this number to track your trips and get delay updates.', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => LoginPage(prefillPhone: t.contactPhone, startRegister: true))),
+                        child: const Text('Create account'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    OutlinedButton(
+                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => LoginPage(prefillPhone: t.contactPhone))),
+                      child: const Text('Sign in'),
+                    ),
+                  ]),
+                ]),
+              );
+            },
+          ),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(20),

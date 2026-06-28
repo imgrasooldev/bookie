@@ -132,6 +132,8 @@ class Ticket {
   final List<String> seats;
   final List<Passenger> passengers;
   final num total;
+  final String? contactName;
+  final String? contactPhone;
 
   const Ticket({
     required this.id,
@@ -148,6 +150,8 @@ class Ticket {
     required this.seats,
     required this.passengers,
     required this.total,
+    this.contactName,
+    this.contactPhone,
   });
 
   bool get isCancelled => status == 'CANCELLED';
@@ -167,6 +171,8 @@ class Ticket {
         seats: (j['seats'] as List?)?.cast<String>() ?? const [],
         passengers: (j['passengers'] as List?)?.map((e) => Passenger.fromJson(e)).toList() ?? const [],
         total: (j['fare']?['total']) ?? 0,
+        contactName: j['contact']?['name'],
+        contactPhone: j['contact']?['phone'],
       );
 }
 

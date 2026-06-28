@@ -6,6 +6,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../models.dart';
 import '../bloc/trip_bloc.dart';
 import 'results_page.dart';
+import '../../auth/bloc/auth_bloc.dart';
+import '../../auth/view/login_page.dart';
 
 const _categories = [
   ('Bus', 'BUS', Icons.directions_bus_rounded),
@@ -66,6 +68,37 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
+  // Visible auth entry on the home screen — a "Sign in" pill when logged out,
+  // or a greeting + avatar once signed in (mirrors the web header).
+  Widget _authAction(BuildContext context) {
+    return BlocBuilder<AuthBloc, AuthState>(
+      buildWhen: (a, b) => a.status != b.status || a.user != b.user,
+      builder: (context, auth) {
+        if (auth.status == AuthStatus.authenticated) {
+          final name = auth.user?.name ?? '';
+          final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+          return Row(mainAxisSize: MainAxisSize.min, children: [
+            Text('Hi, ${name.split(' ').first}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            const SizedBox(width: 8),
+            CircleAvatar(radius: 16, backgroundColor: Colors.white, child: Text(initial, style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.bold, fontSize: 14))),
+          ]);
+        }
+        return GestureDetector(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginPage())),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.person_outline_rounded, size: 16, color: AppColors.brand),
+              SizedBox(width: 6),
+              Text('Sign in', style: TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700, fontSize: 13)),
+            ]),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _header(BuildContext context, List<City> cities) {
     return Container(
       decoration: const BoxDecoration(
@@ -83,7 +116,7 @@ class _SearchPageState extends State<SearchPage> {
                 children: [
                   const BookieWordmark(size: 24, color: Colors.white),
                   const Spacer(),
-                  Icon(Icons.notifications_none_rounded, color: Colors.white.withValues(alpha: 0.9)),
+                  _authAction(context),
                 ],
               ),
               const SizedBox(height: 20),

@@ -171,6 +171,11 @@ export const updateTerminal = (cityId: string, code: string, b: { name?: string;
 export const deleteTerminal = (cityId: string, code: string) =>
   send(`/sa/cities/${cityId}/terminals/${code}`, "DELETE");
 
+// verticals (which services are switched on across the marketplace)
+export interface AdminVertical { type: string; label: string; icon: string; enabled: boolean }
+export const listVerticals = () => getJson<AdminVertical[]>("/sa/verticals").catch(() => [] as AdminVertical[]);
+export const setVerticals = (enabled: string[]) => send("/sa/verticals", "PATCH", { enabled });
+
 /* ---- RBAC ---- */
 
 export interface RoleItem { id: string; name: string; permissions: string[]; super: boolean; system: boolean }

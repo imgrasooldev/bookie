@@ -55,11 +55,11 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: BlocBuilder<TripBloc, TripState>(
-        buildWhen: (a, b) => a.cities != b.cities || a.popularRoutes != b.popularRoutes || a.popularLoaded != b.popularLoaded,
+        buildWhen: (a, b) => a.cities != b.cities || a.popularRoutes != b.popularRoutes || a.popularLoaded != b.popularLoaded || a.enabledVerticals != b.enabledVerticals,
         builder: (context, state) {
           return CustomScrollView(
             slivers: [
-              SliverToBoxAdapter(child: _header(context, state.cities)),
+              SliverToBoxAdapter(child: _header(context, state.cities, state.enabledVerticals)),
               SliverToBoxAdapter(child: _popularRoutes(context, state.cities, state.popularRoutes, state.popularLoaded)),
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
             ],
@@ -100,7 +100,9 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _header(BuildContext context, List<City> cities) {
+  Widget _header(BuildContext context, List<City> cities, List<String> enabled) {
+    // only show categories the admin has switched on (empty = not loaded → all)
+    final cats = enabled.isEmpty ? _categories : _categories.where((c) => enabled.contains(c.$2)).toList();
     return Container(
       decoration: const BoxDecoration(
         gradient: AppColors.brandGradient,
@@ -129,10 +131,10 @@ class _SearchPageState extends State<SearchPage> {
                 height: 38,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  itemCount: _categories.length,
+                  itemCount: cats.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (_, i) {
-                    final c = _categories[i];
+                    final c = cats[i];
                     final on = _service == c.$2;
                     return GestureDetector(
                       onTap: () => setState(() => _service = c.$2),

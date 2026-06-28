@@ -12,6 +12,7 @@ import { AdminOverview } from "./pages/admin/AdminOverview";
 import { AdminOperators } from "./pages/admin/AdminOperators";
 import { AdminApprovals } from "./pages/admin/AdminApprovals";
 import { AdminCities } from "./pages/admin/AdminCities";
+import { AdminVerticals } from "./pages/admin/AdminVerticals";
 import { AdminRoles } from "./pages/admin/AdminRoles";
 import { AdminTeam } from "./pages/admin/AdminTeam";
 
@@ -40,6 +41,7 @@ function AdminApp() {
           <Route path="operators" element={<AdminOperators />} />
           <Route path="approvals" element={<AdminApprovals />} />
           <Route path="cities" element={<AdminCities />} />
+          <Route path="services" element={<AdminVerticals />} />
           <Route path="roles" element={<AdminRoles />} />
           <Route path="team" element={<AdminTeam />} />
         </Route>

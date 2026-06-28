@@ -39,6 +39,7 @@ class TripState extends Equatable {
   final List<City> cities;
   final List<PopularRoute> popularRoutes;
   final bool popularLoaded; // true once the popular-routes fetch has settled
+  final List<String> enabledVerticals; // admin-enabled service types (empty = show all)
   final List<Trip> trips;
   final String? error;
   const TripState({
@@ -46,6 +47,7 @@ class TripState extends Equatable {
     this.cities = const [],
     this.popularRoutes = const [],
     this.popularLoaded = false,
+    this.enabledVerticals = const [],
     this.trips = const [],
     this.error,
   });
@@ -55,6 +57,7 @@ class TripState extends Equatable {
     List<City>? cities,
     List<PopularRoute>? popularRoutes,
     bool? popularLoaded,
+    List<String>? enabledVerticals,
     List<Trip>? trips,
     String? error,
   }) => TripState(
@@ -62,12 +65,13 @@ class TripState extends Equatable {
     cities: cities ?? this.cities,
     popularRoutes: popularRoutes ?? this.popularRoutes,
     popularLoaded: popularLoaded ?? this.popularLoaded,
+    enabledVerticals: enabledVerticals ?? this.enabledVerticals,
     trips: trips ?? this.trips,
     error: error,
   );
 
   @override
-  List<Object?> get props => [status, cities, popularRoutes, popularLoaded, trips, error];
+  List<Object?> get props => [status, cities, popularRoutes, popularLoaded, enabledVerticals, trips, error];
 }
 
 /* bloc */
@@ -81,6 +85,12 @@ class TripBloc extends Bloc<TripEvent, TripState> {
         emit(state.copyWith(cities: cities));
       } catch (_) {
         /* non-fatal */
+      }
+      try {
+        final enabled = await _repo.enabledVerticals();
+        emit(state.copyWith(enabledVerticals: enabled));
+      } catch (_) {
+        /* non-fatal — empty means show all */
       }
       try {
         final routes = await _repo.popularRoutes();

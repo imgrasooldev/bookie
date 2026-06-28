@@ -10,6 +10,7 @@ import { VERTICALS, SERVICE_TYPES } from "../lib/verticals.js";
 import { serializeTrip, serializeReview } from "../lib/serialize.js";
 import { subSegment } from "../lib/segment.js";
 import { takenSeats, today } from "../lib/inventory.js";
+import { enabledVerticals } from "../lib/settings.js";
 import { requireAdmin } from "../middleware/auth.js";
 import { ah, HttpError } from "../middleware/error.js";
 
@@ -72,10 +73,14 @@ catalogRouter.post(
   }),
 );
 
-// GET /verticals
-catalogRouter.get("/verticals", (_req, res) => {
-  res.json(VERTICALS);
-});
+// GET /verticals — only the verticals the admin has switched on
+catalogRouter.get(
+  "/verticals",
+  ah(async (_req, res) => {
+    const en = await enabledVerticals();
+    res.json(VERTICALS.filter((v) => en.has(v.type)));
+  }),
+);
 
 // GET /cities
 catalogRouter.get(
@@ -133,6 +138,8 @@ catalogRouter.get(
   "/trips",
   ah(async (req, res) => {
     const q = searchSchema.parse(req.query);
+    // a vertical switched off by the admin returns nothing
+    if (!(await enabledVerticals()).has(q.serviceType)) return res.json([]);
     const filter: Record<string, unknown> = {
       serviceType: q.serviceType,
       status: "active",

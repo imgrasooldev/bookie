@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CITIES, VERTICALS } from "@/lib/mock";
-import { getCities } from "@/lib/api";
+import { getCities, getVerticals } from "@/lib/api";
 import type { City, ServiceType } from "@/lib/types";
 import { VERTICAL_ICONS, SwapIcon, ArrowRightIcon } from "@/components/icons";
 
@@ -22,11 +22,13 @@ export function SearchPanel({ initialType = "BUS" as ServiceType }) {
   const [checkOut, setCheckOut] = useState(() => ymd(new Date(Date.now() + 864e5)));
   const [pax, setPax] = useState(1);
   const [cities, setCities] = useState<City[]>(CITIES);
+  const [enabledTypes, setEnabledTypes] = useState<string[] | null>(null);
   const today = ymd(new Date());
 
   // pull the live, admin-managed city list (falls back to the bundled set)
   useEffect(() => {
     getCities().then((c) => { if (c.length) setCities(c); }).catch(() => {});
+    getVerticals().then((vs) => setEnabledTypes(vs.map((v) => v.type))).catch(() => {});
   }, []);
 
   const vertical = VERTICALS.find((v) => v.type === type)!;
@@ -34,8 +36,10 @@ export function SearchPanel({ initialType = "BUS" as ServiceType }) {
   const isRoute = flavor === "ROUTE";
   const isStay = flavor === "STAY";
 
-  // tabs = primary categories, plus the current one if it isn't primary
-  const tabs = VERTICALS.filter((v) => v.primary || v.type === type);
+  // tabs = primary categories (filtered to admin-enabled), plus the current one
+  const tabs = VERTICALS.filter(
+    (v) => (v.primary || v.type === type) && (!enabledTypes || enabledTypes.includes(v.type)),
+  );
 
   const originLabel = isRoute
     ? "From"

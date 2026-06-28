@@ -7,6 +7,7 @@ import { LogoMarquee } from "@/components/LogoMarquee";
 import { RotatingWord } from "@/components/RotatingWord";
 import { TiltCard } from "@/components/TiltCard";
 import { VERTICALS } from "@/lib/mock";
+import { getVerticals } from "@/lib/api";
 import { formatPKR } from "@/lib/format";
 import { IMAGES, DESTINATIONS, TESTIMONIALS } from "@/lib/images";
 import {
@@ -49,9 +50,11 @@ const FEATURED_IMG: Record<string, string> = {
   HOTEL: IMAGES.hotels,
 };
 
-export default function HomePage() {
-  const featured = VERTICALS.filter((v) => v.type === "FLIGHT" || v.type === "HOTEL");
-  const rest = VERTICALS.filter((v) => v.type !== "FLIGHT" && v.type !== "HOTEL");
+export default async function HomePage() {
+  // only surface verticals the admin has switched on
+  const enabled = new Set((await getVerticals()).map((v) => v.type));
+  const featured = VERTICALS.filter((v) => (v.type === "FLIGHT" || v.type === "HOTEL") && enabled.has(v.type));
+  const rest = VERTICALS.filter((v) => v.type !== "FLIGHT" && v.type !== "HOTEL" && enabled.has(v.type));
 
   return (
     <div>

@@ -7,6 +7,7 @@ const NAV = [
   { to: "/operators", label: "Operators", icon: UsersIcon, perm: "operators.view" },
   { to: "/approvals", label: "Approvals", icon: CalendarIcon, perm: "listings.view" },
   { to: "/cities", label: "Cities & Routes", icon: RouteIcon, perm: "cities.manage" },
+  { to: "/services", label: "Services", icon: GridIcon, perm: "cities.manage" },
   { to: "/roles", label: "Roles & Permissions", icon: TicketIcon, perm: "roles.manage" },
   { to: "/team", label: "Team", icon: UsersIcon, perm: "roles.manage" },
 ];

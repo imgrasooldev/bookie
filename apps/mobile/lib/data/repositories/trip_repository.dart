@@ -15,6 +15,12 @@ class TripRepository {
     return (res.data as List).map((e) => PopularRoute.fromJson(e)).toList();
   }
 
+  /// The vertical types the admin has switched on (e.g. ['BUS','CAR']).
+  Future<List<String>> enabledVerticals() async {
+    final res = await _api.dio.get('/verticals');
+    return (res.data as List).map((e) => (e['type'] ?? '').toString()).where((t) => t.isNotEmpty).toList();
+  }
+
   Future<List<Trip>> search({
     required String serviceType,
     String? originId,

@@ -9,6 +9,7 @@ import { Role } from "../models/Role.js";
 import { City } from "../models/City.js";
 import { requireAdmin, requirePermission } from "../middleware/auth.js";
 import { PERMISSIONS, PERMISSION_KEYS } from "../lib/permissions.js";
+import { verticalsWithState, setEnabledVerticals } from "../lib/settings.js";
 import { ah, HttpError } from "../middleware/error.js";
 
 // Mounted at /sa (super-admin). Separate namespace from the public /admin reads.
@@ -431,6 +432,28 @@ superAdminRouter.delete(
     if (city.terminals.length === before) throw new HttpError(404, "Terminal not found");
     await city.save();
     res.json({ id: String(city._id), code: city.code, name: city.name, terminals: city.terminals });
+  }),
+);
+
+/* ---------------- verticals (which services are switched on) ---------------- */
+
+// GET /sa/verticals — every vertical with its enabled state
+superAdminRouter.get(
+  "/verticals",
+  requirePermission("cities.manage"),
+  ah(async (_req, res) => {
+    res.json(await verticalsWithState());
+  }),
+);
+
+// PATCH /sa/verticals — set the enabled allow-list (must keep at least one on)
+superAdminRouter.patch(
+  "/verticals",
+  requirePermission("cities.manage"),
+  ah(async (req, res) => {
+    const { enabled } = z.object({ enabled: z.array(z.string()).min(1) }).parse(req.body);
+    await setEnabledVerticals(enabled);
+    res.json(await verticalsWithState());
   }),
 );
 

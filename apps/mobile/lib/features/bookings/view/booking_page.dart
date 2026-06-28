@@ -31,22 +31,17 @@ class _BookingPageState extends State<BookingPage> {
   final _phone = TextEditingController();
   final _email = TextEditingController();
   final _cnic = TextEditingController();
-  // car / HiAce ride
-  final _pickup = TextEditingController();
-  final _dropoff = TextEditingController();
-  DateTime? _when;
-  int _pax = 1;
 
   late Future<Trip> _detail = sl<TripRepository>().trip(widget.trip.id, date: widget.date);
   Map<String, String> _seats = {}; // seat -> gender
   bool _busy = false;
 
-  bool get _isBus => widget.trip.serviceType == 'BUS';
-  bool get _isRide => widget.trip.serviceType == 'CAR' || widget.trip.serviceType == 'HIACE';
+  // bus, car & HiAce all reserve specific seats on a seat map
+  bool get _isSeat => const ['BUS', 'CAR', 'HIACE'].contains(widget.trip.serviceType);
 
   @override
   void dispose() {
-    for (final c in [_name, _phone, _email, _cnic, _pickup, _dropoff]) {
+    for (final c in [_name, _phone, _email, _cnic]) {
       c.dispose();
     }
     super.dispose();
@@ -62,14 +57,8 @@ class _BookingPageState extends State<BookingPage> {
     final cnic = onlyDigits(_cnic.text);
 
     String? err;
-    if (_isBus && _seats.isEmpty) {
+    if (_isSeat && _seats.isEmpty) {
       err = 'Please select at least one seat.';
-    } else if (_isRide && _pickup.text.trim().length < 3) {
-      err = 'Enter your pickup location.';
-    } else if (_isRide && _dropoff.text.trim().length < 3) {
-      err = 'Enter your drop-off location.';
-    } else if (_isRide && _when == null) {
-      err = 'Pick your pickup date & time.';
     } else if (guest && name.length < 2) {
       err = 'Enter the booker\'s name.';
     } else if (guest && !isValidPkMobile(_phone.text)) {
@@ -90,12 +79,9 @@ class _BookingPageState extends State<BookingPage> {
       final ticket = await sl<BookingRepository>().create(
         tripId: widget.trip.id,
         date: widget.date,
-        seats: _isBus ? seats : null,
-        quantity: _isBus ? null : (_isRide ? _pax : 1),
-        pickup: _isRide ? _pickup.text.trim() : null,
-        dropoff: _isRide ? _dropoff.text.trim() : null,
-        scheduledAt: _isRide ? _when!.toIso8601String() : null,
-        passengers: _isBus
+        seats: _isSeat ? seats : null,
+        quantity: _isSeat ? null : 1,
+        passengers: _isSeat
             ? seats.map((s) => Passenger(name: name, gender: _seats[s], seatLabel: s)).toList()
             : [Passenger(name: name)],
         contact: {'name': name, 'cnic': cnic, 'phone': phone, if (email != null) 'email': email},
@@ -132,7 +118,7 @@ class _BookingPageState extends State<BookingPage> {
                 },
               ),
               const SizedBox(height: 16),
-              if (_isBus) _seatFlow(user) else if (_isRide) _rideFlow(user) else _simpleFlow(user),
+              if (_isSeat) _seatFlow(user) else _simpleFlow(user),
             ],
           );
         },
@@ -175,64 +161,6 @@ class _BookingPageState extends State<BookingPage> {
       const SizedBox(height: 20),
       _payBar(total, () => _confirm(user)),
     ]);
-  }
-
-  // Inter/intra-city car or HiAce ride: pickup, drop-off, date-time, passengers.
-  Widget _rideFlow(AuthUser? user) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Your ride', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-      const SizedBox(height: 12),
-      TextField(
-        controller: _pickup,
-        textCapitalization: TextCapitalization.words,
-        decoration: const InputDecoration(labelText: 'Pickup location', hintText: 'e.g. Gulberg, Lahore', prefixIcon: Icon(Icons.my_location_rounded, size: 20)),
-      ),
-      const SizedBox(height: 12),
-      TextField(
-        controller: _dropoff,
-        textCapitalization: TextCapitalization.words,
-        decoration: const InputDecoration(labelText: 'Drop-off location', hintText: 'e.g. Faisal Town', prefixIcon: Icon(Icons.location_on_outlined, size: 20)),
-      ),
-      const SizedBox(height: 12),
-      InkWell(
-        onTap: _pickWhen,
-        borderRadius: BorderRadius.circular(8),
-        child: InputDecorator(
-          decoration: const InputDecoration(labelText: 'Pickup date & time', prefixIcon: Icon(Icons.schedule_rounded, size: 20)),
-          child: Text(_when == null ? 'Select date & time' : _fmtWhen(_when!), style: TextStyle(color: _when == null ? AppColors.muted : AppColors.ink)),
-        ),
-      ),
-      const SizedBox(height: 16),
-      Row(children: [
-        const Icon(Icons.group_rounded, size: 20, color: AppColors.muted),
-        const SizedBox(width: 10),
-        const Text('Passengers', style: TextStyle(fontWeight: FontWeight.w600)),
-        const Spacer(),
-        IconButton(onPressed: _pax > 1 ? () => setState(() => _pax--) : null, icon: const Icon(Icons.remove_circle_outline)),
-        Text('$_pax', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-        IconButton(onPressed: _pax < 14 ? () => setState(() => _pax++) : null, icon: const Icon(Icons.add_circle_outline)),
-      ]),
-      const SizedBox(height: 12),
-      _contactSection(user),
-      const SizedBox(height: 20),
-      // car/HiAce is sold per seat — 1 passenger = 1 seat
-      _payBar(widget.trip.price * _pax, () => _confirm(user)),
-    ]);
-  }
-
-  Future<void> _pickWhen() async {
-    final now = DateTime.now();
-    final d = await showDatePicker(context: context, initialDate: _when ?? now, firstDate: now, lastDate: now.add(const Duration(days: 90)));
-    if (d == null || !mounted) return;
-    final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_when ?? now.add(const Duration(hours: 1))));
-    if (!mounted) return;
-    setState(() => _when = DateTime(d.year, d.month, d.day, t?.hour ?? 9, t?.minute ?? 0));
-  }
-
-  String _fmtWhen(DateTime d) {
-    final hh = d.hour.toString().padLeft(2, '0');
-    final mm = d.minute.toString().padLeft(2, '0');
-    return '${d.day}/${d.month}/${d.year}  ·  $hh:$mm';
   }
 
   // Booker details — a compact "booking as <you>" card when signed in, or the

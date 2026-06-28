@@ -53,6 +53,14 @@ async function run() {
   }
   console.log(`[hiace] seeded ${made} HiAce route(s)`);
 
+  // Car & HiAce reserve seats now, so any listing missing a capacity gets a
+  // sensible default (a car seats ~4; the seat map needs a finite count).
+  const carFix = await Trip.updateMany(
+    { serviceType: "CAR", $or: [{ seatsAvailable: { $exists: false } }, { seatsAvailable: null }] },
+    { $set: { seatsAvailable: 4, priceUnit: "per_seat" } },
+  );
+  console.log(`[hiace] backfilled seat capacity on ${carFix.modifiedCount} car listing(s)`);
+
   await disconnectDb();
 }
 

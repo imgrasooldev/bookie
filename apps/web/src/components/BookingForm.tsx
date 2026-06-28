@@ -64,8 +64,8 @@ function buildSeats(trip: Trip): { labels: string[]; rows: number; booked: Set<s
 }
 
 export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
-  const isBus = trip.serviceType === "BUS";
   const isRide = trip.serviceType === "CAR" || trip.serviceType === "HIACE";
+  const isSeat = isRide || trip.serviceType === "BUS"; // bus, car & HiAce reserve seats
   const isQuote = trip.price === 0;
 
   const seatMap = useMemo(() => buildSeats(trip), [trip]);
@@ -76,10 +76,6 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
   const [seatGender, setSeatGender] = useState<Record<string, Gender>>({});
   const [seatName, setSeatName] = useState<Record<string, string>>({});
   const [pax, setPax] = useState(1);
-  // car / HiAce ride
-  const [pickup, setPickup] = useState("");
-  const [dropoff, setDropoff] = useState("");
-  const [when, setWhen] = useState(""); // datetime-local string
 
   // the booker (their CNIC is required so the ticket is ID-valid)
   const [bName, setBName] = useState("");
@@ -123,7 +119,7 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
   // seat-hold countdown — starts when the first seat is picked, resets when cleared
   const [holdLeft, setHoldLeft] = useState(HOLD_SECONDS);
   const [expired, setExpired] = useState(false);
-  const holding = isBus && selected.length > 0 && !confirmation;
+  const holding = isSeat && selected.length > 0 && !confirmation;
 
   useEffect(() => {
     if (!holding) {
@@ -144,15 +140,15 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
     }
   }, [holdLeft, selected.length]);
 
-  const qty = isBus ? selected.length : pax;
+  const qty = isSeat ? selected.length : pax;
   const businessSurcharge = trip.businessSurcharge ?? 0;
   const subtotal = useMemo(() => {
     // per-seat pricing so business/executive seats add their surcharge
-    if (isBus && selected.length) {
+    if (isSeat && selected.length) {
       return selected.reduce((sum, s) => sum + trip.price + (seatMap.business.has(s) ? businessSurcharge : 0), 0);
     }
     return trip.price * qty;
-  }, [trip.price, qty, isBus, selected, seatMap, businessSurcharge]);
+  }, [trip.price, qty, isSeat, selected, seatMap, businessSurcharge]);
 
   const discount = useMemo(() => {
     if (!promo) return 0;
@@ -195,11 +191,7 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
   }
 
   const bookerValid = bName.trim().length > 1 && isValidCnic(bCnic) && isValidPkMobile(bPhone);
-  const canContinue = isBus
-    ? selected.length > 0
-    : isRide
-      ? pickup.trim().length > 2 && dropoff.trim().length > 2 && !!when && pax > 0
-      : pax > 0;
+  const canContinue = isSeat ? selected.length > 0 : pax > 0;
   const canPay = canContinue && bookerValid;
 
   function reset() {
@@ -220,7 +212,7 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
   async function onPaid(r: { bookingRef: string; transactionId: string }) {
     if (submitting.current) return;
     submitting.current = true;
-    const passengers: Passenger[] = isBus
+    const passengers: Passenger[] = isSeat
       ? selected.map((seat) => ({
           name: seatName[seat]?.trim() || bName.trim() || "Guest",
           gender: seatGender[seat],
@@ -232,11 +224,8 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
       originId: trip.originId,
       destinationId: trip.destinationId,
       date,
-      seats: isBus ? selected : undefined,
-      quantity: isBus ? undefined : pax,
-      pickup: isRide ? pickup.trim() : undefined,
-      dropoff: isRide ? dropoff.trim() : undefined,
-      scheduledAt: isRide ? when : undefined,
+      seats: isSeat ? selected : undefined,
+      quantity: isSeat ? undefined : pax,
       passengers,
       contact: { name: bName.trim(), cnic: digits(bCnic), phone: bPhone, email: bEmail.trim() || undefined },
       paymentMethod: method,
@@ -260,7 +249,7 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
         <h3 className="mt-3 text-lg font-bold text-ink">Booking confirmed</h3>
         <p className="mt-1 text-sm text-muted">
           {qty} × {trip.title}
-          {isBus && selected.length ? ` · Seats ${selected.join(", ")}` : ""}
+          {isSeat && selected.length ? ` · Seats ${selected.join(", ")}` : ""}
         </p>
         <dl className="mx-auto mt-4 max-w-xs space-y-1 text-sm">
           <Row label="Booking ref" value={confirmation.bookingRef} mono />
@@ -333,7 +322,7 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
   }
 
   // ---------------- BUS: 2-step flow ----------------
-  if (isBus) {
+  if (isSeat) {
     return (
       <div className="space-y-5">
         <Stepper step={step} />
@@ -533,22 +522,6 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
   // ---------------- non-bus paid (car / event / hotel …): single screen ----------------
   return (
     <div className="space-y-5">
-      {isRide && (
-        <div className="space-y-4 rounded-2xl bg-surface p-5 ring-1 ring-slate-200">
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Pickup location</span>
-            <input value={pickup} onChange={(e) => setPickup(e.target.value)} placeholder="e.g. Gulberg III, Lahore" className="input" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Drop-off location</span>
-            <input value={dropoff} onChange={(e) => setDropoff(e.target.value)} placeholder="e.g. DHA Phase 5, Lahore" className="input" />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Pickup date &amp; time</span>
-            <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="input max-w-72" />
-          </label>
-        </div>
-      )}
       <div className="rounded-2xl bg-surface p-5 ring-1 ring-slate-200">
         <label className="block">
           <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">

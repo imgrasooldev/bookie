@@ -14,6 +14,10 @@ import { confirmSeats, holdSeats, releaseSeats, takenSeats, today } from "../lib
 const onlyDigits = (s: string) => s.replace(/\D/g, "");
 const isDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
 
+// verticals booked by picking specific seats (date-aware inventory + holds).
+// Car & HiAce reserve seats exactly like a bus, just on a smaller vehicle.
+const SEATED = new Set(["BUS", "CAR", "HIACE"]);
+
 export const bookingRouter = Router();
 
 const createSchema = z.object({
@@ -100,7 +104,7 @@ bookingRouter.post(
 
     // Atomically claim the seats for THIS departure date. If any seat was just
     // taken by a concurrent booking, this fails — no double-booking.
-    if (trip.serviceType === "BUS" && body.seats?.length) {
+    if (SEATED.has(trip.serviceType) && body.seats?.length) {
       const ok = await confirmSeats(trip._id, date, body.seats, body.holdId);
       if (!ok) throw new HttpError(409, "One or more of those seats were just booked. Please pick again.");
     }
@@ -134,7 +138,7 @@ bookingRouter.post(
     } catch (err) {
       // compensation: release the seats we just claimed so a failed insert can
       // never leak a sold seat that has no booking behind it.
-      if (trip.serviceType === "BUS" && body.seats?.length) {
+      if (SEATED.has(trip.serviceType) && body.seats?.length) {
         await releaseSeats(trip._id, date, body.seats).catch(() => {});
       }
       throw err;
@@ -237,7 +241,7 @@ bookingRouter.post(
     if (wasPaid) booking.payment!.status = "REFUNDED";
     await booking.save();
     // free the seats back into the per-date inventory
-    if (booking.serviceType === "BUS" && booking.seats?.length && booking.date) {
+    if (SEATED.has(booking.serviceType ?? "") && booking.seats?.length && booking.date) {
       await releaseSeats(booking.trip, booking.date, booking.seats);
     }
     // refund the fare to the customer's Bookie wallet — ONLY if money was

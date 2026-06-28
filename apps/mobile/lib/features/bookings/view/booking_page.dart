@@ -13,9 +13,8 @@ import '../../../data/repositories/trip_repository.dart';
 import '../../../models.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/view/login_page.dart';
-import '../bloc/booking_bloc.dart';
 import 'seat_picker.dart';
-import 'ticket_page.dart';
+import 'payment_page.dart';
 import 'vehicle_gallery.dart';
 
 class BookingPage extends StatefulWidget {
@@ -103,8 +102,8 @@ class _BookingPageState extends State<BookingPage> {
         paymentMethod: 'Easypaisa',
       );
       if (!mounted) return;
-      context.read<BookingBloc>().add(const MyBookingsRequested());
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => TicketPage(ticket: ticket, justBooked: true)));
+      // booking is created as AWAITING_PAYMENT → take the user to pay
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => PaymentPage(ticket: ticket)));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(apiError(e))));
     } finally {
@@ -216,7 +215,8 @@ class _BookingPageState extends State<BookingPage> {
       const SizedBox(height: 12),
       _contactSection(user),
       const SizedBox(height: 20),
-      _payBar(widget.trip.price, () => _confirm(user)),
+      // car/HiAce is sold per seat — 1 passenger = 1 seat
+      _payBar(widget.trip.price * _pax, () => _confirm(user)),
     ]);
   }
 

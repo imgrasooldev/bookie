@@ -59,6 +59,27 @@ class BookingRepository {
     return Ticket.fromJson(res.data as Map<String, dynamic>);
   }
 
+  // ---- payments ----
+
+  /// Start a payment for a booking; returns the gateway's checkout session.
+  Future<PaymentSession> initiatePayment(String bookingId) async {
+    final res = await _api.dio.post('/payments/initiate', data: {'bookingId': bookingId});
+    return PaymentSession.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  /// Sandbox only: simulate the customer completing the mock checkout.
+  /// Returns the booking status after settlement (CONFIRMED on success).
+  Future<String> mockCompletePayment(String transactionId, {bool success = true}) async {
+    final res = await _api.dio.post('/payments/mock/complete', data: {'transactionId': transactionId, 'outcome': success ? 'success' : 'fail'});
+    return (res.data['bookingStatus'] ?? '').toString();
+  }
+
+  /// Poll a transaction (for the redirect/return flow with a real gateway).
+  Future<String> paymentStatus(String transactionId) async {
+    final res = await _api.dio.get('/payments/$transactionId');
+    return (res.data['bookingStatus'] ?? '').toString();
+  }
+
   /// The current user's review for a booking (null if not reviewed).
   Future<Review?> myReview(String bookingId) async {
     final res = await _api.dio.get('/bookings/$bookingId/review');

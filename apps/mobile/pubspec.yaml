@@ -38,6 +38,9 @@ dependencies:
   # Curved/notched animated bottom navigation bar
   curved_navigation_bar: ^1.0.6
 
+  # open the hosted payment checkout (real gateway) in the browser
+  url_launcher: ^6.3.0
+
   # Networking + formatting
   http: ^1.2.2
   intl: ^0.19.0

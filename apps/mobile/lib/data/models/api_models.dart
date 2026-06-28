@@ -185,6 +185,25 @@ class Ticket {
       );
 }
 
+class PaymentSession {
+  final String transactionId;
+  final String gateway; // 'mock' | 'safepay' | ...
+  final String checkoutUrl;
+  final num amount;
+  final String currency;
+  const PaymentSession({required this.transactionId, required this.gateway, required this.checkoutUrl, required this.amount, required this.currency});
+
+  bool get isMock => gateway == 'mock';
+
+  factory PaymentSession.fromJson(Map<String, dynamic> j) => PaymentSession(
+        transactionId: j['transactionId'] ?? '',
+        gateway: j['gateway'] ?? 'mock',
+        checkoutUrl: j['checkoutUrl'] ?? '',
+        amount: j['amount'] ?? 0,
+        currency: j['currency'] ?? 'PKR',
+      );
+}
+
 class Review {
   final int rating;
   final String comment;

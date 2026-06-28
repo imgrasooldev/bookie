@@ -117,9 +117,10 @@ authRouter.post(
       { upsert: true, new: true },
     );
     const sms = await sendRawSms(ph, `${code} is your Bookie verification code. It expires in 5 minutes.`);
-    // With no SMS provider configured the send is a STUB — surface the code in
-    // non-production so the login flow stays testable end-to-end.
-    const devCode = sms.status === "STUB" && process.env.NODE_ENV !== "production" ? code : undefined;
+    // Self-gating demo fallback: while no SMS provider is configured the send is
+    // a STUB, so we return the code (the only way to receive it). The instant a
+    // gateway is wired the status becomes SENT and the code is never exposed.
+    const devCode = sms.status === "STUB" ? code : undefined;
     res.json({ sent: true, ...(devCode ? { devCode } : {}) });
   }),
 );

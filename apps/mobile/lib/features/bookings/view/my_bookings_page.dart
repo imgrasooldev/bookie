@@ -8,6 +8,7 @@ import '../../../core/widgets/shimmer.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/view/sign_in_prompt.dart';
 import '../bloc/booking_bloc.dart';
+import 'find_booking_page.dart';
 import 'ticket_page.dart';
 
 class MyBookingsPage extends StatelessWidget {
@@ -21,7 +22,18 @@ class MyBookingsPage extends StatelessWidget {
         buildWhen: (a, b) => a.status != b.status,
         builder: (context, state) {
           if (state.status != AuthStatus.authenticated) {
-            return const SignInPrompt(message: 'Sign in to see your bookings & e-tickets.');
+            return Column(children: [
+              const Expanded(child: SignInPrompt(message: 'Sign in to see your bookings & e-tickets.')),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FindBookingPage())),
+                  icon: const Icon(Icons.confirmation_num_outlined),
+                  label: const Text('Find a guest booking'),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                ),
+              ),
+            ]);
           }
           return const _BookingsList();
         },

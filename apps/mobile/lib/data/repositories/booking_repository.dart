@@ -41,6 +41,13 @@ class BookingRepository {
     return Ticket.fromJson(res.data as Map<String, dynamic>);
   }
 
+  /// Retrieve a guest booking by its reference + the booker's mobile number
+  /// (no account needed).
+  Future<Ticket> lookup(String ref, String phone) async {
+    final res = await _api.dio.get('/bookings/lookup', queryParameters: {'ref': ref, 'phone': phone});
+    return Ticket.fromJson(res.data as Map<String, dynamic>);
+  }
+
   Future<Ticket> cancel(String id) async {
     final res = await _api.dio.post('/bookings/$id/cancel');
     return Ticket.fromJson(res.data as Map<String, dynamic>);

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/shimmer.dart';
 import '../../../models.dart';
 import '../bloc/trip_bloc.dart';
 import 'results_page.dart';
@@ -54,12 +55,12 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: BlocBuilder<TripBloc, TripState>(
-        buildWhen: (a, b) => a.cities != b.cities || a.popularRoutes != b.popularRoutes,
+        buildWhen: (a, b) => a.cities != b.cities || a.popularRoutes != b.popularRoutes || a.popularLoaded != b.popularLoaded,
         builder: (context, state) {
           return CustomScrollView(
             slivers: [
               SliverToBoxAdapter(child: _header(context, state.cities)),
-              SliverToBoxAdapter(child: _popularRoutes(context, state.cities, state.popularRoutes)),
+              SliverToBoxAdapter(child: _popularRoutes(context, state.cities, state.popularRoutes, state.popularLoaded)),
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
             ],
           );
@@ -233,7 +234,43 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _popularRoutes(BuildContext context, List<City> cities, List<PopularRoute> routes) {
+  // shimmer placeholder shown while popular routes load (mirrors the real cards)
+  Widget _popularSkeleton() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Popular routes', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.ink)),
+          const SizedBox(height: 12),
+          Shimmer(
+            child: Column(
+              children: List.generate(3, (_) => Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.hairline)),
+                child: Row(children: const [
+                  SkeletonBox(width: 44, height: 44, radius: 22),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      SkeletonBox(width: 170, height: 13),
+                      SizedBox(height: 8),
+                      SkeletonBox(width: 100, height: 11),
+                    ]),
+                  ),
+                  SkeletonBox(width: 30, height: 24, radius: 12),
+                ]),
+              )),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _popularRoutes(BuildContext context, List<City> cities, List<PopularRoute> routes, bool loaded) {
+    if (!loaded) return _popularSkeleton();
     if (routes.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),

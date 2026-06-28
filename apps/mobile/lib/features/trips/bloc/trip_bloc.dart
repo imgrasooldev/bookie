@@ -38,12 +38,14 @@ class TripState extends Equatable {
   final TripStatus status;
   final List<City> cities;
   final List<PopularRoute> popularRoutes;
+  final bool popularLoaded; // true once the popular-routes fetch has settled
   final List<Trip> trips;
   final String? error;
   const TripState({
     this.status = TripStatus.initial,
     this.cities = const [],
     this.popularRoutes = const [],
+    this.popularLoaded = false,
     this.trips = const [],
     this.error,
   });
@@ -52,18 +54,20 @@ class TripState extends Equatable {
     TripStatus? status,
     List<City>? cities,
     List<PopularRoute>? popularRoutes,
+    bool? popularLoaded,
     List<Trip>? trips,
     String? error,
   }) => TripState(
     status: status ?? this.status,
     cities: cities ?? this.cities,
     popularRoutes: popularRoutes ?? this.popularRoutes,
+    popularLoaded: popularLoaded ?? this.popularLoaded,
     trips: trips ?? this.trips,
     error: error,
   );
 
   @override
-  List<Object?> get props => [status, cities, popularRoutes, trips, error];
+  List<Object?> get props => [status, cities, popularRoutes, popularLoaded, trips, error];
 }
 
 /* bloc */
@@ -80,9 +84,9 @@ class TripBloc extends Bloc<TripEvent, TripState> {
       }
       try {
         final routes = await _repo.popularRoutes();
-        emit(state.copyWith(popularRoutes: routes));
+        emit(state.copyWith(popularRoutes: routes, popularLoaded: true));
       } catch (_) {
-        /* non-fatal */
+        emit(state.copyWith(popularLoaded: true)); // stop the shimmer even on failure
       }
     });
 

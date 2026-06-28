@@ -19,20 +19,30 @@ class Profile {
   final String phone;
   final String? email;
   final String? cnic;
+  final String? dob;
+  final String? gender;
   final String? city;
+  final String? avatar;
+  final String? referralCode;
   final num walletBalance;
   final num rewardPoints;
   final String tier;
+  final int memberSince;
   final int upcomingTrips;
   const Profile({
     required this.name,
     required this.phone,
     this.email,
     this.cnic,
+    this.dob,
+    this.gender,
     this.city,
+    this.avatar,
+    this.referralCode,
     required this.walletBalance,
     required this.rewardPoints,
     required this.tier,
+    required this.memberSince,
     required this.upcomingTrips,
   });
 
@@ -41,11 +51,57 @@ class Profile {
         phone: j['phone'] ?? '',
         email: j['email'],
         cnic: j['cnic'],
+        dob: j['dob'],
+        gender: j['gender'],
         city: j['city'],
+        avatar: j['avatar'],
+        referralCode: j['referralCode'],
         walletBalance: j['walletBalance'] ?? 0,
         rewardPoints: j['rewardPoints'] ?? 0,
         tier: j['tier'] ?? 'Member',
+        memberSince: (j['memberSince'] ?? DateTime.now().year) as int,
         upcomingTrips: j['upcomingTrips'] ?? 0,
+      );
+}
+
+class WalletTx {
+  final String desc;
+  final num amount;
+  final String kind; // credit | debit
+  final String date;
+  const WalletTx({required this.desc, required this.amount, required this.kind, required this.date});
+
+  factory WalletTx.fromJson(Map<String, dynamic> j) => WalletTx(
+        desc: j['desc'] ?? '',
+        amount: j['amount'] ?? 0,
+        kind: j['kind'] ?? 'credit',
+        date: j['date']?.toString() ?? '',
+      );
+}
+
+class Wallet {
+  final num balance;
+  final List<WalletTx> transactions;
+  const Wallet({required this.balance, required this.transactions});
+
+  factory Wallet.fromJson(Map<String, dynamic> j) => Wallet(
+        balance: j['balance'] ?? 0,
+        transactions: (j['transactions'] as List?)?.map((e) => WalletTx.fromJson(e as Map<String, dynamic>)).toList() ?? const [],
+      );
+}
+
+class Traveller {
+  final String name;
+  final String relation;
+  final String cnic;
+  final String gender;
+  const Traveller({required this.name, required this.relation, required this.cnic, required this.gender});
+
+  factory Traveller.fromJson(Map<String, dynamic> j) => Traveller(
+        name: j['name'] ?? '',
+        relation: j['relation'] ?? 'Family',
+        cnic: j['cnic'] ?? '—',
+        gender: j['gender'] ?? 'Male',
       );
 }
 

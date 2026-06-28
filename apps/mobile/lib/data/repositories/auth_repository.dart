@@ -35,6 +35,16 @@ class AuthRepository {
     return Profile.fromJson(res.data as Map<String, dynamic>);
   }
 
+  Future<Wallet> wallet() async {
+    final res = await _api.dio.get('/account/wallet');
+    return Wallet.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  Future<List<Traveller>> travellers() async {
+    final res = await _api.dio.get('/account/travellers');
+    return (res.data as List).map((e) => Traveller.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
   Future<void> logout() => _store.clear();
 
   Future<AuthUser> _persist(dynamic data) async {

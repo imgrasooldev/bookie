@@ -18,6 +18,12 @@ const transactionSchema = new Schema(
       index: true,
     },
     gatewayRef: { type: String, index: true }, // provider's checkout/payment id
+    // hosted POST-redirect gateways (JazzCash/Easypaisa) hand us a form to submit;
+    // we stash it here so /payments/redirect can render an auto-submitting page.
+    formPost: {
+      action: { type: String },
+      fields: { type: Schema.Types.Mixed },
+    },
     raw: { type: Schema.Types.Mixed }, // last provider payload (audit trail)
   },
   { timestamps: true },

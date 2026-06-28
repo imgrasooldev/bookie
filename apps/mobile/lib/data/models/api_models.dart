@@ -204,6 +204,18 @@ class PaymentSession {
       );
 }
 
+class PayMethod {
+  final String name; // 'jazzcash' | 'easypaisa' | 'safepay' | 'mock' | 'cash'
+  final String label;
+  final String kind; // 'online' | 'cash'
+  const PayMethod({required this.name, required this.label, required this.kind});
+
+  bool get isCash => kind == 'cash';
+
+  factory PayMethod.fromJson(Map<String, dynamic> j) =>
+      PayMethod(name: j['name'] ?? '', label: j['label'] ?? '', kind: j['kind'] ?? 'online');
+}
+
 class Review {
   final int rating;
   final String comment;

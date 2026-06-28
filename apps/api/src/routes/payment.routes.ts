@@ -2,12 +2,17 @@ import { Router } from "express";
 import { z } from "zod";
 import { Booking } from "../models/Booking.js";
 import { Transaction } from "../models/Transaction.js";
-import { optionalAuth } from "../middleware/auth.js";
+import { optionalAuth, requireAuth } from "../middleware/auth.js";
 import { ah, HttpError } from "../middleware/error.js";
-import { defaultGateway, getGateway, type WebhookResult } from "../lib/payments.js";
+import { defaultGateway, getGateway, listGateways, type WebhookResult } from "../lib/payments.js";
 import { notify } from "../lib/notify.js";
 
 export const paymentRouter = Router();
+
+// minimal HTML-attribute escaping for the auto-submit redirect page
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+}
 
 // Apply a verified gateway result to its transaction + booking. Idempotent: a
 // webhook that fires twice (providers retry) settles the payment exactly once.
@@ -84,6 +89,7 @@ paymentRouter.post(
       bookingNo: booking.bookingNo,
     });
     txn.gatewayRef = session.gatewayRef;
+    if (session.formPost) txn.formPost = session.formPost;
     await txn.save();
 
     res.status(201).json({
@@ -95,6 +101,114 @@ paymentRouter.post(
     });
   }),
 );
+
+// GET /payments/methods — payment options to show at checkout (configured online
+// gateways + cash-at-terminal). Lets clients render the screen without hardcoding.
+paymentRouter.get(
+  "/methods",
+  ah(async (_req, res) => {
+    res.json({ methods: listGateways() });
+  }),
+);
+
+// POST /payments/cash — reserve now, pay cash at the terminal counter. Confirms
+// the booking (seats already held) with payment marked PENDING for collection.
+const cashSchema = z.object({ bookingId: z.string() });
+paymentRouter.post(
+  "/cash",
+  optionalAuth,
+  ah(async (req, res) => {
+    const { bookingId } = cashSchema.parse(req.body);
+    const booking = await Booking.findById(bookingId);
+    if (!booking) throw new HttpError(404, "Booking not found");
+    if (booking.status === "CONFIRMED") throw new HttpError(409, "This booking is already confirmed.");
+    if (booking.status !== "AWAITING_PAYMENT") throw new HttpError(409, "This booking can't be reserved for cash.");
+
+    const amount = booking.fare?.total ?? 0;
+    // ledger row so cash sits alongside online payments and can be reconciled
+    const txn = await Transaction.create({
+      booking: booking._id,
+      customer: req.user?.sub,
+      bookingNo: booking.bookingNo,
+      gateway: "cash",
+      amount,
+      currency: booking.fare?.currency ?? "PKR",
+      gatewayRef: `CASH-${booking.bookingNo}`,
+      status: "INITIATED",
+    });
+
+    booking.status = "CONFIRMED";
+    booking.payment = { method: "Cash", status: "PENDING", transactionRef: String(txn._id) } as typeof booking.payment;
+    await booking.save();
+
+    await notify(
+      { userId: booking.customer ?? undefined, phone: booking.contact?.phone ?? undefined, email: booking.contact?.email ?? undefined },
+      {
+        type: "BOOKING",
+        title: "Seat reserved — pay at terminal",
+        body: `Bookie: booking ${booking.bookingNo} is reserved. Please pay Rs ${amount} cash at the terminal counter before departure.`,
+        booking: booking._id,
+        trip: booking.trip,
+      },
+    ).catch(() => undefined);
+
+    res.status(201).json({ bookingId: String(booking._id), bookingNo: booking.bookingNo, status: booking.status, payment: "PENDING_CASH", amount });
+  }),
+);
+
+// POST /payments/cash/:bookingId/collect — operator marks the cash as collected.
+paymentRouter.post(
+  "/cash/:bookingId/collect",
+  requireAuth,
+  ah(async (req, res) => {
+    const booking = await Booking.findById(req.params.bookingId);
+    if (!booking) throw new HttpError(404, "Booking not found");
+    if (booking.payment?.method !== "Cash") throw new HttpError(400, "This booking is not a cash booking.");
+    booking.payment = { ...booking.payment, status: "SUCCESS" } as typeof booking.payment;
+    await booking.save();
+    await Transaction.updateOne({ booking: booking._id, gateway: "cash" }, { $set: { status: "SUCCESS" } });
+    res.json({ bookingId: String(booking._id), payment: "COLLECTED" });
+  }),
+);
+
+// GET /payments/redirect/:gateway/:txn — auto-submitting POST form for hosted
+// gateways (JazzCash/Easypaisa). The client opens this; it posts to the provider.
+paymentRouter.get(
+  "/redirect/:gateway/:txn",
+  ah(async (req, res) => {
+    const txn = await Transaction.findById(req.params.txn).lean();
+    if (!txn || !txn.formPost?.action) throw new HttpError(404, "No checkout to redirect to.");
+    const { action, fields } = txn.formPost as { action: string; fields: Record<string, string> };
+    const inputs = Object.entries(fields)
+      .map(([k, v]) => `<input type="hidden" name="${escapeHtml(k)}" value="${escapeHtml(String(v))}" />`)
+      .join("");
+    res.set("content-type", "text/html").send(
+      `<!doctype html><html><body onload="document.forms[0].submit()" style="font-family:system-ui;text-align:center;padding:40px">
+        <p>Redirecting to ${escapeHtml(req.params.gateway)}…</p>
+        <form method="post" action="${escapeHtml(action)}">${inputs}<noscript><button type="submit">Continue</button></noscript></form>
+      </body></html>`,
+    );
+  }),
+);
+
+// POST/GET /payments/return/:gateway/:txn — provider redirects the customer back
+// here after paying; we settle, then bounce to the web result page.
+async function handleReturn(req: import("express").Request, res: import("express").Response) {
+  const gw = getGateway(req.params.gateway);
+  let ok = false;
+  if (gw) {
+    const result = gw.parseWebhook(req.headers, Object.keys(req.body ?? {}).length ? req.body : req.query);
+    if (result) {
+      await finalize(gw.name, result);
+      ok = result.status === "SUCCESS";
+    }
+  }
+  const txn = await Transaction.findById(req.params.txn).lean();
+  const bookingId = txn ? String(txn.booking) : "";
+  res.redirect(`${process.env.WEB_URL ?? "http://localhost:3000"}/pay/result?status=${ok ? "success" : "failed"}&booking=${bookingId}`);
+}
+paymentRouter.post("/return/:gateway/:txn", ah(handleReturn));
+paymentRouter.get("/return/:gateway/:txn", ah(handleReturn));
 
 // POST /payments/webhook/:gateway — provider calls this to settle a payment.
 // Public (no auth) but each gateway verifies its own signature in parseWebhook.

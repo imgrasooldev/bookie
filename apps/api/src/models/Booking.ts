@@ -75,7 +75,8 @@ const bookingSchema = new Schema(
       },
       status: {
         type: String,
-        enum: ["INITIATED", "SUCCESS", "FAILED", "REFUNDED"],
+        // PENDING = reserved, cash to be collected at the terminal counter
+        enum: ["INITIATED", "PENDING", "SUCCESS", "FAILED", "REFUNDED"],
         default: "INITIATED",
       },
       transactionRef: { type: String },

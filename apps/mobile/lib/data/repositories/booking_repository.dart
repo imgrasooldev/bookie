@@ -61,10 +61,22 @@ class BookingRepository {
 
   // ---- payments ----
 
+  /// Available payment options (configured online gateways + cash-at-terminal).
+  Future<List<PayMethod>> paymentMethods() async {
+    final res = await _api.dio.get('/payments/methods');
+    return ((res.data['methods'] ?? []) as List).map((e) => PayMethod.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
   /// Start a payment for a booking; returns the gateway's checkout session.
-  Future<PaymentSession> initiatePayment(String bookingId) async {
-    final res = await _api.dio.post('/payments/initiate', data: {'bookingId': bookingId});
+  Future<PaymentSession> initiatePayment(String bookingId, {String? gateway}) async {
+    final res = await _api.dio.post('/payments/initiate', data: {'bookingId': bookingId, if (gateway != null) 'gateway': gateway});
     return PaymentSession.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  /// Reserve now, pay cash at the terminal counter. Returns the booking status.
+  Future<String> payCash(String bookingId) async {
+    final res = await _api.dio.post('/payments/cash', data: {'bookingId': bookingId});
+    return (res.data['status'] ?? '').toString();
   }
 
   /// Sandbox only: simulate the customer completing the mock checkout.

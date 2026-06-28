@@ -42,6 +42,10 @@ const bookingSchema = new Schema(
     originTerminal: { type: String },
     destinationTerminal: { type: String },
     date: { type: String }, // yyyy-mm-dd departure date (date-aware inventory)
+    // intra/inter-city ride (car/HiAce): pickup + drop-off + desired pickup time
+    pickup: { type: String },
+    dropoff: { type: String },
+    scheduledAt: { type: String }, // ISO-ish "yyyy-mm-ddTHH:mm" pickup time
     contact: { type: contactSchema },
     status: {
       type: String,

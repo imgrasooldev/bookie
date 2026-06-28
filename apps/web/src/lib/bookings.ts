@@ -31,6 +31,10 @@ export interface CreateBookingInput {
   date?: string;
   seats?: string[];
   quantity?: number;
+  /** intra/inter-city ride (car/HiAce) */
+  pickup?: string;
+  dropoff?: string;
+  scheduledAt?: string;
   passengers?: Passenger[];
   contact?: BookingContact;
   paymentMethod?: "Easypaisa" | "JazzCash" | "Card" | "Cash";
@@ -56,6 +60,9 @@ export interface Ticket {
   destinationCode: string | null;
   originTerminal: string | null;
   destinationTerminal: string | null;
+  pickup: string | null;
+  dropoff: string | null;
+  scheduledAt: string | null;
   departAt: string | null;
   arriveAt: string | null;
   operator: string;

@@ -65,6 +65,7 @@ function buildSeats(trip: Trip): { labels: string[]; rows: number; booked: Set<s
 
 export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
   const isBus = trip.serviceType === "BUS";
+  const isRide = trip.serviceType === "CAR";
   const isQuote = trip.price === 0;
 
   const seatMap = useMemo(() => buildSeats(trip), [trip]);
@@ -75,6 +76,10 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
   const [seatGender, setSeatGender] = useState<Record<string, Gender>>({});
   const [seatName, setSeatName] = useState<Record<string, string>>({});
   const [pax, setPax] = useState(1);
+  // car / HiAce ride
+  const [pickup, setPickup] = useState("");
+  const [dropoff, setDropoff] = useState("");
+  const [when, setWhen] = useState(""); // datetime-local string
 
   // the booker (their CNIC is required so the ticket is ID-valid)
   const [bName, setBName] = useState("");
@@ -190,7 +195,11 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
   }
 
   const bookerValid = bName.trim().length > 1 && isValidCnic(bCnic) && isValidPkMobile(bPhone);
-  const canContinue = isBus ? selected.length > 0 : pax > 0;
+  const canContinue = isBus
+    ? selected.length > 0
+    : isRide
+      ? pickup.trim().length > 2 && dropoff.trim().length > 2 && !!when && pax > 0
+      : pax > 0;
   const canPay = canContinue && bookerValid;
 
   function reset() {
@@ -225,6 +234,9 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
       date,
       seats: isBus ? selected : undefined,
       quantity: isBus ? undefined : pax,
+      pickup: isRide ? pickup.trim() : undefined,
+      dropoff: isRide ? dropoff.trim() : undefined,
+      scheduledAt: isRide ? when : undefined,
       passengers,
       contact: { name: bName.trim(), cnic: digits(bCnic), phone: bPhone, email: bEmail.trim() || undefined },
       paymentMethod: method,
@@ -521,6 +533,22 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
   // ---------------- non-bus paid (car / event / hotel …): single screen ----------------
   return (
     <div className="space-y-5">
+      {isRide && (
+        <div className="space-y-4 rounded-2xl bg-surface p-5 ring-1 ring-slate-200">
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Pickup location</span>
+            <input value={pickup} onChange={(e) => setPickup(e.target.value)} placeholder="e.g. Gulberg III, Lahore" className="input" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Drop-off location</span>
+            <input value={dropoff} onChange={(e) => setDropoff(e.target.value)} placeholder="e.g. DHA Phase 5, Lahore" className="input" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Pickup date &amp; time</span>
+            <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="input max-w-72" />
+          </label>
+        </div>
+      )}
       <div className="rounded-2xl bg-surface p-5 ring-1 ring-slate-200">
         <label className="block">
           <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">

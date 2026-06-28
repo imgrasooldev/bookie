@@ -44,6 +44,10 @@ const createSchema = z.object({
   seats: z.array(z.string()).optional(),
   quantity: z.coerce.number().int().positive().optional(),
   date: z.string().optional(), // yyyy-mm-dd departure date
+  // intra/inter-city ride (car/HiAce)
+  pickup: z.string().optional(),
+  dropoff: z.string().optional(),
+  scheduledAt: z.string().optional(),
   holdId: z.string().optional(),
   paymentMethod: z
     .enum(["JazzCash", "Easypaisa", "Card", "Cash", "Wallet"])
@@ -114,6 +118,9 @@ bookingRouter.post(
         originTerminal,
         destinationTerminal,
         date,
+        pickup: body.pickup,
+        dropoff: body.dropoff,
+        scheduledAt: body.scheduledAt,
         contact: body.contact,
         status: isQuote ? "QUOTE_REQUESTED" : "AWAITING_PAYMENT",
         passengers: body.passengers ?? [],

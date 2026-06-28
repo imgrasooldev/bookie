@@ -176,10 +176,16 @@ class _TicketPageState extends State<TicketPage> {
                   Text(t.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
                   Text(t.operator, style: const TextStyle(color: Colors.black54)),
                   const SizedBox(height: 16),
-                  _row('Date', hm(t.departAt) ?? '—'),
-                  if (t.originTerminal != null) _row('Boarding', t.originTerminal!),
-                  if (t.destinationTerminal != null) _row('Drop-off', t.destinationTerminal!),
-                  _row('Seats', t.seats.isEmpty ? '—' : t.seats.join(', ')),
+                  if (t.pickup != null) ...[
+                    _row('Pickup', t.pickup!),
+                    if (t.dropoff != null) _row('Drop-off', t.dropoff!),
+                    _row('When', _fmtSchedule(t.scheduledAt)),
+                  ] else ...[
+                    _row('Date', hm(t.departAt) ?? '—'),
+                    if (t.originTerminal != null) _row('Boarding', t.originTerminal!),
+                    if (t.destinationTerminal != null) _row('Drop-off', t.destinationTerminal!),
+                    _row('Seats', t.seats.isEmpty ? '—' : t.seats.join(', ')),
+                  ],
                   _row('Amount', pkr(t.total)),
                   _row('Status', t.status),
                   const SizedBox(height: 20),
@@ -242,6 +248,14 @@ class _TicketPageState extends State<TicketPage> {
         ],
       ),
     );
+  }
+
+  String _fmtSchedule(String? iso) {
+    final d = iso == null ? null : DateTime.tryParse(iso);
+    if (d == null) return '—';
+    final hh = d.hour.toString().padLeft(2, '0');
+    final mm = d.minute.toString().padLeft(2, '0');
+    return '${d.day}/${d.month}/${d.year}  ·  $hh:$mm';
   }
 
   Widget _row(String k, String v) => Padding(

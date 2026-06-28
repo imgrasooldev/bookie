@@ -69,11 +69,35 @@ export function ETicket({ ticket: initial, allowCancel = true }: { ticket: Ticke
             </div>
           )}
 
+          {/* ride pickup / drop-off (car / HiAce) */}
+          {ticket.pickup && (
+            <div className="mt-4 flex items-stretch gap-2 rounded-xl border border-[var(--hairline,#e2e8f0)] bg-slate-50/60 p-3">
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">Pickup</div>
+                <div className="text-sm font-semibold text-ink">{ticket.pickup}</div>
+              </div>
+              <div className="self-center text-brand-500">→</div>
+              <div className="min-w-0 flex-1 text-right">
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">Drop-off</div>
+                <div className="text-sm font-semibold text-ink">{ticket.dropoff ?? "—"}</div>
+              </div>
+            </div>
+          )}
+
           {/* key facts */}
           <div className="my-5 grid grid-cols-2 gap-3 text-sm">
-            <Info label="Date" value={ticket.departAt ? formatDate(ticket.departAt) : "—"} />
-            <Info label="Departure" value={ticket.departAt ? formatTime(ticket.departAt) : "—"} />
-            <Info label="Seats" value={ticket.seats.length ? ticket.seats.join(", ") : "—"} />
+            {ticket.pickup ? (
+              <>
+                <Info label="Date" value={ticket.scheduledAt ? formatDate(ticket.scheduledAt) : "—"} />
+                <Info label="Pickup time" value={ticket.scheduledAt ? formatTime(ticket.scheduledAt) : "—"} />
+              </>
+            ) : (
+              <>
+                <Info label="Date" value={ticket.departAt ? formatDate(ticket.departAt) : "—"} />
+                <Info label="Departure" value={ticket.departAt ? formatTime(ticket.departAt) : "—"} />
+                <Info label="Seats" value={ticket.seats.length ? ticket.seats.join(", ") : "—"} />
+              </>
+            )}
             <Info label="Amount" value={formatPKR(ticket.fare.total)} />
           </div>
 

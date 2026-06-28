@@ -134,6 +134,9 @@ class Ticket {
   final num total;
   final String? contactName;
   final String? contactPhone;
+  final String? pickup;
+  final String? dropoff;
+  final String? scheduledAt;
 
   const Ticket({
     required this.id,
@@ -152,6 +155,9 @@ class Ticket {
     required this.total,
     this.contactName,
     this.contactPhone,
+    this.pickup,
+    this.dropoff,
+    this.scheduledAt,
   });
 
   bool get isCancelled => status == 'CANCELLED';
@@ -173,6 +179,9 @@ class Ticket {
         total: (j['fare']?['total']) ?? 0,
         contactName: j['contact']?['name'],
         contactPhone: j['contact']?['phone'],
+        pickup: j['pickup'],
+        dropoff: j['dropoff'],
+        scheduledAt: j['scheduledAt'],
       );
 }
 

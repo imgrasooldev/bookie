@@ -15,7 +15,8 @@ const _categories = [
   ('Flights', 'FLIGHT', Icons.flight_takeoff_rounded),
   ('Train', 'TRAIN', Icons.train_rounded),
   ('Hotels', 'HOTEL', Icons.hotel_rounded),
-  ('City Ride', 'CAR', Icons.local_taxi_rounded),
+  ('Car', 'CAR', Icons.local_taxi_rounded),
+  ('HiAce', 'HIACE', Icons.airport_shuttle_rounded),
 ];
 
 class SearchPage extends StatefulWidget {

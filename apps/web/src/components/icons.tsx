@@ -399,6 +399,7 @@ export const VERTICAL_ICONS: Record<string, (p: P) => React.ReactElement> = {
   FLIGHT: FlightIcon,
   TRAIN: TrainIcon,
   CAR: CarIcon,
+  HIACE: CarIcon,
   HOTEL: HotelIcon,
   EVENT: EventIcon,
   TOUR: TourIcon,

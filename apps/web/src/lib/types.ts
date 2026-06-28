@@ -5,7 +5,8 @@ export type ServiceType =
   | "BUS" // intercity bus, seat ticketing
   | "FLIGHT" // domestic & international flights
   | "TRAIN" // railway tickets
-  | "CAR" // intra-city ride
+  | "CAR" // per-seat car
+  | "HIACE" // per-seat HiAce van
   | "HOTEL" // stays
   | "EVENT" // events & movies
   | "TOUR" // holiday packages

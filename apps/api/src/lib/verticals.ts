@@ -4,6 +4,7 @@ export type ServiceType =
   | "FLIGHT"
   | "TRAIN"
   | "CAR"
+  | "HIACE"
   | "HOTEL"
   | "EVENT"
   | "TOUR"
@@ -19,7 +20,8 @@ export const VERTICALS = [
   { type: "FLIGHT", label: "Flights", tagline: "Domestic & international air travel", icon: "✈️", flavor: "ROUTE", primary: true },
   { type: "TRAIN", label: "Train", tagline: "Pakistan Railways tickets", icon: "🚆", flavor: "ROUTE", primary: true },
   { type: "HOTEL", label: "Hotels", tagline: "Stays across Pakistan & beyond", icon: "🏨", flavor: "STAY", primary: true },
-  { type: "CAR", label: "City Ride", tagline: "Book a car within the city", icon: "🚗", flavor: "RIDE", primary: true },
+  { type: "CAR", label: "Car", tagline: "Per-seat car — book 1 or more seats", icon: "🚗", flavor: "RIDE", primary: true },
+  { type: "HIACE", label: "HiAce", tagline: "Per-seat HiAce van — book 1 or more seats", icon: "🚐", flavor: "RIDE", primary: true },
   { type: "EVENT", label: "Events & Movies", tagline: "Concerts, cinema & shows", icon: "🎟️", flavor: "EVENT" },
   { type: "TOUR", label: "Tours", tagline: "Holiday & honeymoon packages", icon: "🌴", flavor: "PACKAGE" },
   { type: "UMRAH", label: "Umrah", tagline: "Umrah packages & visas", icon: "🕋", flavor: "PACKAGE" },
@@ -31,5 +33,5 @@ export const VERTICALS = [
 ] as const;
 
 export const SERVICE_TYPES: ServiceType[] = [
-  "BUS", "FLIGHT", "TRAIN", "CAR", "HOTEL", "EVENT", "TOUR", "UMRAH", "PICNIC", "CORPORATE", "FARMHOUSE", "HUT", "WATERPARK",
+  "BUS", "FLIGHT", "TRAIN", "CAR", "HIACE", "HOTEL", "EVENT", "TOUR", "UMRAH", "PICNIC", "CORPORATE", "FARMHOUSE", "HUT", "WATERPARK",
 ];

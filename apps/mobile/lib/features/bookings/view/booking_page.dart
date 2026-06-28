@@ -42,7 +42,7 @@ class _BookingPageState extends State<BookingPage> {
   bool _busy = false;
 
   bool get _isBus => widget.trip.serviceType == 'BUS';
-  bool get _isRide => widget.trip.serviceType == 'CAR';
+  bool get _isRide => widget.trip.serviceType == 'CAR' || widget.trip.serviceType == 'HIACE';
 
   @override
   void dispose() {

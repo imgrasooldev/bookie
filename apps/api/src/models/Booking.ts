@@ -31,7 +31,7 @@ const bookingSchema = new Schema(
     operator: { type: Schema.Types.ObjectId, ref: "Operator", required: true },
     serviceType: {
       type: String,
-      enum: ["BUS", "CAR", "PICNIC", "CORPORATE"],
+      enum: ["BUS", "CAR", "HIACE", "PICNIC", "CORPORATE"],
       required: true,
     },
     // booked segment (for multi-stop routes); falls back to the trip's full route

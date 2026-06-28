@@ -7,12 +7,12 @@ import { authHeaders, setSession, type OperatorAccount, type Role } from "./auth
 const API_URL = (import.meta.env.VITE_API_URL as string) ?? "http://localhost:4000";
 
 const SERVICE: Record<CategoryKey, string> = {
-  BUS: "BUS", FLIGHT: "FLIGHT", TRAIN: "TRAIN", CAR: "CAR",
+  BUS: "BUS", FLIGHT: "FLIGHT", TRAIN: "TRAIN", CAR: "CAR", HIACE: "HIACE",
   HOTEL: "HOTEL", FARMHOUSE: "FARMHOUSE", HUT: "HUT", WATERPARK: "WATERPARK",
   TOUR: "TOUR", PICNIC: "PICNIC",
 };
 const CATEGORY: Record<string, CategoryKey> = {
-  BUS: "BUS", FLIGHT: "FLIGHT", TRAIN: "TRAIN", CAR: "CAR",
+  BUS: "BUS", FLIGHT: "FLIGHT", TRAIN: "TRAIN", CAR: "CAR", HIACE: "HIACE",
   HOTEL: "HOTEL", FARMHOUSE: "FARMHOUSE", HUT: "HUT", WATERPARK: "WATERPARK",
   TOUR: "TOUR", PICNIC: "PICNIC",
 };

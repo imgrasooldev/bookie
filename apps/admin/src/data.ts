@@ -96,6 +96,7 @@ export type CategoryKey =
   | "FLIGHT"
   | "TRAIN"
   | "CAR"
+  | "HIACE"
   | "HOTEL"
   | "FARMHOUSE"
   | "HUT"
@@ -118,6 +119,7 @@ export const CATEGORIES: Category[] = [
   { key: "FLIGHT", label: "Flight", kind: "transport", icon: "✈️", color: "#7c3aed" },
   { key: "TRAIN", label: "Train", kind: "transport", icon: "🚆", color: "#0e7490" },
   { key: "CAR", label: "Car", kind: "transport", icon: "🚗", color: "#0891b2" },
+  { key: "HIACE", label: "HiAce", kind: "transport", icon: "🚐", color: "#0e7490" },
   { key: "HOTEL", label: "Hotel", kind: "stay", icon: "🏨", color: "#be185d" },
   { key: "FARMHOUSE", label: "Farm House", kind: "stay", icon: "🏡", color: "#15803d" },
   { key: "HUT", label: "Hut", kind: "stay", icon: "🛖", color: "#b45309" },

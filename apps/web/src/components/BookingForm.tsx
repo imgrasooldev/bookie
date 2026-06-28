@@ -65,7 +65,7 @@ function buildSeats(trip: Trip): { labels: string[]; rows: number; booked: Set<s
 
 export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
   const isBus = trip.serviceType === "BUS";
-  const isRide = trip.serviceType === "CAR";
+  const isRide = trip.serviceType === "CAR" || trip.serviceType === "HIACE";
   const isQuote = trip.price === 0;
 
   const seatMap = useMemo(() => buildSeats(trip), [trip]);

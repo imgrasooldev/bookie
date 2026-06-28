@@ -143,7 +143,7 @@ class _BookingPageState extends State<BookingPage> {
           children: [
             const Text('Select your seats', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 12),
-            SeatPicker(capacity: capacity, booked: booked, business: business, onChanged: (s) => setState(() => _seats = s)),
+            SeatPicker(capacity: capacity, booked: booked, business: business, isCar: widget.trip.serviceType == 'CAR', onChanged: (s) => setState(() => _seats = s)),
             const SizedBox(height: 20),
             _contactSection(user),
             const SizedBox(height: 20),

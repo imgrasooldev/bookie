@@ -8,9 +8,10 @@ class SeatPicker extends StatefulWidget {
   final Set<String> booked;
   final Set<String> business;
   final int maxSeats;
+  final bool isCar; // render a car layout (driver + 1 front + 2-3 back) instead of the bus grid
   final ValueChanged<Map<String, String>> onChanged;
 
-  const SeatPicker({super.key, required this.capacity, required this.booked, this.business = const {}, this.maxSeats = 6, required this.onChanged});
+  const SeatPicker({super.key, required this.capacity, required this.booked, this.business = const {}, this.maxSeats = 6, this.isCar = false, required this.onChanged});
 
   @override
   State<SeatPicker> createState() => _SeatPickerState();
@@ -20,6 +21,11 @@ class _SeatPickerState extends State<SeatPicker> {
   final Map<String, String> _selected = {}; // seat -> gender
 
   List<String> get _labels {
+    if (widget.isCar) {
+      // 1 front passenger seat + the rest in the back (e.g. 4 seats → F1, B1, B2, B3)
+      final n = widget.capacity.clamp(2, 4);
+      return ['F1', for (var i = 1; i <= n - 1; i++) 'B$i'];
+    }
     const cols = ['A', 'B', 'C', 'D'];
     final out = <String>[];
     var r = 1;
@@ -53,7 +59,6 @@ class _SeatPickerState extends State<SeatPicker> {
   @override
   Widget build(BuildContext context) {
     final labels = _labels.toSet();
-    final rows = labels.isEmpty ? 0 : labels.map((s) => int.parse(s.substring(0, s.length - 1))).reduce((a, b) => a > b ? a : b);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,36 +72,7 @@ class _SeatPickerState extends State<SeatPicker> {
           const _Legend(color: Color(0xFFE2E8F0), label: 'Booked'),
         ]),
         const SizedBox(height: 14),
-        // bus body
-        Center(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(24), border: Border.all(color: AppColors.hairline, width: 2)),
-            child: Column(
-              children: [
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  const Text('Front', style: TextStyle(fontSize: 11, color: AppColors.muted)),
-                  Container(height: 30, width: 30, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.hairline, width: 2)), child: const Icon(Icons.drive_eta, size: 16, color: AppColors.muted)),
-                ]),
-                const Divider(height: 18),
-                for (var r = 1; r <= rows; r++)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _seat('${r}A', labels),
-                        _seat('${r}B', labels),
-                        const SizedBox(width: 22),
-                        _seat('${r}C', labels),
-                        _seat('${r}D', labels),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
+        Center(child: widget.isCar ? _carBody(labels) : _busBody(labels)),
         if (_selected.isNotEmpty) ...[
           const SizedBox(height: 16),
           Text('${_selected.length} seat${_selected.length == 1 ? '' : 's'} selected', style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -107,10 +83,80 @@ class _SeatPickerState extends State<SeatPicker> {
             children: _selected.keys.map((seat) => _GenderChip(seat: seat, gender: _selected[seat]!, onChange: (g) => _setGender(seat, g))).toList(),
           ),
           const SizedBox(height: 6),
-          const Text('Tap ♂ / ♀ — buses seat male & female travellers separately.', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+          const Text("Tap ♂ / ♀ to set each traveller's gender.", style: TextStyle(fontSize: 12, color: AppColors.muted)),
         ],
       ],
     );
+  }
+
+  // bus / HiAce: a 2+2 grid with a centre aisle and a driver up front.
+  Widget _busBody(Set<String> labels) {
+    final rows = labels.isEmpty ? 0 : labels.map((s) => int.parse(s.substring(0, s.length - 1))).reduce((a, b) => a > b ? a : b);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(24), border: Border.all(color: AppColors.hairline, width: 2)),
+      child: Column(
+        children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            const Text('Front', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+            Container(height: 30, width: 30, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.hairline, width: 2)), child: const Icon(Icons.drive_eta, size: 16, color: AppColors.muted)),
+          ]),
+          const Divider(height: 18),
+          for (var r = 1; r <= rows; r++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _seat('${r}A', labels),
+                  _seat('${r}B', labels),
+                  const SizedBox(width: 22),
+                  _seat('${r}C', labels),
+                  _seat('${r}D', labels),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // car: driver (not bookable) + one front passenger seat, then the back row.
+  Widget _carBody(Set<String> labels) {
+    final back = labels.where((l) => l.startsWith('B')).toList()..sort();
+    return Container(
+      width: 220,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(24), border: Border.all(color: AppColors.hairline, width: 2)),
+      child: Column(
+        children: [
+          const Align(alignment: Alignment.centerLeft, child: Text('Front', style: TextStyle(fontSize: 11, color: AppColors.muted))),
+          const SizedBox(height: 8),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            _driverTile(),
+            _seat('F1', labels),
+          ]),
+          const Divider(height: 22),
+          const Align(alignment: Alignment.centerLeft, child: Text('Back', style: TextStyle(fontSize: 11, color: AppColors.muted))),
+          const SizedBox(height: 8),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [for (final b in back) _seat(b, labels)]),
+        ],
+      ),
+    );
+  }
+
+  Widget _driverTile() {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(
+        height: 36,
+        width: 36,
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(color: Color(0xFFE2E8F0), borderRadius: BorderRadius.vertical(top: Radius.circular(10), bottom: Radius.circular(6))),
+        child: const Icon(Icons.drive_eta, size: 18, color: AppColors.muted),
+      ),
+      const SizedBox(height: 2),
+      const Text('Driver', style: TextStyle(fontSize: 9, color: AppColors.muted)),
+    ]);
   }
 
   Widget _seat(String label, Set<String> valid) {

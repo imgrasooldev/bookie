@@ -50,6 +50,12 @@ function buildSeats(trip: Trip): { labels: string[]; rows: number; booked: Set<s
   const booked = new Set(trip.bookedSeats ?? []);
   const business = new Set(trip.businessSeats ?? []);
   const total = (trip.seatsAvailable ?? 36) + booked.size;
+  // car: 1 front passenger seat + the rest in the back (e.g. 4 → F1, B1, B2, B3)
+  if (trip.serviceType === "CAR") {
+    const cap = Math.min(Math.max(total, 2), 4);
+    const labels = ["F1", ...Array.from({ length: cap - 1 }, (_, i) => `B${i + 1}`)];
+    return { labels, rows: 0, booked, business };
+  }
   const cols = SEAT_COLS.filter(Boolean) as string[];
   const labels: string[] = [];
   let r = 1;
@@ -66,6 +72,7 @@ function buildSeats(trip: Trip): { labels: string[]; rows: number; booked: Set<s
 export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
   const isRide = trip.serviceType === "CAR" || trip.serviceType === "HIACE";
   const isSeat = isRide || trip.serviceType === "BUS"; // bus, car & HiAce reserve seats
+  const isCarLayout = trip.serviceType === "CAR"; // car gets a driver + front + back layout
   const isQuote = trip.price === 0;
 
   const seatMap = useMemo(() => buildSeats(trip), [trip]);
@@ -188,6 +195,34 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
 
   function setGender(seat: string, g: Gender) {
     setSeatGender((m) => ({ ...m, [seat]: g }));
+  }
+
+  // one seat button, reused by the bus grid and the car layout
+  function seatBtn(seat: string) {
+    if (!validSeats.has(seat)) return <div key={seat} className="h-9 w-9" />;
+    const booked = seatMap.booked.has(seat);
+    const sel = selected.includes(seat);
+    const biz = seatMap.business.has(seat);
+    const g = seatGender[seat];
+    return (
+      <button
+        key={seat}
+        onClick={() => toggleSeat(seat)}
+        disabled={booked}
+        title={booked ? `${seat} — reserved` : biz ? `${seat} — Business (+${formatPKR(businessSurcharge)})` : seat}
+        className={`flex h-9 w-9 items-center justify-center rounded-lg rounded-t-md text-[11px] font-semibold transition ${
+          booked
+            ? "cursor-not-allowed bg-slate-200 text-slate-400"
+            : sel
+              ? `scale-105 text-white shadow-md ${g === "F" ? "bg-pink-500" : biz ? "bg-amber-500" : "bg-brand-600"}`
+              : biz
+                ? "bg-amber-50 text-amber-700 ring-1 ring-amber-300 hover:bg-amber-100"
+                : "bg-surface text-brand-700 ring-1 ring-brand-100 hover:bg-brand-50"
+        }`}
+      >
+        {seat}
+      </button>
+    );
   }
 
   const bookerValid = bName.trim().length > 1 && isValidCnic(bCnic) && isValidPkMobile(bPhone);
@@ -341,47 +376,42 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
                 </p>
               )}
 
-              <div className="mx-auto max-w-xs rounded-[1.75rem] border-2 border-slate-200 bg-slate-50 p-4">
-                <div className="mb-3 flex items-center justify-between border-b border-dashed border-slate-300 pb-3">
-                  <span className="text-xs font-medium text-muted">Front</span>
-                  <span className="grid h-9 w-9 place-items-center rounded-full border-2 border-slate-300 text-slate-400">
-                    <SteeringIcon className="h-5 w-5" />
-                  </span>
+              {isCarLayout ? (
+                <div className="mx-auto max-w-[200px] rounded-[1.75rem] border-2 border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-1 text-xs font-medium text-muted">Front</div>
+                  <div className="mb-3 flex items-start justify-around border-b border-dashed border-slate-300 pb-3">
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="grid h-9 w-9 place-items-center rounded-lg rounded-t-md bg-slate-200 text-slate-400">
+                        <SteeringIcon className="h-5 w-5" />
+                      </span>
+                      <span className="text-[10px] text-muted">Driver</span>
+                    </div>
+                    {seatBtn("F1")}
+                  </div>
+                  <div className="mb-2 text-xs font-medium text-muted">Back</div>
+                  <div className="flex justify-center gap-2">
+                    {seatMap.labels.filter((l) => l.startsWith("B")).map((l) => seatBtn(l))}
+                  </div>
                 </div>
-
-                <div className="grid grid-cols-5 gap-2">
-                  {Array.from({ length: seatMap.rows }, (_, r) =>
-                    SEAT_COLS.map((col, ci) => {
-                      if (col === "") return <div key={`${r}-gap-${ci}`} className="w-8" />;
-                      const seat = `${r + 1}${col}`;
-                      if (!validSeats.has(seat)) return <div key={seat} className="h-9 w-9" />;
-                      const booked = seatMap.booked.has(seat);
-                      const sel = selected.includes(seat);
-                      const biz = seatMap.business.has(seat);
-                      const g = seatGender[seat];
-                      return (
-                        <button
-                          key={seat}
-                          onClick={() => toggleSeat(seat)}
-                          disabled={booked}
-                          title={booked ? `${seat} — reserved` : biz ? `${seat} — Business (+${formatPKR(businessSurcharge)})` : seat}
-                          className={`flex h-9 w-9 items-center justify-center rounded-lg rounded-t-md text-[11px] font-semibold transition ${
-                            booked
-                              ? "cursor-not-allowed bg-slate-200 text-slate-400"
-                              : sel
-                                ? `scale-105 text-white shadow-md ${g === "F" ? "bg-pink-500" : biz ? "bg-amber-500" : "bg-brand-600"}`
-                                : biz
-                                  ? "bg-amber-50 text-amber-700 ring-1 ring-amber-300 hover:bg-amber-100"
-                                  : "bg-surface text-brand-700 ring-1 ring-brand-100 hover:bg-brand-50"
-                          }`}
-                        >
-                          {seat}
-                        </button>
-                      );
-                    }),
-                  )}
+              ) : (
+                <div className="mx-auto max-w-xs rounded-[1.75rem] border-2 border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-3 flex items-center justify-between border-b border-dashed border-slate-300 pb-3">
+                    <span className="text-xs font-medium text-muted">Front</span>
+                    <span className="grid h-9 w-9 place-items-center rounded-full border-2 border-slate-300 text-slate-400">
+                      <SteeringIcon className="h-5 w-5" />
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-5 gap-2">
+                    {Array.from({ length: seatMap.rows }, (_, r) =>
+                      SEAT_COLS.map((col, ci) => {
+                        if (col === "") return <div key={`${r}-gap-${ci}`} className="w-8" />;
+                        const seat = `${r + 1}${col}`;
+                        return seatBtn(seat);
+                      }),
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* selected seats with gender toggle (gender-aware map) */}
               {selected.length > 0 && (

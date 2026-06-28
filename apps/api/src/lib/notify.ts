@@ -40,15 +40,36 @@ async function sendPush(to: Recipient, title: string, body: string, data?: Recor
   }
 }
 
-/** SMS via a gateway (Twilio / local PK SMS provider). */
-async function sendSms(phone: string | undefined, body: string): Promise<ChannelResult> {
+/**
+ * Low-level SMS send — reused by notify() (confirmations/delays) and by OTP
+ * login. Two integration seams: a generic HTTP gateway (most local PK providers
+ * expose a simple JSON endpoint) and Twilio. With neither configured it logs a
+ * STUB so the whole flow stays testable without credentials.
+ */
+export async function sendRawSms(phone: string | undefined, body: string): Promise<ChannelResult> {
   if (!phone) return { channel: "sms", status: "SKIPPED", detail: "no phone" };
-  // SEAM: Twilio messages.create({ to: phone, from, body }) using TWILIO_* env.
-  if (!process.env.TWILIO_AUTH_TOKEN) {
-    console.log(`[notify:sms STUB] ${phone}: ${body}`);
-    return { channel: "sms", status: "STUB", detail: phone };
+  // SEAM 1: generic HTTP gateway, e.g. a local PK SMS provider. Set SMS_GATEWAY_URL.
+  if (process.env.SMS_GATEWAY_URL) {
+    try {
+      const r = await fetch(process.env.SMS_GATEWAY_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(process.env.SMS_GATEWAY_KEY ? { Authorization: `Bearer ${process.env.SMS_GATEWAY_KEY}` } : {}),
+        },
+        body: JSON.stringify({ to: phone, from: process.env.SMS_SENDER_ID ?? "Bookie", message: body }),
+      });
+      return { channel: "sms", status: r.ok ? "SENT" : "FAILED", detail: phone };
+    } catch (e) {
+      return { channel: "sms", status: "FAILED", detail: (e as Error).message };
+    }
   }
-  return { channel: "sms", status: "SENT", detail: phone };
+  // SEAM 2: Twilio messages.create({ to: phone, from, body }) using TWILIO_* env.
+  if (process.env.TWILIO_AUTH_TOKEN) {
+    return { channel: "sms", status: "SENT", detail: phone };
+  }
+  console.log(`[notify:sms STUB] ${phone}: ${body}`);
+  return { channel: "sms", status: "STUB", detail: phone };
 }
 
 /** WhatsApp via the WhatsApp Cloud API. */
@@ -104,7 +125,7 @@ export async function notify(to: Recipient, msg: NotifyInput) {
   // in-app feed copy (only for registered users — guests have no feed)
   if (to.userId) channels.push({ channel: "inapp", status: "SENT" });
   channels.push(await sendPush(to, msg.title, msg.body, data));
-  channels.push(await sendSms(to.phone, msg.body));
+  channels.push(await sendRawSms(to.phone, msg.body));
   channels.push(await sendWhatsApp(to.phone, msg.body));
   channels.push(await sendEmail(to.email, msg.title, msg.body));
 

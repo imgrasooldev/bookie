@@ -135,3 +135,41 @@ export async function login(input: { identifier: string; password: string }): Pr
   if (USE_MOCK) return mockLogin(input);
   return apiAuth("/auth/login", input);
 }
+
+/* ---------------- OTP login (password-free) ---------------- */
+
+export type OtpRequestResult = { ok: true; devCode?: string } | { ok: false; error: string };
+
+/** Ask the backend to SMS a login code. In mock mode the code is always 123456. */
+export async function requestOtp(phone: string): Promise<OtpRequestResult> {
+  if (USE_MOCK) return { ok: true, devCode: "123456" };
+  try {
+    const res = await fetch(`${API_URL}/auth/otp/request`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ phone }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: data.error ?? "Couldn't send the code. Please try again." };
+    return { ok: true, devCode: data.devCode };
+  } catch {
+    return { ok: false, error: "Couldn't reach the server. Please try again." };
+  }
+}
+
+/** Verify the SMS code and sign in (creating the account on first use). */
+export async function verifyOtp(input: { phone: string; code: string; name?: string }): Promise<AuthResult> {
+  if (USE_MOCK) {
+    if (input.code.replace(/\s/g, "") !== "123456") return { ok: false, error: "Incorrect code. Use 123456 in demo mode." };
+    const users = readUsers();
+    let u = users.find((x) => digits(x.phone) === digits(input.phone));
+    if (!u) {
+      u = { name: input.name?.trim() || "Bookie User", email: "", phone: input.phone, password: "" };
+      localStorage.setItem(USERS_KEY, JSON.stringify([...users, u]));
+    }
+    const pub = { name: u.name, email: u.email, phone: u.phone };
+    setSession(pub);
+    return { ok: true, user: pub };
+  }
+  return apiAuth("/auth/otp/verify", input);
+}

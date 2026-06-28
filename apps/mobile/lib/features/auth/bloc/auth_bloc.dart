@@ -34,6 +34,15 @@ class AuthRegisterRequested extends AuthEvent {
   List<Object?> get props => [name, phone, email, password];
 }
 
+class AuthOtpVerifyRequested extends AuthEvent {
+  final String phone;
+  final String code;
+  final String? name; // used only when the account is created on first login
+  const AuthOtpVerifyRequested({required this.phone, required this.code, this.name});
+  @override
+  List<Object?> get props => [phone, code, name];
+}
+
 class AuthLogoutRequested extends AuthEvent {
   const AuthLogoutRequested();
 }
@@ -80,6 +89,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(state.copyWith(status: AuthStatus.submitting, error: null));
       try {
         final user = await _repo.register(name: event.name, phone: event.phone, email: event.email, password: event.password);
+        emit(AuthState(status: AuthStatus.authenticated, user: user));
+      } catch (e) {
+        emit(AuthState(status: AuthStatus.unauthenticated, error: apiError(e)));
+      }
+    });
+
+    on<AuthOtpVerifyRequested>((event, emit) async {
+      emit(state.copyWith(status: AuthStatus.submitting, error: null));
+      try {
+        final user = await _repo.verifyOtp(phone: event.phone, code: event.code, name: event.name);
         emit(AuthState(status: AuthStatus.authenticated, user: user));
       } catch (e) {
         emit(AuthState(status: AuthStatus.unauthenticated, error: apiError(e)));

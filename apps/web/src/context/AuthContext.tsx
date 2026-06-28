@@ -6,8 +6,11 @@ import {
   login as doLogin,
   logout as doLogout,
   signup as doSignup,
+  requestOtp as doRequestOtp,
+  verifyOtp as doVerifyOtp,
   type AuthResult,
   type AuthUser,
+  type OtpRequestResult,
 } from "@/lib/auth";
 
 interface Ctx {
@@ -15,6 +18,8 @@ interface Ctx {
   ready: boolean;
   login: (i: { identifier: string; password: string }) => Promise<AuthResult>;
   signup: (i: { name: string; email: string; phone: string; password: string }) => Promise<AuthResult>;
+  requestOtp: (phone: string) => Promise<OtpRequestResult>;
+  verifyOtp: (i: { phone: string; code: string; name?: string }) => Promise<AuthResult>;
   logout: () => void;
 }
 
@@ -43,6 +48,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (r.ok) setState({ user: r.user, ready: true });
     return r;
   };
+  const requestOtp: Ctx["requestOtp"] = (phone) => doRequestOtp(phone);
+  const verifyOtp: Ctx["verifyOtp"] = async (i) => {
+    const r = await doVerifyOtp(i);
+    if (r.ok) setState({ user: r.user, ready: true });
+    return r;
+  };
   const logout = () => {
     doLogout();
     setState({ user: null, ready: true });
@@ -50,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthCtx.Provider
-      value={{ user: state.user, ready: state.ready, login, signup, logout }}
+      value={{ user: state.user, ready: state.ready, login, signup, requestOtp, verifyOtp, logout }}
     >
       {children}
     </AuthCtx.Provider>

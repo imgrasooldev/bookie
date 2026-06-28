@@ -5,6 +5,7 @@ import { Transaction } from "../models/Transaction.js";
 import { optionalAuth } from "../middleware/auth.js";
 import { ah, HttpError } from "../middleware/error.js";
 import { defaultGateway, getGateway, type WebhookResult } from "../lib/payments.js";
+import { notify } from "../lib/notify.js";
 
 export const paymentRouter = Router();
 
@@ -29,6 +30,19 @@ async function finalize(gateway: string, result: WebhookResult) {
         transactionRef: result.gatewayRef,
       } as typeof booking.payment;
       await booking.save();
+
+      // Confirmation across the customer's reachable channels (SMS is the one
+      // that matters in PK). Best-effort — never fail the payment on a send error.
+      await notify(
+        { userId: booking.customer ?? undefined, phone: booking.contact?.phone ?? undefined, email: booking.contact?.email ?? undefined },
+        {
+          type: "BOOKING",
+          title: "Booking confirmed",
+          body: `Bookie: your booking ${booking.bookingNo} is confirmed. Show your e-ticket at boarding. Thank you!`,
+          booking: booking._id,
+          trip: booking.trip,
+        },
+      ).catch(() => undefined);
     }
   }
   return txn;

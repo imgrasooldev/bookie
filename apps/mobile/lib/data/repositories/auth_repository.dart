@@ -30,6 +30,23 @@ class AuthRepository {
     return _persist(res.data);
   }
 
+  /// Ask the server to SMS a login code. Returns the dev-mode code when no SMS
+  /// provider is configured (so QA can complete the flow); null in production.
+  Future<String?> requestOtp(String phone) async {
+    final res = await _api.dio.post('/auth/otp/request', data: {'phone': phone});
+    return (res.data as Map)['devCode'] as String?;
+  }
+
+  /// Verify the SMS code and sign in (creating the account on first use).
+  Future<AuthUser> verifyOtp({required String phone, required String code, String? name}) async {
+    final res = await _api.dio.post('/auth/otp/verify', data: {
+      'phone': phone,
+      'code': code,
+      if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
+    });
+    return _persist(res.data);
+  }
+
   Future<Profile> profile() async {
     final res = await _api.dio.get('/account');
     return Profile.fromJson(res.data as Map<String, dynamic>);

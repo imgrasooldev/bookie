@@ -379,14 +379,15 @@ export function BookingForm({ trip, date }: { trip: Trip; date?: string }) {
               {isCarLayout ? (
                 <div className="mx-auto max-w-[200px] rounded-[1.75rem] border-2 border-slate-200 bg-slate-50 p-4">
                   <div className="mb-1 text-xs font-medium text-muted">Front</div>
+                  {/* right-hand-drive: front passenger seat on the left, driver on the right */}
                   <div className="mb-3 flex items-start justify-around border-b border-dashed border-slate-300 pb-3">
+                    {seatBtn("F1")}
                     <div className="flex flex-col items-center gap-1">
                       <span className="grid h-9 w-9 place-items-center rounded-lg rounded-t-md bg-slate-200 text-slate-400">
                         <SteeringIcon className="h-5 w-5" />
                       </span>
                       <span className="text-[10px] text-muted">Driver</span>
                     </div>
-                    {seatBtn("F1")}
                   </div>
                   <div className="mb-2 text-xs font-medium text-muted">Back</div>
                   <div className="flex justify-center gap-2">

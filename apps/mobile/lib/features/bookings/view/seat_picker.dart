@@ -132,9 +132,10 @@ class _SeatPickerState extends State<SeatPicker> {
         children: [
           const Align(alignment: Alignment.centerLeft, child: Text('Front', style: TextStyle(fontSize: 11, color: AppColors.muted))),
           const SizedBox(height: 8),
+          // right-hand-drive: front passenger seat on the left, driver on the right
           Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _driverTile(),
             _seat('F1', labels),
+            _driverTile(),
           ]),
           const Divider(height: 22),
           const Align(alignment: Alignment.centerLeft, child: Text('Back', style: TextStyle(fontSize: 11, color: AppColors.muted))),

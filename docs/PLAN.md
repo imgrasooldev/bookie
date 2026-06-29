@@ -1,5 +1,10 @@
 # Transport Booking Platform — Technical Plan & Architecture
 
+> ⚠️ **Historical design doc.** For how the platform actually works today, see
+> [`ARCHITECTURE.md`](ARCHITECTURE.md). Current scope is narrowed to **intercity per-seat
+> Bus / Car / HiAce** (other verticals exist in the model but are disabled via the admin
+> Services toggle); car/HiAce are now **route-based per-seat** (not intra-city rides).
+
 > A multi-vertical transport booking marketplace for Pakistan (à la Bookme / Sastaticket).
 > Verticals: **Bus (intercity ticketing)**, **Intra-city car/ride**, **Picnic & party booking**, **Corporate event transport**.
 > Targets: **Web (customer)**, **Admin/Operator panel**, **Mobile (Android, iOS, Huawei)**.

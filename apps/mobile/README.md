@@ -1,60 +1,58 @@
 # bookie_mobile
 
-Bookie Flutter app — **Android, iOS, and Huawei**. Mirrors the web customer flow
-(multi-vertical search → results → seat/booking) over the same API shapes.
+Bookie Flutter app — **Android, iOS, Huawei-ready**. The customer client: search intercity
+**Bus / Car / HiAce** by route, pick seats, pay, and manage bookings over the same API the web
+app uses. Full context: [`docs/ARCHITECTURE.md §7`](../../docs/ARCHITECTURE.md#7-mobile-app).
 
 ## Run
 
 ```bash
 flutter pub get
-flutter run            # pick a device/emulator/Chrome
+flutter run            # pick a device/emulator
 flutter analyze        # static checks
-flutter test           # widget smoke test
 ```
 
-By default the app uses **bundled mock data** (`lib/mock_data.dart`) so it runs
-with no backend. To hit the real API (`apps/api`):
+API base URL + mock toggle live in `lib/config.dart` (`prodApiUrl = https://bookie-api.fly.dev`).
+Android emulator reaches a local API at `http://10.0.2.2:4000`.
 
-1. Start the backend (`cd ../api && npm run dev`).
-2. In `lib/config.dart` set `useMock = false`.
-   - Android emulator reaches the host at `http://10.0.2.2:4000` (already handled).
+## Build & install
+
+```bash
+flutter build apk --release        # build/app/outputs/flutter-apk/app-release.apk
+./install-to-phone.ps1             # one-command build + install to a connected device
+```
 
 ## Structure
 ```
 lib/
-├── main.dart            # app entry + theme
-├── config.dart          # API base URL + useMock toggle
-├── theme.dart           # brand colors, Material 3 theme
-├── models.dart          # Vertical / City / Operator / Trip (match the API)
-├── api.dart             # data seam (mock or real API)
-├── mock_data.dart       # bundled demo data
-├── format.dart          # PKR currency, time, duration
-├── screens/
-│   ├── home_screen.dart     # hero + vertical tabs + search
-│   ├── results_screen.dart  # trip list
-│   └── booking_screen.dart  # seat picker / pax / payment / confirm
-└── widgets/trip_card.dart
+├── config.dart                 # API base URL + useMock
+├── core/
+│   ├── di/injector.dart        # get_it service locator
+│   ├── network/api_client.dart # dio client + error mapping
+│   └── theme / widgets / util
+├── data/
+│   ├── models/api_models.dart  # Trip, Ticket, PaymentSession, PayMethod, …
+│   └── repositories/           # auth_repository, booking_repository, …
+└── features/
+    ├── splash · onboarding
+    ├── auth/                   # OTP login (phone → code) + password fallback
+    ├── trips/                  # search (From/To/date) · results · detail · seat picker
+    ├── bookings/               # booking · seat_picker · payment_page · ticket · review
+    └── account/                # profile · bookings · wallet
 ```
 
-## Huawei (HMS) support
-This app currently has **no Google Play Services dependencies** (no Firebase, no
-Google Maps), so it builds and runs on Huawei devices and can ship to **AppGallery**
-as-is:
+## State & data
+`flutter_bloc` for state (e.g. `AuthBloc`, `BookingBloc`), `get_it` for DI, `dio` for HTTP.
+Repositories are the single seam to the API; flip `useMock` for offline/demo data.
 
-```bash
-flutter build apk --release      # works on both GMS and HMS devices
-flutter build appbundle          # Play Store
-flutter build ios                # iOS
-```
+## Highlights
+- **OTP login** — phone → SMS code → in; account created on first use (password fallback available).
+- **Per-vehicle seat maps** — bus 2+2 grid, **car** driver-right (RHD) + front + back, HiAce van.
+- **Payments** — `payment_page` loads `/payments/methods` live: gateway hosted checkout, mock, or cash-at-terminal.
 
-The GMS/HMS **flavor split** (see [`docs/PLAN.md`](../../docs/PLAN.md) §5) only
-becomes necessary when we add services that differ per platform:
+## Huawei (HMS)
+No hard Google Play Services dependency; FCM push is behind a seam, so the release APK builds for
+**AppGallery** as-is. A GMS/HMS flavor split is only needed once platform-specific services
+(push/maps/location) diverge.
 
-| Concern | Google (GMS) | Huawei (HMS) |
-|---|---|---|
-| Push | Firebase Cloud Messaging | Huawei Push Kit |
-| Maps | google_maps_flutter | huawei_map / Petal Maps |
-| Location | fused location | HMS Location Kit |
-
-At that point we introduce `gms` / `hms` build flavors that swap the plugin
-implementation behind a shared interface, keeping one codebase.
+> CI/CD intentionally **excludes** mobile — it ships manually while in development.

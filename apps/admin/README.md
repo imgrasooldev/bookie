@@ -1,7 +1,8 @@
-# Bookie — Admin / Operator Console
+# Bookie — Admin & Operator Console
 
-React + Vite + TypeScript + Tailwind v4 dashboard for managing the Bookie
-marketplace: operators, trips/inventory and bookings.
+**Vite + React + TypeScript + Tailwind v4** SPA. One app serves **two roles**: vendor-facing
+**operator** pages and platform-wide **super-admin** pages. Full context:
+[`docs/ARCHITECTURE.md §6`](../../docs/ARCHITECTURE.md#6-admin--operator-console).
 
 ## Run
 
@@ -11,14 +12,28 @@ npm run dev      # http://localhost:5174
 npm run build    # type-check + production build
 ```
 
-## Pages
-- **Dashboard** — KPI tiles, bookings-trend chart, revenue by vertical, recent bookings
-- **Operators** — vendor list with status, rating and active-trip counts
-- **Trips & Inventory** — listings table + a working "Add trip" slide-over form
-- **Bookings** — all bookings with status filters and payment-method indicators
+Set `VITE_API_URL` to point at the API (defaults to localhost:4000). Routing uses
+`HashRouter`, so it deploys to static hosting (nginx) with no server rewrites.
+
+## Operator pages (scoped to the logged-in vendor)
+- **Dashboard** — KPI tiles, bookings trend, revenue, recent bookings
+- **Trips & Inventory** — listings + add/edit (price, seats, **business seats**, route stops)
+- **Bookings** — vendor's bookings with status + payment indicators
+- **Manifest** — passenger list per departure (for boarding + **cash reconciliation**)
+- **Fleet / Schedules** — vehicles, media, timings
+- **Delay** — push a delay notification to a trip's passengers
+
+## Super-admin pages (`/admin/*`, staff + RBAC)
+- **Overview** — marketplace-wide KPIs
+- **Operators** — vendors, status, reset password
+- **Approvals** — approve / suspend listings
+- **Cities** — cities + **terminals** (boarding/drop-off `adda` points)
+- **Services** — **enable/disable verticals** (keeps the marketplace to Bus/Car/HiAce)
+- **Team / Roles** — staff accounts + role-based permissions
 
 ## Data
-Currently mock data in `src/data.ts` (shapes mirror `apps/api`). When the admin
-endpoints exist, swap the imports for fetch calls — the component code stays the
-same. Routing uses `HashRouter` so it works on static hosting without server
-rewrites.
+Talks to `/operator/*`, `/sa/*`, and `/admin/*` through `src/api.ts` (shapes in `src/data.ts`).
+
+## Deploy
+`fly deploy --remote-only` (app `bookie-admin`, served by nginx). See
+[`docs/DEPLOY-FLY.md`](../../docs/DEPLOY-FLY.md).

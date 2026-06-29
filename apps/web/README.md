@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bookie — Customer Web App
 
-## Getting Started
+**Next.js 16** (App Router, Turbopack, standalone output), React 19, TypeScript, Tailwind v4.
+The customer-facing site: search intercity **Bus / Car / HiAce**, pick seats, pay, and manage
+bookings. Full context: [`docs/ARCHITECTURE.md §5`](../../docs/ARCHITECTURE.md#5-customer-web-app).
 
-First, run the development server:
+## Run
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
+npm run build    # production build (standalone)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Reads mock data by default. For the live backend set `NEXT_PUBLIC_USE_MOCK=false` and
+`NEXT_PUBLIC_API_URL=http://localhost:4000` (or the deployed API). See
+[`docs/RUN-LIVE.md`](../../docs/RUN-LIVE.md). For LAN/phone testing, add your IP to
+`allowedDevOrigins` in `next.config.ts`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Routes
+- `/` — hero + `SearchPanel` (From / To / date / passengers + swap) + popular routes
+- `/search` — results with filters
+- `/booking/[id]` — `BookingForm`: 2-step bus flow (seats → travellers & pay) + per-vehicle seat maps (car shows driver-right/front/back)
+- `/ticket/[id]` — e-ticket (print, cancel, scannable QR) · `/ticket` — guest lookup
+- `/pay/result` — hosted-checkout return page
+- `/login`, `/signup` — **OTP-first** login with password fallback
+- `/account/*` — profile, bookings, wallet
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Data & payments
+Single data seam in `src/lib/` — `api.ts` (catalog), `bookings.ts`, `auth.ts`, `payments.ts`.
+Checkout uses **create-then-pay**: `RealPaymentDialog` reserves the booking, loads
+`/payments/methods`, then settles (mock), redirects (JazzCash/Easypaisa/Safepay), or reserves
+cash-at-terminal. Guest checkout is supported end-to-end.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deploy
+`fly deploy --remote-only` (app `bookie-web`). See [`docs/DEPLOY-FLY.md`](../../docs/DEPLOY-FLY.md).

@@ -577,7 +577,7 @@ export const openapiSpec = {
           required: true,
           content: {
             "application/json": {
-              schema: { type: "object", required: ["identifier", "password"], properties: { identifier: { type: "string", example: "admin@bookie.pk" }, password: { type: "string", example: "admin123" } } },
+              schema: { type: "object", required: ["identifier", "password"], properties: { identifier: { type: "string", example: "you@example.com" }, password: { type: "string", example: "your-password" } } },
             },
           },
         },

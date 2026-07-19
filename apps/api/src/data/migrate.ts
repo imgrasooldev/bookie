@@ -32,15 +32,17 @@ async function run() {
 
   const admin = await User.findOne({ email: "admin@bookie.pk" });
   if (!admin) {
+    // Never hardcode a real password in a public repo — read from env.
+    const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD ?? "change-me-now";
     await User.create({
       name: "Super Admin",
       phone: "03000000001",
       email: "admin@bookie.pk",
-      passwordHash: await bcrypt.hash("admin123", 10),
+      passwordHash: await bcrypt.hash(seedAdminPassword, 10),
       roles: ["admin"],
       roleId: superRole?._id,
     });
-    console.log("[migrate] created super-admin admin@bookie.pk / admin123");
+    console.log("[migrate] created super-admin admin@bookie.pk (password from SEED_ADMIN_PASSWORD, else placeholder — change it)");
   } else if (!admin.roleId && superRole) {
     admin.roleId = superRole._id;
     await admin.save();

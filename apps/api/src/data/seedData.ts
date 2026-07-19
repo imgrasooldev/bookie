@@ -106,12 +106,18 @@ export async function seedDatabase() {
     await Role.updateOne({ name: r.name }, { $setOnInsert: r }, { upsert: true });
   }
   const superRole = await Role.findOne({ super: true });
+  // Seed password comes from SEED_ADMIN_PASSWORD (never hardcode a real one in a
+  // public repo). Falls back to an obvious placeholder you MUST change.
+  const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD ?? "change-me-now";
+  if (!process.env.SEED_ADMIN_PASSWORD) {
+    console.warn('[seed] SEED_ADMIN_PASSWORD not set — using placeholder "change-me-now". Change it immediately.');
+  }
   await User.deleteOne({ email: "admin@bookie.pk" });
   await User.create({
     name: "Super Admin",
     phone: "03000000001",
     email: "admin@bookie.pk",
-    passwordHash: await bcrypt.hash("admin123", 10),
+    passwordHash: await bcrypt.hash(seedAdminPassword, 10),
     roles: ["admin"],
     roleId: superRole?._id,
   });

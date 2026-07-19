@@ -28,3 +28,7 @@ coverage/
 
 # uploaded media (vehicle photos/videos)
 apps/api/uploads/
+
+# never commit generated docs with credentials
+*.pdf
+Bookie-Documentation.pdf
